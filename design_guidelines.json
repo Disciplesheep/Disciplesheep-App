@@ -1,0 +1,220 @@
+{
+  "identity": {
+    "name": "Sow & Reap Journal",
+    "persona": "The Faithful Steward",
+    "description": "A digital companion for the church planter in Palawan. Focusing on spiritual depth, relational breadth, and financial integrity.",
+    "theme": "Organic & Earthy (Tropical Light Mode)",
+    "emotional_tone": "Peaceful, Disciplined, Organic, Relational",
+    "target_audience": "Church Planter (29yo), Mobile-heavy user, Puerto Princesa context"
+  },
+  "typography": {
+    "headings": {
+      "family": "Playfair Display, serif",
+      "weights": ["400", "600", "700"],
+      "usage": "Page titles, Section headers, Scripture references",
+      "style": "tracking-tight leading-none text-forest-900"
+    },
+    "body": {
+      "family": "Manrope, sans-serif",
+      "weights": ["400", "500", "600"],
+      "usage": "General text, Form inputs, List items",
+      "style": "text-base leading-relaxed text-stone-700"
+    },
+    "mono": {
+      "family": "JetBrains Mono, monospace",
+      "weights": ["500"],
+      "usage": "Budget numbers, Currency, Dates",
+      "style": "text-sm tracking-wide"
+    }
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "DEFAULT": "#0F5132",
+        "foreground": "#FFFFFF",
+        "50": "#E8F5E9",
+        "100": "#C8E6C9",
+        "500": "#0F5132",
+        "900": "#052C18",
+        "description": "Philippine Forest Green - Used for Primary Actions, Active States, Headers"
+      },
+      "secondary": {
+        "DEFAULT": "#D97706",
+        "foreground": "#FFFFFF",
+        "100": "#FFEDD5",
+        "500": "#D97706",
+        "900": "#78350F",
+        "description": "Golden Mango - Used for Highlights, 'Praises', Important Alerts"
+      },
+      "background": {
+        "DEFAULT": "#FDFBF7",
+        "paper": "#F5F5F4",
+        "description": "Warm Rice Paper - Avoid pure #FFFFFF for main backgrounds. Use soft cream."
+      },
+      "surface": {
+        "DEFAULT": "#FFFFFF",
+        "muted": "#F3F4F6",
+        "description": "Clean white for cards to create contrast against cream background."
+      },
+      "text": {
+        "main": "#1C1917",
+        "muted": "#57534E",
+        "light": "#A8A29E"
+      },
+      "functional": {
+        "success": "#15803D",
+        "warning": "#B45309",
+        "error": "#BE123C",
+        "info": "#0369A1"
+      }
+    },
+    "gradients": {
+      "hero": "linear-gradient(180deg, rgba(15, 81, 50, 0.1) 0%, rgba(253, 251, 247, 1) 100%)",
+      "card_shine": "linear-gradient(45deg, transparent 25%, rgba(255,255,255,0.5) 50%, transparent 75%)"
+    }
+  },
+  "layout": {
+    "spacing_scale": {
+      "section_gap": "py-12 md:py-16",
+      "component_gap": "gap-6",
+      "internal_padding": "p-6"
+    },
+    "container": {
+      "max_width": "max-w-md md:max-w-2xl lg:max-w-4xl mx-auto",
+      "mobile_padding": "px-4"
+    },
+    "grids": {
+      "dashboard": "grid grid-cols-1 md:grid-cols-12 gap-4",
+      "bento_hero": "col-span-1 md:col-span-8 row-span-2",
+      "bento_sidebar": "col-span-1 md:col-span-4 row-span-1"
+    },
+    "navigation": {
+      "type": "Bottom Tab Bar (Mobile), Sidebar (Desktop - optional but focus on mobile feel)",
+      "style": "Fixed bottom, glassmorphism effect, h-16"
+    }
+  },
+  "components": {
+    "cards": {
+      "style": "bg-white rounded-xl shadow-sm border border-stone-100/50 overflow-hidden",
+      "hover": "hover:shadow-md hover:border-stone-200 transition-all duration-300"
+    },
+    "buttons": {
+      "primary": "bg-primary text-primary-foreground h-12 rounded-full px-8 font-serif tracking-wide shadow-lg shadow-primary/20 hover:shadow-xl hover:-translate-y-0.5 transition-all",
+      "secondary": "bg-stone-100 text-stone-800 h-12 rounded-full px-6 hover:bg-stone-200 font-sans",
+      "ghost": "text-primary hover:bg-primary/5 h-10 px-4 rounded-lg"
+    },
+    "inputs": {
+      "style": "bg-transparent border-b-2 border-stone-200 focus:border-primary px-0 py-3 rounded-none placeholder:text-stone-400 focus:ring-0 transition-colors",
+      "label_style": "text-xs uppercase tracking-widest text-stone-500 font-bold mb-1"
+    },
+    "journal_entry": {
+      "wrapper": "prose prose-stone max-w-none",
+      "textarea": "w-full min-h-[150px] bg-[linear-gradient(transparent_27px,#E5E7EB_28px)] bg-[length:100%_28px] leading-[28px] border-none focus:ring-0 text-lg font-serif text-stone-800 resize-none p-0"
+    }
+  },
+  "visual_enhancers": {
+    "textures": {
+      "noise": "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E\")",
+      "usage": "Overlay on solid backgrounds to give paper feel"
+    },
+    "shadows": {
+      "soft": "0 4px 20px -2px rgba(15, 81, 50, 0.08)",
+      "floating": "0 10px 40px -10px rgba(0,0,0,0.1)"
+    },
+    "border_radius": {
+      "default": "rounded-2xl",
+      "button": "rounded-full"
+    }
+  },
+  "assets": {
+    "images": [
+      {
+        "category": "hero_nature",
+        "url": "https://images.unsplash.com/photo-1690462666233-c710b82d3aef?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "description": "Tranquil body of water with lush trees. Use for Dashboard header background."
+      },
+      {
+        "category": "journal_texture",
+        "url": "https://images.unsplash.com/photo-1766250533363-01b974b2ba32?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "description": "Minimalist white journal. Use for Empty States or Journal Landing."
+      },
+      {
+        "category": "growth_bg",
+        "url": "https://images.unsplash.com/photo-1606445095898-16c730da5732?crop=entropy&cs=srgb&fm=jpg&q=85",
+        "description": "Lush green field. Use for 'People Tracker' or 'Growth' sections."
+      }
+    ],
+    "icons": {
+      "library": "lucide-react",
+      "style": "stroke-[1.5px]",
+      "mapping": {
+        "dashboard": "LayoutGrid",
+        "journal": "BookOpen",
+        "people": "Users",
+        "budget": "Wallet",
+        "settings": "Menu",
+        "add": "Plus",
+        "check": "CheckCircle2"
+      }
+    }
+  },
+  "modules_and_features": {
+    "dashboard": {
+      "components": [
+        "WelcomeHeader (Date, Greeting)",
+        "DailyVerseCard (Random/Scheduled scripture)",
+        "TaskProgress (7 daily tasks ring)",
+        "QuickEntryFab (Floating Action Button)"
+      ]
+    },
+    "journal": {
+      "structure": "5Ps Method",
+      "fields": ["Passage", "Principle", "Practice", "Praises", "Prayer"],
+      "ui_style": "Distraction-free, 'lined paper' input style"
+    },
+    "people_tracker": {
+      "view": "Card List (Mobile) / Table (Desktop)",
+      "fields": ["Name", "Generation", "Connection Method", "Topic", "Next Step"],
+      "indicators": "Color coded badges for 'Next Step' urgency"
+    },
+    "budget_ledger": {
+      "currency": "PHP (Primary) / USD (Secondary)",
+      "visuals": "Progress bar for Monthly Limit (₱11,400)",
+      "color_logic": "Green = Safe, Yellow = Warning (>75%), Red = Over Budget"
+    }
+  },
+  "accessibility": {
+    "rules": [
+      "Text on Primary Green must be White.",
+      "Text on Background must be Dark Grey (#1C1917).",
+      "Interactive elements must have min-height 44px.",
+      "Focus rings must be visible (Offset 2px)."
+    ]
+  },
+  "instructions_to_main_agent": {
+    "setup": [
+      "Install 'lucide-react' for icons.",
+      "Install 'recharts' for data visualization.",
+      "Configure 'tailwind.config.js' with the 'palette' colors provided above.",
+      "Use 'sonner' for all notifications (Save success, Budget warnings)."
+    ],
+    "implementation_priorities": [
+      "1. Build the LayoutShell (Bottom Nav + Container).",
+      "2. Create the 'JournalEntry' form with the 5Ps.",
+      "3. Implement 'localStorage' hooks for data persistence.",
+      "4. Build the Dashboard with 'Bento' grid."
+    ],
+    "specific_files": {
+      "tailwind_config": "Extend the theme with 'forest', 'sand', and 'paper' colors.",
+      "global_css": "Add the noise texture to the body background."
+    }
+  },
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Do NOT use 'Inter' for headings. Use 'Playfair Display'.",
+    "Do NOT use standard gray borders. Use 'stone-100' or warm greys.",
+    "Do NOT center text by default. Use left align for readability.",
+    "Add 'data-testid' to all inputs and buttons.",
+    "Use 'sonner' for toasts.",
+    "Ensure the app works OFFLINE (handle empty states gracefully)."
+  ]
+}

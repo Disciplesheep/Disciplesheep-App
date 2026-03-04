@@ -1,0 +1,22 @@
+{
+  "short_name": "Sow & Reap",
+  "name": "Sow & Reap Journal - Church Planter's Daily Companion",
+  "description": "A digital journal for church planters to track daily devotions, people contacts, expenses, and ministry progress",
+  "icons": [
+    {
+      "src": "https://images.unsplash.com/photo-1606445095898-16c730da5732?w=192&h=192&fit=crop",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1606445095898-16c730da5732?w=512&h=512&fit=crop",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0F5132",
+  "background_color": "#FDFBF7",
+  "orientation": "portrait"
+}
