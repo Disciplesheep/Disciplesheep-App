@@ -4,13 +4,6 @@ import { Moon, Sun, Sunrise, Type, Settings as SettingsIcon } from 'lucide-react
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   SegmentedToggle
-   A pill-based animated control that replaces the old radio buttons.
-   • Sliding indicator uses a springy cubic-bezier for a satisfying snap.
-   • Fully accessible: role="radiogroup" / role="radio" / aria-checked.
-   • Works in both light and dark mode via CSS vars.
-───────────────────────────────────────────────────────────────────────────── */
 const SegmentedToggle = ({ options, value, onChange, name }) => {
   const selectedIndex = options.findIndex(o => o.value === value);
   const pct = 100 / options.length;
@@ -29,7 +22,6 @@ const SegmentedToggle = ({ options, value, onChange, name }) => {
         background: 'var(--seg-bg)',
       }}
     >
-      {/* Sliding pill */}
       <span
         aria-hidden="true"
         style={{
@@ -45,7 +37,6 @@ const SegmentedToggle = ({ options, value, onChange, name }) => {
           pointerEvents: 'none',
         }}
       />
-
       {options.map((opt) => {
         const active = value === opt.value;
         return (
@@ -67,11 +58,11 @@ const SegmentedToggle = ({ options, value, onChange, name }) => {
               border: 'none',
               background: 'transparent',
               cursor: 'pointer',
-              fontSize: '0.8125rem',
+              fontSize: '13px',
               fontWeight: active ? 600 : 500,
               fontFamily: 'inherit',
               color: active ? 'var(--seg-active-text)' : 'var(--seg-inactive-text)',
-              transition: 'color 0.2s, font-weight 0.2s',
+              transition: 'color 0.2s',
               minHeight: 0,
               userSelect: 'none',
               WebkitUserSelect: 'none',
@@ -94,15 +85,14 @@ const SegmentedToggle = ({ options, value, onChange, name }) => {
   );
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   FontPreview — live sample that reacts to the selected font size
-───────────────────────────────────────────────────────────────────────────── */
+/* FontPreview — uses explicit px sizes matching the CSS overrides exactly */
 const FontPreview = ({ fontSize }) => {
-  const notes = {
-    small:  'Compact — more content per screen',
-    medium: 'Comfortable — default reading size',
-    large:  'Easy reading — ideal for longer sessions',
+  const config = {
+    small:  { labelSize: '11px', bodySize: '12px', note: 'Compact — more content per screen' },
+    medium: { labelSize: '12px', bodySize: '14px', note: 'Comfortable — default reading size' },
+    large:  { labelSize: '13px', bodySize: '15px', note: 'Easy reading — ideal for longer sessions' },
   };
+  const c = config[fontSize] || config.medium;
 
   return (
     <div style={{
@@ -111,30 +101,29 @@ const FontPreview = ({ fontSize }) => {
       borderRadius: '0.65rem',
       background: 'var(--preview-bg)',
       border: '1px solid var(--preview-border)',
-      transition: 'all 0.25s ease',
+      transition: 'all 0.2s ease',
     }}>
       <p style={{
         fontFamily: "'Playfair Display', serif",
-        fontSize: 'inherit',           /* inherits the scaled html font-size */
-        lineHeight: 1.55,
+        fontSize: c.bodySize,
+        lineHeight: 1.6,
         color: 'var(--preview-text)',
         margin: 0,
+        transition: 'font-size 0.2s ease',
       }}>
         "The harvest is plentiful, but the workers are few."
       </p>
       <p style={{
-        fontSize: '0.72rem',
+        fontSize: c.labelSize,
         color: 'var(--preview-muted)',
         margin: '6px 0 0',
         fontStyle: 'italic',
-      }}>{notes[fontSize] || notes.medium}</p>
+        transition: 'font-size 0.2s ease',
+      }}>{c.note}</p>
     </div>
   );
 };
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Settings page
-───────────────────────────────────────────────────────────────────────────── */
 const Settings = () => {
   const { themeMode, changeThemeMode, fontSize, changeFontSize } = useTheme();
 
@@ -223,14 +212,12 @@ const Settings = () => {
                 <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{getThemeDescription()}</p>
               </div>
             </div>
-
             <SegmentedToggle
               name="Theme mode"
               options={themeOptions}
               value={themeMode}
               onChange={changeThemeMode}
             />
-
             <p className="mt-2 text-xs text-center text-stone-400 dark:text-stone-500">
               {themeMode === 'auto'
                 ? 'Switches automatically at 6 am and 6 pm'
@@ -249,14 +236,12 @@ const Settings = () => {
                 <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">Adjust reading comfort</p>
               </div>
             </div>
-
             <SegmentedToggle
               name="Font size"
               options={fontSizeOptions}
               value={fontSize}
               onChange={changeFontSize}
             />
-
             <FontPreview fontSize={fontSize} />
           </div>
         </Card>

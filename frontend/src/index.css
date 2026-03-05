@@ -42,13 +42,6 @@ code {
         --chart-4: 25 95% 53%;
         --chart-5: 197 37% 24%;
         --radius: 1rem;
-
-        /* ── Font scale tokens ───────────────────────────────────────
-           All font sizes in the app are expressed in rem, which means
-           they inherit from html's font-size. We control that ONE value
-           here so every element scales proportionally without conflict.
-           The --font-scale variable is the single source of truth.     */
-        --font-scale: 1;          /* 1 = medium (16px base) */
     }
 
     .dark {
@@ -94,34 +87,32 @@ code {
 }
 
 /* ── Font Size ──────────────────────────────────────────────────────────────
-   Strategy: set a single CSS custom property (--font-scale) per preference,
-   then apply it to html font-size via calc(). Media query responsive bumps
-   are ADDITIVE on top — they scale proportionally rather than overriding.
+   html font-size is FIXED — layout, headings, icons never change.
+   Only small reading text (text-xs, text-sm, text-base) scales up/down.
 
-   small  → 14px base  (0.875 × 16)
-   medium → 16px base  (1.000 × 16)  ← default
-   large  → 18px base  (1.125 × 16)
+   small  → xs:11px  sm:12px  base:13px
+   medium → xs:12px  sm:14px  base:16px  ← Tailwind defaults, no override
+   large  → xs:13px  sm:15px  base:17px
    ────────────────────────────────────────────────────────────────────────── */
 
-[data-font-size="small"]  { --font-scale: 0.875; }
-[data-font-size="medium"] { --font-scale: 1;     }
-[data-font-size="large"]  { --font-scale: 1.125; }
-
-/* Apply the scale to the root font size */
 html {
-    font-size: calc(16px * var(--font-scale, 1));
+    font-size: 16px;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
 }
 
-/* Responsive bumps — now RELATIVE (em-based) so they respect --font-scale */
-@media (min-width: 768px) {
-    html { font-size: calc(16.5px * var(--font-scale, 1)); }
-}
+@media (min-width: 768px)  { html { font-size: 16.5px; } }
+@media (min-width: 1024px) { html { font-size: 17px;   } }
 
-@media (min-width: 1024px) {
-    html { font-size: calc(17px * var(--font-scale, 1)); }
-}
+/* Small */
+[data-font-size="small"] .text-xs   { font-size: 11px !important; line-height: 1.4; }
+[data-font-size="small"] .text-sm   { font-size: 12px !important; line-height: 1.5; }
+[data-font-size="small"] .text-base { font-size: 13px !important; line-height: 1.6; }
+
+/* Large */
+[data-font-size="large"] .text-xs   { font-size: 13px !important; line-height: 1.5; }
+[data-font-size="large"] .text-sm   { font-size: 15px !important; line-height: 1.6; }
+[data-font-size="large"] .text-base { font-size: 17px !important; line-height: 1.7; }
 
 /* ── Lined paper ──────────────────────────────────────────────────────────── */
 .lined-paper {
@@ -149,7 +140,7 @@ html, body {
     overscroll-behavior-y: contain;
 }
 
-/* ── Debug wrapper (preserve existing behaviour) ─────────────────────────── */
+/* ── Debug wrapper ────────────────────────────────────────────────────────── */
 @layer base {
     [data-debug-wrapper="true"] {
         display: contents !important;
