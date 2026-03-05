@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutGrid, BookOpen, GitBranch, TrendingUp,
-  CalendarDays, Settings as SettingsIcon, X
+  CalendarDays, Settings as SettingsIcon, X, Camera, Check
 } from 'lucide-react';
 import { useScreenSize } from '@/hooks/useScreenSize';
 
@@ -14,33 +14,122 @@ const navItems = [
   { to: '/discipleship',icon: GitBranch,    label: 'Disciples' },
 ];
 
+const useProfile = () => {
+  const [name, setName] = useState(() => localStorage.getItem('profile_name') || '');
+  const [photo, setPhoto] = useState(() => localStorage.getItem('profile_photo') || '');
+
+  const saveName = (n) => { setName(n); localStorage.setItem('profile_name', n); };
+  const savePhoto = (p) => { setPhoto(p); localStorage.setItem('profile_photo', p); };
+
+  return { name, photo, saveName, savePhoto };
+};
+
 const ProfileMenu = () => {
   const [open, setOpen] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
   const navigate = useNavigate();
+  const fileRef = useRef();
+  const { name, photo, saveName, savePhoto } = useProfile();
+
+  const openMenu = () => {
+    setNameInput(name);
+    setEditingName(false);
+    setOpen(true);
+  };
+
+  const handleNameSave = () => {
+    saveName(nameInput.trim());
+    setEditingName(false);
+  };
+
+  const handlePhoto = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => savePhoto(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  const Avatar = ({ size = 36 }) => (
+    photo
+      ? <img src={photo} alt="profile" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />
+      : <div style={{ width: size, height: size, borderRadius: '50%', background: '#4d7c0f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.5 }}>🐑</div>
+  );
 
   return (
     <div className="relative">
       <button
-        onClick={() => setOpen(o => !o)}
-        className="w-9 h-9 rounded-full bg-forest-500 flex items-center justify-center text-white font-bold text-sm shadow hover:bg-forest-700 transition-colors"
+        onClick={openMenu}
+        className="rounded-full overflow-hidden shadow hover:opacity-90 transition-opacity"
+        style={{ width: 36, height: 36 }}
         title="Profile & Settings"
       >
-        🐑
+        <Avatar size={36} />
       </button>
 
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-11 z-50 w-56 bg-white dark:bg-stone-800 rounded-2xl shadow-xl border border-stone-100 dark:border-stone-700 overflow-hidden">
+          <div className="absolute right-0 top-11 z-50 w-64 bg-white dark:bg-stone-800 rounded-2xl shadow-xl border border-stone-100 dark:border-stone-700 overflow-hidden">
+
+            {/* Header */}
             <div className="px-4 py-4 border-b border-stone-100 dark:border-stone-700 flex items-center justify-between">
-              <div>
-                <p className="font-serif font-bold text-stone-900 dark:text-stone-100 text-sm">My Profile</p>
-                <p className="text-xs text-stone-500 dark:text-stone-400">Church Planter</p>
-              </div>
+              <p className="font-serif font-bold text-stone-900 dark:text-stone-100 text-sm">My Profile</p>
               <button onClick={() => setOpen(false)} className="text-stone-400 hover:text-stone-600">
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Profile photo + name */}
+            <div className="px-4 py-5 flex flex-col items-center gap-3 border-b border-stone-100 dark:border-stone-700">
+
+              {/* Photo */}
+              <div className="relative">
+                <Avatar size={72} />
+                <button
+                  onClick={() => fileRef.current.click()}
+                  className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-forest-500 flex items-center justify-center shadow hover:bg-forest-700 transition-colors"
+                  title="Change photo"
+                >
+                  <Camera className="w-3 h-3 text-white" />
+                </button>
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+              </div>
+
+              {/* Name */}
+              {editingName ? (
+                <div className="flex items-center gap-2 w-full">
+                  <input
+                    autoFocus
+                    value={nameInput}
+                    onChange={e => setNameInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleNameSave(); if (e.key === 'Escape') setEditingName(false); }}
+                    placeholder="Your name..."
+                    className="flex-1 text-sm px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100 outline-none focus:border-forest-500"
+                  />
+                  <button onClick={handleNameSave} className="w-7 h-7 rounded-full bg-forest-500 flex items-center justify-center hover:bg-forest-700">
+                    <Check className="w-3.5 h-3.5 text-white" />
+                  </button>
+                  <button onClick={() => setEditingName(false)} className="w-7 h-7 rounded-full bg-stone-200 dark:bg-stone-600 flex items-center justify-center hover:bg-stone-300">
+                    <X className="w-3.5 h-3.5 text-stone-600 dark:text-stone-300" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setNameInput(name); setEditingName(true); }}
+                  className="text-center hover:opacity-70 transition-opacity"
+                  title="Click to edit name"
+                >
+                  <p className="font-semibold text-stone-900 dark:text-stone-100 text-sm">
+                    {name || 'Tap to set your name'}
+                  </p>
+                  <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">Church Planter</p>
+                </button>
+              )}
+            </div>
+
+            {/* Settings link */}
             <button
               onClick={() => { navigate('/settings'); setOpen(false); }}
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
@@ -48,6 +137,7 @@ const ProfileMenu = () => {
               <SettingsIcon className="w-4 h-4 text-stone-400" />
               Settings
             </button>
+
           </div>
         </>
       )}
