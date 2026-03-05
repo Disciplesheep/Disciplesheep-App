@@ -17,10 +17,8 @@ const navItems = [
 const useProfile = () => {
   const [name, setName] = useState(() => localStorage.getItem('profile_name') || '');
   const [photo, setPhoto] = useState(() => localStorage.getItem('profile_photo') || '');
-
   const saveName = (n) => { setName(n); localStorage.setItem('profile_name', n); };
   const savePhoto = (p) => { setPhoto(p); localStorage.setItem('profile_photo', p); };
-
   return { name, photo, saveName, savePhoto };
 };
 
@@ -73,7 +71,6 @@ const ProfileMenu = () => {
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-11 z-50 w-64 bg-white dark:bg-stone-800 rounded-2xl shadow-xl border border-stone-100 dark:border-stone-700 overflow-hidden">
 
-            {/* Header */}
             <div className="px-4 py-4 border-b border-stone-100 dark:border-stone-700 flex items-center justify-between">
               <p className="font-serif font-bold text-stone-900 dark:text-stone-100 text-sm">My Profile</p>
               <button onClick={() => setOpen(false)} className="text-stone-400 hover:text-stone-600">
@@ -81,10 +78,7 @@ const ProfileMenu = () => {
               </button>
             </div>
 
-            {/* Profile photo + name */}
             <div className="px-4 py-5 flex flex-col items-center gap-3 border-b border-stone-100 dark:border-stone-700">
-
-              {/* Photo */}
               <div className="relative">
                 <Avatar size={72} />
                 <button
@@ -97,7 +91,6 @@ const ProfileMenu = () => {
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
               </div>
 
-              {/* Name */}
               {editingName ? (
                 <div className="flex items-center gap-2 w-full">
                   <input
@@ -129,7 +122,6 @@ const ProfileMenu = () => {
               )}
             </div>
 
-            {/* Settings link */}
             <button
               onClick={() => { navigate('/settings'); setOpen(false); }}
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
@@ -137,7 +129,6 @@ const ProfileMenu = () => {
               <SettingsIcon className="w-4 h-4 text-stone-400" />
               Settings
             </button>
-
           </div>
         </>
       )}
@@ -224,6 +215,12 @@ const BottomNav = () => (
 const Layout = () => {
   const { isTablet } = useScreenSize();
 
+  // Journal date state — shared with JournalEntry via Outlet context
+  const [journalDate, setJournalDate] = useState(new Date());
+  const [pickerOpen, setPickerOpen]   = useState(false);
+
+  const outletContext = { journalDate, setJournalDate, pickerOpen, setPickerOpen };
+
   return (
     <div className="min-h-screen bg-paper dark:bg-stone-900 transition-colors">
       {isTablet ? (
@@ -231,7 +228,7 @@ const Layout = () => {
           <SideNav />
           <main className="ml-56 min-h-screen">
             <div className="max-w-4xl mx-auto px-6 py-8 lg:px-10 lg:py-10">
-              <Outlet />
+              <Outlet context={outletContext} />
             </div>
           </main>
         </>
@@ -246,7 +243,7 @@ const Layout = () => {
           </div>
           <main style={{ paddingTop: '3rem', paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
             <div className="max-w-xl mx-auto px-4 sm:px-6 py-5 sm:py-7">
-              <Outlet />
+              <Outlet context={outletContext} />
             </div>
           </main>
           <BottomNav />
