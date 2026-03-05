@@ -7,11 +7,11 @@ import {
 import { useScreenSize } from '@/hooks/useScreenSize';
 
 const navItems = [
-  { to: '/',             icon: LayoutGrid,   label: 'Dashboard'   },
-  { to: '/journal',      icon: BookOpen,      label: 'Journal'     },
-  { to: '/discipleship', icon: GitBranch,     label: 'Disciples'   },
-  { to: '/stewardship',  icon: TrendingUp,    label: 'Stewardship' },
-  { to: '/settings',     icon: SettingsIcon,  label: 'Settings'    },
+  { to: '/', icon: LayoutGrid, label: 'Dashboard' },
+  { to: '/stewardship', icon: TrendingUp, label: 'Stewardship' },
+  { to: '/journal', icon: BookOpen, label: 'Journal' },
+  { to: '/discipleship', icon: GitBranch, label: 'Disciples' },
+  { to: '/settings', icon: SettingsIcon, label: 'Settings' }
 ];
 
 const SideNav = () => (
