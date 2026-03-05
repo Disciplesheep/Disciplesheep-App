@@ -106,7 +106,7 @@ module.exports = {
                 fontFamily: {
                         serif: ['Playfair Display', 'serif'],
                         sans: ['Manrope', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace']
+                        mono: ['Manrope', 'monospace']
                 }
         }
   },
