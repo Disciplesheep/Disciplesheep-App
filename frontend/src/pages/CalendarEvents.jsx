@@ -54,6 +54,7 @@ const EventForm = ({ open, onOpenChange, initial, onSave }) => {
   const [calOpen, setCalOpen] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { setForm(initial || emptyForm()); }, [open]);
 
   const handleSave = async () => {
@@ -392,4 +393,5 @@ const CalendarEvents = () => {
 };
 
 export default CalendarEvents;
+
 
