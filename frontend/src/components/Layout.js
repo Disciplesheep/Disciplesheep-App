@@ -1,8 +1,8 @@
-import React from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import React, { useState } from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutGrid, BookOpen, GitBranch, TrendingUp,
-  Settings as SettingsIcon, CalendarDays
+  CalendarDays, Settings as SettingsIcon, X
 } from 'lucide-react';
 import { useScreenSize } from '@/hooks/useScreenSize';
 
@@ -12,19 +12,62 @@ const navItems = [
   { to: '/journal',     icon: BookOpen,     label: 'Journal' },
   { to: '/calendar',    icon: CalendarDays, label: 'Calendar' },
   { to: '/discipleship',icon: GitBranch,    label: 'Disciples' },
-  { to: '/settings',    icon: SettingsIcon, label: 'Settings' },
 ];
+
+const ProfileMenu = () => {
+  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-9 h-9 rounded-full bg-forest-500 flex items-center justify-center text-white font-bold text-sm shadow hover:bg-forest-700 transition-colors"
+        title="Profile & Settings"
+      >
+        🐑
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-11 z-50 w-56 bg-white dark:bg-stone-800 rounded-2xl shadow-xl border border-stone-100 dark:border-stone-700 overflow-hidden">
+            <div className="px-4 py-4 border-b border-stone-100 dark:border-stone-700 flex items-center justify-between">
+              <div>
+                <p className="font-serif font-bold text-stone-900 dark:text-stone-100 text-sm">My Profile</p>
+                <p className="text-xs text-stone-500 dark:text-stone-400">Church Planter</p>
+              </div>
+              <button onClick={() => setOpen(false)} className="text-stone-400 hover:text-stone-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <button
+              onClick={() => { navigate('/settings'); setOpen(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
+            >
+              <SettingsIcon className="w-4 h-4 text-stone-400" />
+              Settings
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 const SideNav = () => (
   <aside className="fixed top-0 left-0 h-full w-56 bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-r border-stone-200 dark:border-stone-700 flex flex-col z-50 shadow-lg">
-    <div className="flex items-center gap-3 px-5 py-6 border-b border-stone-100 dark:border-stone-800">
-      <div className="w-9 h-9 rounded-xl bg-forest-500 flex items-center justify-center flex-shrink-0">
-        <span className="text-xl">🐑</span>
+    <div className="flex items-center justify-between px-5 py-6 border-b border-stone-100 dark:border-stone-800">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-forest-500 flex items-center justify-center flex-shrink-0">
+          <span className="text-xl">🐑</span>
+        </div>
+        <div>
+          <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100 leading-tight">Disciplesheep</p>
+          <p className="text-[10px] text-stone-500 dark:text-stone-400 tracking-wide uppercase">Journal</p>
+        </div>
       </div>
-      <div>
-        <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100 leading-tight">Disciplesheep</p>
-        <p className="text-[10px] text-stone-500 dark:text-stone-400 tracking-wide uppercase">Journal</p>
-      </div>
+      <ProfileMenu />
     </div>
     <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
       {navItems.map(({ to, icon: Icon, label }) => (
@@ -104,7 +147,14 @@ const Layout = () => {
         </>
       ) : (
         <>
-          <main style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
+          <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-b border-stone-200 dark:border-stone-700 flex items-center justify-between px-4 h-12">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🐑</span>
+              <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100">Disciplesheep</p>
+            </div>
+            <ProfileMenu />
+          </div>
+          <main style={{ paddingTop: '3rem', paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
             <div className="max-w-xl mx-auto px-4 sm:px-6 py-5 sm:py-7">
               <Outlet />
             </div>
