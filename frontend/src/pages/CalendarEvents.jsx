@@ -295,21 +295,42 @@ const CalendarEvents = () => {
         </div>
       </div>
 
-      {/* Calendar — no padding, fills full card width */}
+      {/* Calendar — full width fix */}
       <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden">
         <style>{`
+          .cal-full { width: 100%; }
           .cal-full .rdp { margin: 0; width: 100%; }
-          .cal-full .rdp-months { width: 100%; }
+          .cal-full .rdp-months { width: 100%; display: block; }
           .cal-full .rdp-month { width: 100%; }
-          .cal-full .rdp-table { width: 100%; }
-          .cal-full .rdp-head_row,
-          .cal-full .rdp-row { display: grid; grid-template-columns: repeat(7, 1fr); }
-          .cal-full .rdp-head_cell,
-          .cal-full .rdp-cell { width: 100%; display: flex; align-items: center; justify-content: center; }
-          .cal-full .rdp-day { width: 100%; border-radius: 0.5rem; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
+          .cal-full .rdp-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+          .cal-full .rdp-head_row { display: table-row; }
+          .cal-full .rdp-row { display: table-row; }
+          .cal-full .rdp-head_cell {
+            display: table-cell;
+            text-align: center;
+            padding: 8px 0;
+            width: calc(100% / 7);
+          }
+          .cal-full .rdp-cell {
+            display: table-cell;
+            text-align: center;
+            padding: 4px 0;
+            width: calc(100% / 7);
+          }
+          .cal-full .rdp-day {
+            margin: auto;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
           .cal-full .rdp-caption { padding: 12px 16px; }
+          .cal-full .rdp-tbody { display: table-row-group; }
+          .cal-full .rdp-tfoot { display: none; }
         `}</style>
-        <div className="cal-full">
+        <div className="cal-full p-2">
           <Calendar
             mode="single"
             selected={selectedDate}
