@@ -222,8 +222,8 @@ const CalendarEvents = () => {
 
   /* Schedule reminders on mount */
   useEffect(() => {
-  // uses calendarEvents here
-}, [calendarEvents]); // ← add it here
+    calendarEvents.forEach(ev => { if (ev.remind) scheduleNotification(ev); });
+  }, []);
 
   /* Build birthday pseudo-events from contacts — recurring yearly */
   const thisYear = new Date().getFullYear();
