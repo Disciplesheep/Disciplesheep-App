@@ -2,9 +2,7 @@ import React from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Moon, Sun, Sunrise, Type, Settings as SettingsIcon } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const Settings = () => {
   const { themeMode, actualTheme, changeThemeMode, fontSize, changeFontSize } = useTheme();
@@ -27,7 +25,7 @@ const Settings = () => {
   return (
     <div className="space-y-6 pb-6">
       {/* Header */}
-      <div 
+      <div
         className="relative overflow-hidden rounded-2xl p-8 text-white bg-stone-800 dark:bg-stone-900"
         data-testid="settings-header"
       >
@@ -43,7 +41,7 @@ const Settings = () => {
       {/* Appearance */}
       <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="appearance-card">
         <h2 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-6">Appearance</h2>
-        
+
         {/* Theme Mode */}
         <div className="mb-6 pb-6 border-b border-stone-200 dark:border-stone-700">
           <div className="flex items-center gap-3 mb-4">
@@ -53,29 +51,20 @@ const Settings = () => {
               <p className="text-sm text-stone-600 dark:text-stone-400">{getThemeDescription()}</p>
             </div>
           </div>
-          <RadioGroup value={themeMode} onValueChange={changeThemeMode}>
-            <div className="flex items-center space-x-2 mb-3">
-              <RadioGroupItem value="light" id="theme-light" data-testid="theme-light" />
-              <Label htmlFor="theme-light" className="text-sm cursor-pointer text-stone-700 dark:text-stone-300 flex items-center gap-2">
-                <Sun className="w-4 h-4" />
-                Day mode - Always light
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2 mb-3">
-              <RadioGroupItem value="dark" id="theme-dark" data-testid="theme-dark" />
-              <Label htmlFor="theme-dark" className="text-sm cursor-pointer text-stone-700 dark:text-stone-300 flex items-center gap-2">
-                <Moon className="w-4 h-4" />
-                Night mode - Always dark
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="auto" id="theme-auto" data-testid="theme-auto" />
-              <Label htmlFor="theme-auto" className="text-sm cursor-pointer text-stone-700 dark:text-stone-300 flex items-center gap-2">
-                <Sunrise className="w-4 h-4" />
-                Auto - Day mode (6am-6pm), Night mode (6pm-6am)
-              </Label>
-            </div>
-          </RadioGroup>
+          <div>
+            {[
+              { value: 'light', label: 'Day mode - Always light' },
+              { value: 'dark', label: 'Night mode - Always dark' },
+              { value: 'auto', label: 'Auto - Day mode (6am-6pm), Night mode (6pm-6am)' }
+            ].map(opt => (
+              <div key={opt.value} className="flex items-center space-x-3 mb-3 cursor-pointer" onClick={() => changeThemeMode(opt.value)}>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${themeMode === opt.value ? 'border-forest-500' : 'border-stone-300 dark:border-stone-500'}`}>
+                  {themeMode === opt.value && <div className="w-2.5 h-2.5 rounded-full bg-forest-500" />}
+                </div>
+                <span className="text-sm text-stone-700 dark:text-stone-300">{opt.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Font Size */}
@@ -87,26 +76,20 @@ const Settings = () => {
               <p className="text-sm text-stone-600 dark:text-stone-400">Adjust reading comfort</p>
             </div>
           </div>
-          <RadioGroup value={fontSize} onValueChange={changeFontSize}>
-            <div className="flex items-center space-x-2 mb-3">
-              <RadioGroupItem value="small" id="small" data-testid="font-small" />
-              <Label htmlFor="small" className="text-sm cursor-pointer text-stone-700 dark:text-stone-300">
-                Small - Compact view
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2 mb-3">
-              <RadioGroupItem value="medium" id="medium" data-testid="font-medium" />
-              <Label htmlFor="medium" className="text-base cursor-pointer text-stone-700 dark:text-stone-300">
-                Medium - Comfortable (Default)
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="large" id="large" data-testid="font-large" />
-              <Label htmlFor="large" className="text-lg cursor-pointer text-stone-700 dark:text-stone-300">
-                Large - Easy reading
-              </Label>
-            </div>
-          </RadioGroup>
+          <div>
+            {[
+              { value: 'small', label: 'Small - Compact view' },
+              { value: 'medium', label: 'Medium - Comfortable (Default)' },
+              { value: 'large', label: 'Large - Easy reading' }
+            ].map(opt => (
+              <div key={opt.value} className="flex items-center space-x-3 mb-3 cursor-pointer" onClick={() => changeFontSize(opt.value)}>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${fontSize === opt.value ? 'border-forest-500' : 'border-stone-300 dark:border-stone-500'}`}>
+                  {fontSize === opt.value && <div className="w-2.5 h-2.5 rounded-full bg-forest-500" />}
+                </div>
+                <span className="text-sm text-stone-700 dark:text-stone-300">{opt.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </Card>
 
@@ -135,10 +118,10 @@ const Settings = () => {
 
       {/* About */}
       <Card className="bg-forest-50 dark:bg-stone-800 rounded-xl border border-forest-100 dark:border-stone-700 p-6">
-        <h2 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-2">Disciplesheep Journal</h2>
+        <h2 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-2">Disciplesheep</h2>
         <p className="text-sm text-stone-700 dark:text-stone-300 mb-3">Version 1.0 - Church Planter's Companion</p>
         <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
-          A 6-year devotional and ministry tracker for church planters. 
+          A 6-year devotional and ministry tracker for church planters.
           Track your daily walk, discipleship multiplication, and stewardship in Puerto Princesa.
         </p>
         <p className="text-xs text-stone-500 dark:text-stone-500 mt-4 italic">
