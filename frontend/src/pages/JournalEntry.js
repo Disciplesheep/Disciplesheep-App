@@ -166,20 +166,23 @@ const JournalEntry = () => {
         <h2 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-4">Daily Tasks</h2>
         <div className="space-y-3">
           {DAILY_TASKS.map((task, idx) => (
-            <div key={idx} className="flex items-center space-x-3">
-              <Checkbox
-                id={`task-${idx}`}
-                checked={entry.tasks.includes(task)}
-                onCheckedChange={() => handleTaskToggle(task)}
-                className="border-stone-300 dark:border-stone-600"
-                data-testid={`task-checkbox-${idx}`}
-              />
-              <Label 
-                htmlFor={`task-${idx}`}
-                className="text-sm text-stone-700 dark:text-stone-300 cursor-pointer flex-1"
+            <div key={idx} className="flex items-center space-x-3" onClick={() => handleTaskToggle(task)}>
+              <div
+                className={`w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center cursor-pointer ${
+                  entry.tasks.includes(task)
+                    ? 'bg-forest-500 border-forest-500'
+                    : 'bg-white border-stone-300 dark:bg-stone-700 dark:border-stone-500'
+                }`}
               >
+                {entry.tasks.includes(task) && (
+                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <span className="text-sm text-stone-700 dark:text-stone-300 cursor-pointer flex-1">
                 {task}
-              </Label>
+              </span>
             </div>
           ))}
         </div>
