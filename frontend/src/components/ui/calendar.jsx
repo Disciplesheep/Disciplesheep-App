@@ -137,6 +137,22 @@ const Caption = ({ displayMonth, fromDate, toDate, onMonthChange }) => {
   );
 };
 
+/* ── Head Row — "Su" in red ─────────────────────────────────────────────── */
+const HeadRow = ({ weekdays }) => (
+  <tr className="grid grid-cols-7 w-full">
+    {weekdays.map((weekday, i) => (
+      <th
+        key={i}
+        scope="col"
+        className="font-normal text-[0.8rem] text-center py-2"
+        style={{ color: i === 0 ? '#ef4444' : 'hsl(var(--muted-foreground))' }}
+      >
+        {weekday.label.slice(0, 2)}
+      </th>
+    ))}
+  </tr>
+);
+
 /* ── Calendar ───────────────────────────────────────────────────────────── */
 function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
   const [month, setMonth] = React.useState(props.defaultMonth || props.selected || new Date());
@@ -146,78 +162,70 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
   }, [props.defaultMonth]);
 
   return (
-    <>
-      <style>{`
-        .rdp-head_row th:first-child,
-        .rdp-head_row .rdp-head_cell:first-child {
-          color: #ef4444 !important;
-        }
-        .rdp-row td:first-child .rdp-day:not(.rdp-day_selected):not(.rdp-day_outside) {
-          color: #ef4444 !important;
-        }
-        .rdp-row td:first-child .rdp-day.rdp-day_outside {
-          color: #fca5a5 !important;
-        }
-      `}</style>
-      <DayPicker
-        showOutsideDays={showOutsideDays}
-        month={month}
-        onMonthChange={setMonth}
-        className={cn("p-3 w-full", className)}
-        classNames={{
-          months: "flex flex-col w-full",
-          month: "w-full",
-          caption: "flex justify-center pt-1 relative items-center w-full",
-          caption_label: "hidden",
-          nav: "hidden",
-          nav_button: "hidden",
-          nav_button_previous: "hidden",
-          nav_button_next: "hidden",
-          table: "w-full border-collapse",
-          head_row: "grid grid-cols-7 w-full",
-          head_cell: "text-muted-foreground font-normal text-[0.8rem] text-center py-2",
-          row: "grid grid-cols-7 w-full mt-1",
-          cell: cn(
-            "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 flex items-center justify-center",
-            props.mode === "range"
-              ? "[&:has(>.day-range-end)]:rounded-r-md [&:has(>.day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md"
-              : ""
-          ),
-          day: cn(buttonVariants({ variant: "ghost" }), "h-8 w-8 p-0 font-normal aria-selected:opacity-100 mx-auto"),
-          day_range_start: "day-range-start",
-          day_range_end: "day-range-end",
-          day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-          day_today: "bg-accent text-accent-foreground",
-          day_outside: "day-outside text-muted-foreground aria-selected:bg-accent/50 aria-selected:text-muted-foreground",
-          day_disabled: "text-muted-foreground opacity-50",
-          day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
-          day_hidden: "invisible",
-          ...classNames,
-        }}
-        components={{
-          Caption: ({ displayMonth }) => (
-            <Caption
-              displayMonth={displayMonth}
-              fromDate={props.fromDate}
-              toDate={props.toDate}
-              onMonthChange={setMonth}
-            />
-          ),
-          DayContent: ({ date, activeModifiers }) => {
-            const isSunday = date.getDay() === 0;
-            const isSelected = activeModifiers?.selected;
-            return (
-              <span style={{ color: isSunday && !isSelected ? '#ef4444' : undefined }}>
-                {date.getDate()}
-              </span>
-            );
-          },
-          IconLeft: ({ className: cls, ...p }) => <ChevronLeft className={cn("h-4 w-4", cls)} {...p} />,
-          IconRight: ({ className: cls, ...p }) => <ChevronRight className={cn("h-4 w-4", cls)} {...p} />,
-        }}
-        {...props}
-      />
-    </>
+    <DayPicker
+      showOutsideDays={showOutsideDays}
+      month={month}
+      onMonthChange={setMonth}
+      className={cn("p-3 w-full", className)}
+      classNames={{
+        months: "flex flex-col w-full",
+        month: "w-full",
+        caption: "flex justify-center pt-1 relative items-center w-full",
+        caption_label: "hidden",
+        nav: "hidden",
+        nav_button: "hidden",
+        nav_button_previous: "hidden",
+        nav_button_next: "hidden",
+        table: "w-full border-collapse",
+        head_row: "grid grid-cols-7 w-full",
+        head_cell: "text-muted-foreground font-normal text-[0.8rem] text-center py-2",
+        row: "grid grid-cols-7 w-full mt-1",
+        cell: cn(
+          "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 flex items-center justify-center",
+          props.mode === "range"
+            ? "[&:has(>.day-range-end)]:rounded-r-md [&:has(>.day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md"
+            : ""
+        ),
+        day: cn(buttonVariants({ variant: "ghost" }), "h-8 w-8 p-0 font-normal aria-selected:opacity-100 mx-auto"),
+        day_range_start: "day-range-start",
+        day_range_end: "day-range-end",
+        day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+        day_today: "bg-accent text-accent-foreground",
+        day_outside: "day-outside text-muted-foreground aria-selected:bg-accent/50 aria-selected:text-muted-foreground",
+        day_disabled: "text-muted-foreground opacity-50",
+        day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+        day_hidden: "invisible",
+        ...classNames,
+      }}
+      components={{
+        Caption: ({ displayMonth }) => (
+          <Caption
+            displayMonth={displayMonth}
+            fromDate={props.fromDate}
+            toDate={props.toDate}
+            onMonthChange={setMonth}
+          />
+        ),
+        HeadRow: ({ weekdays }) => <HeadRow weekdays={weekdays} />,
+        DayContent: ({ date, activeModifiers }) => {
+          const isSunday = date.getDay() === 0;
+          const isSelected = activeModifiers?.selected;
+          const isOutside = activeModifiers?.outside;
+          return (
+            <span style={{
+              color: isSunday && !isSelected
+                ? isOutside ? '#fca5a5' : '#ef4444'
+                : undefined
+            }}>
+              {date.getDate()}
+            </span>
+          );
+        },
+        IconLeft: ({ className: cls, ...p }) => <ChevronLeft className={cn("h-4 w-4", cls)} {...p} />,
+        IconRight: ({ className: cls, ...p }) => <ChevronRight className={cn("h-4 w-4", cls)} {...p} />,
+      }}
+      {...props}
+    />
   );
 }
 
