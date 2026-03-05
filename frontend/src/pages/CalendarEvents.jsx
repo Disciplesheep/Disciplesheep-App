@@ -223,6 +223,7 @@ const CalendarEvents = () => {
   /* Schedule reminders on mount */
   useEffect(() => {
     calendarEvents.forEach(ev => { if (ev.remind) scheduleNotification(ev); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* Build birthday pseudo-events from contacts — recurring yearly */
@@ -391,3 +392,4 @@ const CalendarEvents = () => {
 };
 
 export default CalendarEvents;
+
