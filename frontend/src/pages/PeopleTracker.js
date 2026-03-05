@@ -236,9 +236,9 @@ const PeopleTracker = () => {
                     </span>
                   )}
                   {contact.contactNumber && (
-                    <span className="flex items-center gap-1 text-xs text-stone-500 dark:text-stone-400">
+                    <a href={`tel:${contact.contactNumber}`} className="flex items-center gap-1 text-xs text-forest-600 dark:text-forest-400 hover:underline">
                       <Phone className="w-3 h-3" /> {contact.contactNumber}
-                    </span>
+                    </a>
                   )}
                   {contact.address && (
                     <span className="flex items-center gap-1 text-xs text-stone-500 dark:text-stone-400">
