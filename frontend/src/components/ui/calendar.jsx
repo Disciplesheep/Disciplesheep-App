@@ -147,7 +147,6 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
 
   return (
     <>
-      {/* Inject Sunday red color via a scoped style tag */}
       <style>{`
         .rdp-head_row th:first-child,
         .rdp-head_row .rdp-head_cell:first-child {
@@ -179,10 +178,10 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
           head_cell: "text-muted-foreground font-normal text-[0.8rem] text-center py-2",
           row: "grid grid-cols-7 w-full mt-1",
           cell: cn(
-            "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 flex items-center justify-center [&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected].day-range-end)]:rounded-r-md",
+            "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 flex items-center justify-center",
             props.mode === "range"
               ? "[&:has(>.day-range-end)]:rounded-r-md [&:has(>.day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md"
-              : "[&:has([aria-selected])]:rounded-md"
+              : ""
           ),
           day: cn(buttonVariants({ variant: "ghost" }), "h-8 w-8 p-0 font-normal aria-selected:opacity-100 mx-auto"),
           day_range_start: "day-range-start",
@@ -204,14 +203,11 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
               onMonthChange={setMonth}
             />
           ),
-          /* DayContent is the reliable way to customize day rendering in rdp v8 */
-          DayContent: ({ date, activeModifiers, ...contentProps }) => {
+          DayContent: ({ date, activeModifiers }) => {
             const isSunday = date.getDay() === 0;
             const isSelected = activeModifiers?.selected;
             return (
-              <span
-                style={{ color: isSunday && !isSelected ? '#ef4444' : undefined }}
-              >
+              <span style={{ color: isSunday && !isSelected ? '#ef4444' : undefined }}>
                 {date.getDate()}
               </span>
             );
