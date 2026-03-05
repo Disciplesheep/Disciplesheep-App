@@ -11,6 +11,7 @@ import DiscipleshipTracker from "@/pages/DiscipleshipTracker";
 import Stewardship from "@/pages/Stewardship";
 import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
+import CalendarEvents from "@/pages/CalendarEvents";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
             <Route path="/" element={<Layout />}>
               <Route index element={<Dashboard />} />
               <Route path="journal" element={<JournalEntry />} />
+              <Route path="calendar" element={<CalendarEvents />} />
               <Route path="discipleship" element={<DiscipleshipTracker />} />
               <Route path="stewardship" element={<Stewardship />} />
               <Route path="stewardship/people" element={<PeopleTracker />} />

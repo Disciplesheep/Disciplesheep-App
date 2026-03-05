@@ -25,22 +25,19 @@ export function useLocalStorage(key, initialValue) {
 }
 
 export function useJournalData() {
-  const [dailyEntries, setDailyEntries] = useLocalStorage('dailyEntries', {});
+  const [dailyEntries, setDailyEntries]     = useLocalStorage('dailyEntries', {});
   const [peopleContacts, setPeopleContacts] = useLocalStorage('peopleContacts', []);
-  const [expenses, setExpenses] = useLocalStorage('expenses', []);
-  const [weeklyReports, setWeeklyReports] = useLocalStorage('weeklyReports', []);
+  const [expenses, setExpenses]             = useLocalStorage('expenses', []);
+  const [weeklyReports, setWeeklyReports]   = useLocalStorage('weeklyReports', []);
   const [monthlyReports, setMonthlyReports] = useLocalStorage('monthlyReports', []);
+  const [calendarEvents, setCalendarEvents] = useLocalStorage('calendarEvents', []);
 
   return {
-    dailyEntries,
-    setDailyEntries,
-    peopleContacts,
-    setPeopleContacts,
-    expenses,
-    setExpenses,
-    weeklyReports,
-    setWeeklyReports,
-    monthlyReports,
-    setMonthlyReports
+    dailyEntries,    setDailyEntries,
+    peopleContacts,  setPeopleContacts,
+    expenses,        setExpenses,
+    weeklyReports,   setWeeklyReports,
+    monthlyReports,  setMonthlyReports,
+    calendarEvents,  setCalendarEvents,
   };
 }
