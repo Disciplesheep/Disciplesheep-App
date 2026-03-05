@@ -88,7 +88,7 @@ const Dashboard = () => {
   );
 
   const statsGrid = (
-    <div className={`grid gap-4 ${isTablet ? 'grid-cols-4' : 'grid-cols-2'}`}>
+    <div className={`grid gap-4 ${isTablet ? 'grid-cols-2' : 'grid-cols-2'}`}>
       <Card
         className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-5 cursor-pointer hover:shadow-md transition-shadow"
         onClick={() => navigate('/stewardship/people')}
@@ -107,26 +107,22 @@ const Dashboard = () => {
         <p className="text-2xl font-bold font-mono text-stone-900 dark:text-stone-100">₱{todayExpenses.toFixed(0)}</p>
         <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">Spent Today</p>
       </Card>
-      {isTablet && (
-        <>
-          <Card
-            className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-5 cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => navigate('/discipleship')}
-          >
-            <CheckCircle2 className="w-6 h-6 text-blue-500 mb-3" />
-            <p className="text-2xl font-bold font-mono text-stone-900 dark:text-stone-100">{completedTasks}</p>
-            <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">Tasks Done</p>
-          </Card>
-          <Card
-            className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-5 cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => navigate('/stewardship/reports')}
-          >
-            <Calendar className="w-6 h-6 text-purple-500 mb-3" />
-            <p className="text-2xl font-bold font-mono text-stone-900 dark:text-stone-100">₱{monthExpenses.toFixed(0)}</p>
-            <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">Month Spend</p>
-          </Card>
-        </>
-      )}
+      <Card
+        className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-5 cursor-pointer hover:shadow-md transition-shadow"
+        onClick={() => navigate('/discipleship')}
+      >
+        <CheckCircle2 className="w-6 h-6 text-blue-500 mb-3" />
+        <p className="text-2xl font-bold font-mono text-stone-900 dark:text-stone-100">{completedTasks}</p>
+        <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">Tasks Done</p>
+      </Card>
+      <Card
+        className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-5 cursor-pointer hover:shadow-md transition-shadow"
+        onClick={() => navigate('/stewardship/reports')}
+      >
+        <Calendar className="w-6 h-6 text-purple-500 mb-3" />
+        <p className="text-2xl font-bold font-mono text-stone-900 dark:text-stone-100">₱{monthExpenses.toFixed(0)}</p>
+        <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">Month Spend</p>
+      </Card>
     </div>
   );
 
@@ -172,26 +168,22 @@ const Dashboard = () => {
         <Plus className="w-4 h-4 mr-2" />
         Add Expense
       </Button>
-      {isTablet && (
-        <>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/journal')}
-            className="h-16 text-base border-stone-200 dark:border-stone-600 hover:bg-stone-50 dark:hover:bg-stone-700 rounded-xl text-stone-900 dark:text-stone-100"
-          >
-            <BookOpen className="w-4 h-4 mr-2" />
-            Open Journal
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate('/stewardship/reports')}
-            className="h-16 text-base border-stone-200 dark:border-stone-600 hover:bg-stone-50 dark:hover:bg-stone-700 rounded-xl text-stone-900 dark:text-stone-100"
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            View Reports
-          </Button>
-        </>
-      )}
+      <Button
+        variant="outline"
+        onClick={() => navigate('/journal')}
+        className={`border-stone-200 dark:border-stone-600 hover:bg-stone-50 dark:hover:bg-stone-700 rounded-xl text-stone-900 dark:text-stone-100 ${isTablet ? 'h-16 text-base' : 'h-14'}`}
+      >
+        <BookOpen className="w-4 h-4 mr-2" />
+        Open Journal
+      </Button>
+      <Button
+        variant="outline"
+        onClick={() => navigate('/stewardship/reports')}
+        className={`border-stone-200 dark:border-stone-600 hover:bg-stone-50 dark:hover:bg-stone-700 rounded-xl text-stone-900 dark:text-stone-100 ${isTablet ? 'h-16 text-base' : 'h-14'}`}
+      >
+        <Calendar className="w-4 h-4 mr-2" />
+        View Reports
+      </Button>
     </div>
   );
 
