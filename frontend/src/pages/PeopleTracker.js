@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useJournalData } from '@/hooks/useLocalStorage';
-import { Users, Plus, Search, Edit2, Trash2, Phone, MapPin, User, Cake } from 'lucide-react';
+import { Users, Plus, Search, Edit2, Trash2, Phone, MapPin, User, Cake, MessageCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,7 @@ const PeopleTracker = () => {
     age: '',
     birthday: '',
     contactNumber: '',
+    facebookUrl: '',
     address: '',
     generation: '',
     connection: '',
@@ -142,6 +143,10 @@ const PeopleTracker = () => {
                 <Input type="text" value={formData.address} placeholder="e.g. Brgy. San Jose, Puerto Princesa"
                   onChange={e => setFormData({ ...formData, address: e.target.value })} className={ic} />
               )}
+              {field('Facebook Profile Link',
+                <Input type="text" value={formData.facebookUrl} placeholder="e.g. https://facebook.com/username"
+                  onChange={e => setFormData({ ...formData, facebookUrl: e.target.value })} className={ic} />
+              )}
               {field('Generation *',
                 <Select value={formData.generation} onValueChange={v => setFormData({ ...formData, generation: v })}>
                   <SelectTrigger className={ic}><SelectValue placeholder="Select generation" /></SelectTrigger>
@@ -236,9 +241,9 @@ const PeopleTracker = () => {
                     </span>
                   )}
                   {contact.contactNumber && (
-                    <a href={`tel:${contact.contactNumber}`} className="flex items-center gap-1 text-xs text-forest-600 dark:text-forest-400 hover:underline">
+                    <span className="flex items-center gap-1 text-xs text-stone-500 dark:text-stone-400">
                       <Phone className="w-3 h-3" /> {contact.contactNumber}
-                    </a>
+                    </span>
                   )}
                   {contact.address && (
                     <span className="flex items-center gap-1 text-xs text-stone-500 dark:text-stone-400">
@@ -256,6 +261,18 @@ const PeopleTracker = () => {
               </div>
 
               <div className="flex gap-1 ml-2 shrink-0">
+                {contact.contactNumber && (
+                  <a href={`tel:${contact.contactNumber}`}>
+                    <Button variant="ghost" size="sm" title="Call"
+                      className="text-stone-600 dark:text-stone-400 hover:text-green-600"><Phone className="w-4 h-4" /></Button>
+                  </a>
+                )}
+                {contact.facebookUrl && (
+                  <a href={contact.facebookUrl.startsWith('http') ? `${contact.facebookUrl}` : `https://facebook.com/${contact.facebookUrl}`} target="_blank" rel="noopener noreferrer">
+                    <Button variant="ghost" size="sm" title="Message on Messenger"
+                      className="text-stone-600 dark:text-stone-400 hover:text-blue-600"><MessageCircle className="w-4 h-4" /></Button>
+                  </a>
+                )}
                 <Button variant="ghost" size="sm" onClick={() => handleEdit(contact)}
                   className="text-stone-600 dark:text-stone-400 hover:text-forest-600"><Edit2 className="w-4 h-4" /></Button>
                 <Button variant="ghost" size="sm" onClick={() => handleDelete(contact.id)}
