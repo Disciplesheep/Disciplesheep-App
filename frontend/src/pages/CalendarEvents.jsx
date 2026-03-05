@@ -80,8 +80,6 @@ const EventForm = ({ open, onOpenChange, initial, onSave }) => {
         </DialogHeader>
 
         <div className="space-y-4 mt-2 max-h-[75vh] overflow-y-auto pr-1">
-
-          {/* Title */}
           <div>
             <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-1 block">Title *</Label>
             <Input value={form.title} onChange={e => set('title', e.target.value)}
@@ -89,7 +87,6 @@ const EventForm = ({ open, onOpenChange, initial, onSave }) => {
               className="dark:bg-stone-700 dark:border-stone-600 dark:text-stone-100" />
           </div>
 
-          {/* Date */}
           <div>
             <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-1 block">Date *</Label>
             <button type="button" onClick={() => setCalOpen(v => !v)}
@@ -110,14 +107,12 @@ const EventForm = ({ open, onOpenChange, initial, onSave }) => {
             )}
           </div>
 
-          {/* Time */}
           <div>
             <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-1 block">Time (optional)</Label>
             <Input type="time" value={form.time} onChange={e => set('time', e.target.value)}
               className="font-mono dark:bg-stone-700 dark:border-stone-600 dark:text-stone-100" />
           </div>
 
-          {/* Notes */}
           <div>
             <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-1 block">Notes (optional)</Label>
             <Input value={form.description} onChange={e => set('description', e.target.value)}
@@ -125,7 +120,6 @@ const EventForm = ({ open, onOpenChange, initial, onSave }) => {
               className="dark:bg-stone-700 dark:border-stone-600 dark:text-stone-100" />
           </div>
 
-          {/* Color */}
           <div>
             <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Color</Label>
             <div className="flex gap-2">
@@ -136,7 +130,6 @@ const EventForm = ({ open, onOpenChange, initial, onSave }) => {
             </div>
           </div>
 
-          {/* Remind toggle */}
           <div className="flex items-center justify-between p-3 rounded-xl bg-stone-50 dark:bg-stone-700/50">
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-stone-500" />
@@ -148,7 +141,6 @@ const EventForm = ({ open, onOpenChange, initial, onSave }) => {
             </button>
           </div>
 
-          {/* Remind minutes */}
           {form.remind && (
             <div>
               <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">How many minutes before?</Label>
@@ -221,13 +213,11 @@ const CalendarEvents = () => {
   const [dialogOpen, setDialogOpen]     = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
 
-  /* Schedule reminders on mount */
   useEffect(() => {
     calendarEvents.forEach(ev => { if (ev.remind) scheduleNotification(ev); });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* Build birthday pseudo-events from contacts — recurring yearly */
   const thisYear = new Date().getFullYear();
   const birthdayEvents = (peopleContacts || [])
     .filter(p => p.birthday)
@@ -245,7 +235,6 @@ const CalendarEvents = () => {
     });
 
   const allEvents = [...calendarEvents, ...birthdayEvents];
-
   const selectedKey = toKey(selectedDate);
   const dayEvents   = allEvents
     .filter(ev => ev.date === selectedKey)
@@ -284,6 +273,24 @@ const CalendarEvents = () => {
   return (
     <div className="space-y-6 pb-6">
 
+      {/* Global style to force full-width calendar grid */}
+      <style>{`
+        .full-cal .rdp { margin: 0; width: 100%; }
+        .full-cal .rdp-months { width: 100%; }
+        .full-cal .rdp-month { width: 100%; }
+        .full-cal .rdp-table { width: 100%; border-collapse: collapse; }
+        .full-cal .rdp-head_row,
+        .full-cal .rdp-row { display: grid; grid-template-columns: repeat(7, 1fr); width: 100%; }
+        .full-cal .rdp-head_cell { text-align: center; padding: 8px 4px; font-size: 0.75rem; }
+        .full-cal .rdp-cell { display: flex; justify-content: center; align-items: center; padding: 3px 0; }
+        .full-cal .rdp-day { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; }
+        .full-cal .rdp-caption { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+        .full-cal .rdp-nav { display: flex; gap: 4px; }
+        .full-cal .rdp-tbody { display: block; width: 100%; }
+        .full-cal [class*="rdp-day_selected"] { background-color: #166534 !important; color: white !important; border-radius: 50% !important; }
+        .full-cal [class*="rdp-day_today"]:not([class*="rdp-day_selected"]) { font-weight: bold; color: #166534; }
+      `}</style>
+
       {/* Header */}
       <div className="relative overflow-hidden rounded-2xl p-8 text-white bg-stone-800 dark:bg-stone-900">
         <div className="relative z-10">
@@ -295,42 +302,9 @@ const CalendarEvents = () => {
         </div>
       </div>
 
-      {/* Calendar — full width fix */}
-      <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden">
-        <style>{`
-          .cal-full { width: 100%; }
-          .cal-full .rdp { margin: 0; width: 100%; }
-          .cal-full .rdp-months { width: 100%; display: block; }
-          .cal-full .rdp-month { width: 100%; }
-          .cal-full .rdp-table { width: 100%; table-layout: fixed; border-collapse: collapse; }
-          .cal-full .rdp-head_row { display: table-row; }
-          .cal-full .rdp-row { display: table-row; }
-          .cal-full .rdp-head_cell {
-            display: table-cell;
-            text-align: center;
-            padding: 8px 0;
-            width: calc(100% / 7);
-          }
-          .cal-full .rdp-cell {
-            display: table-cell;
-            text-align: center;
-            padding: 4px 0;
-            width: calc(100% / 7);
-          }
-          .cal-full .rdp-day {
-            margin: auto;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          .cal-full .rdp-caption { padding: 12px 16px; }
-          .cal-full .rdp-tbody { display: table-row-group; }
-          .cal-full .rdp-tfoot { display: none; }
-        `}</style>
-        <div className="cal-full p-2">
+      {/* Calendar */}
+      <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden p-3">
+        <div className="full-cal w-full">
           <Calendar
             mode="single"
             selected={selectedDate}
@@ -341,7 +315,7 @@ const CalendarEvents = () => {
                 const key = toKey(date);
                 const dots = [...new Set(allEvents.filter(ev => ev.date === key).map(ev => ev.color || 'forest'))];
                 return (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', paddingBottom: dots.length ? 6 : 0, width: '100%' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', paddingBottom: dots.length ? 6 : 0 }}>
                     <span>{date.getDate()}</span>
                     {dots.length > 0 && (
                       <div style={{ display: 'flex', gap: 2, position: 'absolute', bottom: -4 }}>
