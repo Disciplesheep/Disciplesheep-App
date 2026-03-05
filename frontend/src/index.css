@@ -12,7 +12,8 @@ body {
 }
 
 code {
-font-family: 'Manrope', sans-serif;}
+    font-family: 'Manrope', sans-serif;
+}
 
 @layer base {
     :root {
@@ -41,6 +42,13 @@ font-family: 'Manrope', sans-serif;}
         --chart-4: 25 95% 53%;
         --chart-5: 197 37% 24%;
         --radius: 1rem;
+
+        /* ── Font scale tokens ───────────────────────────────────────
+           All font sizes in the app are expressed in rem, which means
+           they inherit from html's font-size. We control that ONE value
+           here so every element scales proportionally without conflict.
+           The --font-scale variable is the single source of truth.     */
+        --font-scale: 1;          /* 1 = medium (16px base) */
     }
 
     .dark {
@@ -85,27 +93,63 @@ font-family: 'Manrope', sans-serif;}
     }
 }
 
-/* Font Size Options */
-[data-font-size="small"] {
-    font-size: 14px;
+/* ── Font Size ──────────────────────────────────────────────────────────────
+   Strategy: set a single CSS custom property (--font-scale) per preference,
+   then apply it to html font-size via calc(). Media query responsive bumps
+   are ADDITIVE on top — they scale proportionally rather than overriding.
+
+   small  → 14px base  (0.875 × 16)
+   medium → 16px base  (1.000 × 16)  ← default
+   large  → 18px base  (1.125 × 16)
+   ────────────────────────────────────────────────────────────────────────── */
+
+[data-font-size="small"]  { --font-scale: 0.875; }
+[data-font-size="medium"] { --font-scale: 1;     }
+[data-font-size="large"]  { --font-scale: 1.125; }
+
+/* Apply the scale to the root font size */
+html {
+    font-size: calc(16px * var(--font-scale, 1));
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
 }
 
-[data-font-size="medium"] {
-    font-size: 16px;
+/* Responsive bumps — now RELATIVE (em-based) so they respect --font-scale */
+@media (min-width: 768px) {
+    html { font-size: calc(16.5px * var(--font-scale, 1)); }
 }
 
-[data-font-size="large"] {
-    font-size: 18px;
+@media (min-width: 1024px) {
+    html { font-size: calc(17px * var(--font-scale, 1)); }
 }
 
-[data-font-size="small"] .font-serif {
-    font-size: 1.5rem;
+/* ── Lined paper ──────────────────────────────────────────────────────────── */
+.lined-paper {
+    background-image: linear-gradient(transparent 27px, #E5E7EB 28px);
+    background-size: 100% 28px;
+    line-height: 28px;
 }
 
-[data-font-size="large"] .font-serif {
-    font-size: 2rem;
+.dark .lined-paper {
+    background-image: linear-gradient(transparent 27px, #44403c 28px);
 }
 
+/* ── Touch / accessibility ────────────────────────────────────────────────── */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+button, a, [role="button"] {
+    min-height: 44px;
+    touch-action: manipulation;
+}
+
+html, body {
+    scroll-behavior: smooth;
+    overscroll-behavior-y: contain;
+}
+
+/* ── Debug wrapper (preserve existing behaviour) ─────────────────────────── */
 @layer base {
     [data-debug-wrapper="true"] {
         display: contents !important;
@@ -136,52 +180,4 @@ font-family: 'Manrope', sans-serif;}
         border-top-color: inherit;
         border-bottom-color: inherit;
     }
-}
-
-.lined-paper {
-    background-image: linear-gradient(transparent 27px, #E5E7EB 28px);
-    background-size: 100% 28px;
-    line-height: 28px;
-}
-
-.dark .lined-paper {
-    background-image: linear-gradient(transparent 27px, #44403c 28px);
-}
-/* ── Responsive & touch improvements ─────────────────────────── */
-
-/* Prevent tap highlight on interactive elements */
-* {
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Minimum touch target size (44px) for accessibility */
-button, a, [role="button"] {
-  min-height: 44px;
-  touch-action: manipulation;
-}
-
-/* Tablet (768px+): slightly larger base font */
-@media (min-width: 768px) {
-  html {
-    font-size: 16.5px;
-  }
-}
-
-/* Large tablet / desktop (1024px+) */
-@media (min-width: 1024px) {
-  html {
-    font-size: 17px;
-  }
-}
-
-/* Prevent iOS text size adjustment on orientation change */
-html {
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
-/* Smooth scrolling */
-html, body {
-  scroll-behavior: smooth;
-  overscroll-behavior-y: contain;
 }
