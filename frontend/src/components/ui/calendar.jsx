@@ -92,7 +92,6 @@ const Caption = ({ displayMonth, fromDate, toDate, onMonthChange }) => {
 
   return (
     <div style={{ position: 'relative', width: '100%' }}>
-      {/* Caption row */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
@@ -102,7 +101,6 @@ const Caption = ({ displayMonth, fromDate, toDate, onMonthChange }) => {
         marginBottom: showYearPicker ? 6 : 0,
         width: '100%',
       }}>
-        {/* Prev arrow */}
         {!showYearPicker && (
           <button
             onClick={prevMonth}
@@ -116,7 +114,6 @@ const Caption = ({ displayMonth, fromDate, toDate, onMonthChange }) => {
           </button>
         )}
 
-        {/* Clickable Month + Year label */}
         <button
           onClick={() => setShowYearPicker(v => !v)}
           style={{
@@ -149,7 +146,6 @@ const Caption = ({ displayMonth, fromDate, toDate, onMonthChange }) => {
           }}>▼</span>
         </button>
 
-        {/* Next arrow */}
         {!showYearPicker && (
           <button
             onClick={nextMonth}
@@ -164,7 +160,6 @@ const Caption = ({ displayMonth, fromDate, toDate, onMonthChange }) => {
         )}
       </div>
 
-      {/* Year picker dropdown */}
       {showYearPicker && (
         <YearPicker
           displayMonth={displayMonth}
@@ -230,6 +225,34 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
             onMonthChange={setMonth}
           />
         ),
+        /* Red "Su" header */
+        HeadCell: ({ children, ...hProps }) => {
+          const days = ['Su', 'Sun', 'S'];
+          const isSun = days.includes(String(children));
+          return (
+            <th
+              {...hProps}
+              className="font-normal text-[0.8rem] text-center py-2"
+              style={{ color: isSun ? '#ef4444' : 'hsl(var(--muted-foreground))' }}
+            >
+              {children}
+            </th>
+          );
+        },
+        /* Red date numbers for Sundays */
+        Day: ({ date, displayMonth, ...dayProps }) => {
+          const isSunday = date.getDay() === 0;
+          const isSelected = dayProps['aria-selected'];
+          return (
+            <button
+              {...dayProps}
+              style={{
+                ...dayProps.style,
+                color: isSunday && !isSelected ? '#ef4444' : undefined,
+              }}
+            />
+          );
+        },
         IconLeft: ({ className: cls, ...p }) => <ChevronLeft className={cn("h-4 w-4", cls)} {...p} />,
         IconRight: ({ className: cls, ...p }) => <ChevronRight className={cn("h-4 w-4", cls)} {...p} />,
       }}
