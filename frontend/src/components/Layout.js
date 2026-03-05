@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutGrid, BookOpen, GitBranch, TrendingUp,
@@ -216,38 +216,90 @@ const SideNav = () => (
   </aside>
 );
 
-const BottomNav = () => (
-  <nav
-    className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-t border-stone-200 dark:border-stone-700 z-50"
-    data-testid="bottom-navigation"
-  >
-    <div className="h-16 sm:h-[70px] flex items-center justify-around px-1 max-w-2xl mx-auto">
-      {navItems.map(({ to, icon: Icon, label }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={to === '/'}
-          className={({ isActive }) =>
-            `flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-xl transition-colors flex-1 max-w-[60px] sm:max-w-[80px] ${
-              isActive
-                ? 'text-forest-500 dark:text-forest-400'
-                : 'text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300'
-            }`
+/* ── Bottom Nav + optional Journal Date Bar stacked above it ─────────────── */
+const BottomNav = ({ isJournalPage, journalDate, setJournalDate, setPickerOpen }) => {
+  const [visible, setVisible] = useState(true);
+  const lastScrollY = useRef(0);
+  const ticking = useRef(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!ticking.current) {
+        window.requestAnimationFrame(() => {
+          const currentY = window.scrollY;
+          // Show when scrolling up or near bottom; hide when scrolling down
+          if (currentY < lastScrollY.current || currentY <= 10) {
+            setVisible(true);
+          } else if (currentY > lastScrollY.current && currentY > 60) {
+            setVisible(false);
           }
-          data-testid={`nav-${label.toLowerCase()}`}
-        >
-          {({ isActive }) => (
-            <>
-              <Icon className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={isActive ? 2 : 1.5} />
-              <span className="text-[9px] sm:text-[10px] font-medium leading-tight">{label}</span>
-            </>
-          )}
-        </NavLink>
-      ))}
+          lastScrollY.current = currentY;
+          ticking.current = false;
+        });
+        ticking.current = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Always show when navigating to journal page
+  useEffect(() => {
+    if (isJournalPage) setVisible(true);
+  }, [isJournalPage]);
+
+  return (
+    <div
+      className="fixed left-0 right-0 z-50 transition-transform duration-300"
+      style={{
+        bottom: 0,
+        transform: visible ? 'translateY(0)' : 'translateY(100%)',
+      }}
+      data-testid="bottom-nav-container"
+    >
+      {/* Journal date bar sits just above the nav tabs */}
+      {isJournalPage && (
+        <JournalDateBar
+          journalDate={journalDate}
+          setJournalDate={setJournalDate}
+          setPickerOpen={setPickerOpen}
+        />
+      )}
+
+      <nav
+        className="bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-t border-stone-200 dark:border-stone-700"
+        data-testid="bottom-navigation"
+      >
+        <div className="h-16 sm:h-[70px] flex items-center justify-around px-1 max-w-2xl mx-auto">
+          {navItems.map(({ to, icon: Icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              className={({ isActive }) =>
+                `flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-xl transition-colors flex-1 max-w-[60px] sm:max-w-[80px] ${
+                  isActive
+                    ? 'text-forest-500 dark:text-forest-400'
+                    : 'text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300'
+                }`
+              }
+              data-testid={`nav-${label.toLowerCase()}`}
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={isActive ? 2 : 1.5} />
+                  <span className="text-[9px] sm:text-[10px] font-medium leading-tight">{label}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
+        <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
+      </nav>
     </div>
-    <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
-  </nav>
-);
+  );
+};
 
 const Layout = () => {
   const { isTablet } = useScreenSize();
@@ -259,13 +311,17 @@ const Layout = () => {
 
   const outletContext = { journalDate, setJournalDate, pickerOpen, setPickerOpen };
 
+  // Calculate bottom padding: on journal page, add JournalDateBar height (~42px) on top of nav
+  const journalDateBarHeight = isJournalPage ? 42 : 0;
+  const navHeight = 64; // h-16
+
   return (
     <div className="min-h-screen bg-paper dark:bg-stone-900 transition-colors">
       {isTablet ? (
         <>
           <SideNav />
           <main className="ml-56 min-h-screen">
-            {/* Journal date bar for tablet */}
+            {/* Journal date bar for tablet — sticky below the side nav header area */}
             {isJournalPage && (
               <div className="sticky top-0 z-40">
                 <JournalDateBar
@@ -282,7 +338,7 @@ const Layout = () => {
         </>
       ) : (
         <>
-          {/* Mobile top bar */}
+          {/* Mobile top bar — no date bar here anymore */}
           <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-b border-stone-200 dark:border-stone-700">
             <div className="flex items-center justify-between px-4 h-12">
               <div className="flex items-center gap-2">
@@ -291,25 +347,23 @@ const Layout = () => {
               </div>
               <ProfileMenu />
             </div>
-            {/* Journal date bar shown below header on journal page */}
-            {isJournalPage && (
-              <JournalDateBar
-                journalDate={journalDate}
-                setJournalDate={setJournalDate}
-                setPickerOpen={setPickerOpen}
-              />
-            )}
           </div>
 
           <main style={{
-            paddingTop: isJournalPage ? '6rem' : '3rem',
-            paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))'
+            paddingTop: '3rem',
+            paddingBottom: `calc(${navHeight + journalDateBarHeight}px + env(safe-area-inset-bottom, 0px) + 1rem)`
           }}>
             <div className="max-w-xl mx-auto px-4 sm:px-6 py-5 sm:py-7">
               <Outlet context={outletContext} />
             </div>
           </main>
-          <BottomNav />
+
+          <BottomNav
+            isJournalPage={isJournalPage}
+            journalDate={journalDate}
+            setJournalDate={setJournalDate}
+            setPickerOpen={setPickerOpen}
+          />
         </>
       )}
     </div>
