@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
 const ThemeContext = createContext();
 
@@ -13,7 +13,7 @@ export const useTheme = () => {
 export const ThemeProvider = ({ children }) => {
   const [themeMode, setThemeMode] = useState(() => {
     const saved = localStorage.getItem('themeMode');
-    return saved || 'light'; // light, dark, auto
+    return saved || 'light';
   });
 
   const [fontSize, setFontSize] = useState(() => {
@@ -23,7 +23,6 @@ export const ThemeProvider = ({ children }) => {
 
   const getSystemTheme = () => {
     const hour = new Date().getHours();
-    // Daytime: 6am - 6pm, Night: 6pm - 6am
     return (hour >= 6 && hour < 18) ? 'light' : 'dark';
   };
 
@@ -34,6 +33,9 @@ export const ThemeProvider = ({ children }) => {
     return themeMode;
   });
 
+  const actualThemeRef = useRef(actualTheme);
+  actualThemeRef.current = actualTheme;
+
   useEffect(() => {
     localStorage.setItem('themeMode', themeMode);
     
@@ -41,19 +43,18 @@ export const ThemeProvider = ({ children }) => {
       const theme = getSystemTheme();
       setActualTheme(theme);
       
-      // Check every minute if time changed enough to switch themes
       const interval = setInterval(() => {
         const newTheme = getSystemTheme();
-        if (newTheme !== actualTheme) {
+        if (newTheme !== actualThemeRef.current) { // ✅ use ref instead of actualTheme
           setActualTheme(newTheme);
         }
-      }, 60000); // Check every minute
+      }, 60000);
       
       return () => clearInterval(interval);
     } else {
       setActualTheme(themeMode);
     }
-  }, [themeMode, actualTheme]);
+  }, [themeMode]); // ✅ removed actualTheme from deps — no more warning or loop
 
   useEffect(() => {
     if (actualTheme === 'dark') {
