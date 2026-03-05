@@ -15,7 +15,6 @@ const YearPicker = ({ displayMonth, fromDate, toDate, onSelect }) => {
 
   const ref = React.useRef(null);
 
-  // Scroll selected year into view on mount
   React.useEffect(() => {
     const el = ref.current?.querySelector('[data-selected="true"]');
     if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' });
@@ -92,7 +91,7 @@ const Caption = ({ displayMonth, fromDate, toDate, onMonthChange }) => {
   const label = displayMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', width: '100%' }}>
       {/* Caption row */}
       <div style={{
         display: 'flex',
@@ -101,6 +100,7 @@ const Caption = ({ displayMonth, fromDate, toDate, onMonthChange }) => {
         position: 'relative',
         paddingTop: 4,
         marginBottom: showYearPicker ? 6 : 0,
+        width: '100%',
       }}>
         {/* Prev arrow */}
         {!showYearPicker && (
@@ -181,7 +181,6 @@ const Caption = ({ displayMonth, fromDate, toDate, onMonthChange }) => {
 function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
   const [month, setMonth] = React.useState(props.defaultMonth || props.selected || new Date());
 
-  // Keep in sync if parent controls the month
   React.useEffect(() => {
     if (props.defaultMonth) setMonth(props.defaultMonth);
   }, [props.defaultMonth]);
@@ -191,27 +190,27 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
       showOutsideDays={showOutsideDays}
       month={month}
       onMonthChange={setMonth}
-      className={cn("p-3", className)}
+      className={cn("p-3 w-full", className)}
       classNames={{
-        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-        month: "space-y-4",
-        caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "hidden", // hidden — we use our custom Caption
-        nav: "hidden",           // hidden — handled inside Caption
+        months: "flex flex-col w-full",
+        month: "w-full",
+        caption: "flex justify-center pt-1 relative items-center w-full",
+        caption_label: "hidden",
+        nav: "hidden",
         nav_button: "hidden",
         nav_button_previous: "hidden",
         nav_button_next: "hidden",
-        table: "w-full border-collapse space-y-1",
-        head_row: "flex",
-        head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
-        row: "flex w-full mt-2",
+        table: "w-full border-collapse",
+        head_row: "grid grid-cols-7 w-full",
+        head_cell: "text-muted-foreground font-normal text-[0.8rem] text-center py-2",
+        row: "grid grid-cols-7 w-full mt-1",
         cell: cn(
-          "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected].day-range-end)]:rounded-r-md",
+          "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 flex items-center justify-center [&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected].day-range-end)]:rounded-r-md",
           props.mode === "range"
             ? "[&:has(>.day-range-end)]:rounded-r-md [&:has(>.day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md"
             : "[&:has([aria-selected])]:rounded-md"
         ),
-        day: cn(buttonVariants({ variant: "ghost" }), "h-8 w-8 p-0 font-normal aria-selected:opacity-100"),
+        day: cn(buttonVariants({ variant: "ghost" }), "h-8 w-8 p-0 font-normal aria-selected:opacity-100 mx-auto"),
         day_range_start: "day-range-start",
         day_range_end: "day-range-end",
         day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
