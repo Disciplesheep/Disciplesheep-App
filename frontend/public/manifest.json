@@ -4,12 +4,12 @@
   "description": "A digital journal for church planters to track daily devotions, people contacts, expenses, and ministry progress",
   "icons": [
     {
-      "src": "https://images.unsplash.com/photo-1606445095898-16c730da5732?w=192&h=192&fit=crop",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "https://images.unsplash.com/photo-1606445095898-16c730da5732?w=512&h=512&fit=crop",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
