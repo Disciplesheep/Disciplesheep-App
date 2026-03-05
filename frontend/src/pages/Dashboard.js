@@ -44,7 +44,7 @@ const Dashboard = () => {
     >
       <div className="relative z-10">
         <h1 className={`font-serif font-bold tracking-tight mb-2 ${isTablet ? 'text-4xl' : 'text-3xl'}`}>
-          Sow &amp; Reap Journal
+          Disciplesheep Journal
         </h1>
         <p className={`text-white/90 font-medium ${isTablet ? 'text-xl' : 'text-lg'}`}>{formatDisplayDate(today)}</p>
         <p className="text-white/70 text-sm mt-1">{formatDayOfWeek(today)} &bull; Week {getWeekNumber(today)}</p>

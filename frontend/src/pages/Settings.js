@@ -135,7 +135,7 @@ const Settings = () => {
 
       {/* About */}
       <Card className="bg-forest-50 dark:bg-stone-800 rounded-xl border border-forest-100 dark:border-stone-700 p-6">
-        <h2 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-2">Sow & Reap Journal</h2>
+        <h2 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-2">Disciplesheep Journal</h2>
         <p className="text-sm text-stone-700 dark:text-stone-300 mb-3">Version 1.0 - Church Planter's Companion</p>
         <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed">
           A 6-year devotional and ministry tracker for church planters. 
