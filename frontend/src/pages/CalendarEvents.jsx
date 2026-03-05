@@ -233,7 +233,6 @@ const CalendarEvents = () => {
     .filter(p => p.birthday)
     .map(p => {
       const bday = new Date(p.birthday + 'T00:00:00');
-      // Use this year's birthday date
       const thisYearBday = new Date(thisYear, bday.getMonth(), bday.getDate());
       return {
         id: `bday-${p.id}`,
@@ -245,7 +244,6 @@ const CalendarEvents = () => {
       };
     });
 
-  /* All events combined for dot rendering */
   const allEvents = [...calendarEvents, ...birthdayEvents];
 
   const selectedKey = toKey(selectedDate);
@@ -253,7 +251,6 @@ const CalendarEvents = () => {
     .filter(ev => ev.date === selectedKey)
     .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
 
-  /* Upcoming = today + future */
   const upcoming = allEvents
     .filter(ev => {
       const d = new Date(ev.date + 'T23:59:59');
@@ -298,32 +295,46 @@ const CalendarEvents = () => {
         </div>
       </div>
 
-      {/* Calendar */}
-      <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-4">
-        <Calendar
-          mode="single"
-          selected={selectedDate}
-          onSelect={d => { if (d) setSelectedDate(d); }}
-          className="w-full"
-          components={{
-            DayContent: ({ date }) => {
-              const key = toKey(date);
-              const dots = [...new Set(allEvents.filter(ev => ev.date === key).map(ev => ev.color || 'forest'))];
-              return (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', paddingBottom: dots.length ? 6 : 0 }}>
-                  <span>{date.getDate()}</span>
-                  {dots.length > 0 && (
-                    <div style={{ display: 'flex', gap: 2, position: 'absolute', bottom: -4 }}>
-                      {dots.slice(0, 3).map((c, i) => (
-                        <span key={i} style={{ width: 4, height: 4, borderRadius: '50%', background: colorFor(c).dot }} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            }
-          }}
-        />
+      {/* Calendar — no padding, fills full card width */}
+      <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden">
+        <style>{`
+          .cal-full .rdp { margin: 0; width: 100%; }
+          .cal-full .rdp-months { width: 100%; }
+          .cal-full .rdp-month { width: 100%; }
+          .cal-full .rdp-table { width: 100%; }
+          .cal-full .rdp-head_row,
+          .cal-full .rdp-row { display: grid; grid-template-columns: repeat(7, 1fr); }
+          .cal-full .rdp-head_cell,
+          .cal-full .rdp-cell { width: 100%; display: flex; align-items: center; justify-content: center; }
+          .cal-full .rdp-day { width: 100%; border-radius: 0.5rem; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
+          .cal-full .rdp-caption { padding: 12px 16px; }
+        `}</style>
+        <div className="cal-full">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={d => { if (d) setSelectedDate(d); }}
+            className="w-full"
+            components={{
+              DayContent: ({ date }) => {
+                const key = toKey(date);
+                const dots = [...new Set(allEvents.filter(ev => ev.date === key).map(ev => ev.color || 'forest'))];
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', paddingBottom: dots.length ? 6 : 0, width: '100%' }}>
+                    <span>{date.getDate()}</span>
+                    {dots.length > 0 && (
+                      <div style={{ display: 'flex', gap: 2, position: 'absolute', bottom: -4 }}>
+                        {dots.slice(0, 3).map((c, i) => (
+                          <span key={i} style={{ width: 4, height: 4, borderRadius: '50%', background: colorFor(c).dot }} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+            }}
+          />
+        </div>
       </Card>
 
       {/* Selected day */}
@@ -393,5 +404,3 @@ const CalendarEvents = () => {
 };
 
 export default CalendarEvents;
-
-
