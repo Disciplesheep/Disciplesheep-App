@@ -298,16 +298,19 @@ const CalendarEvents = () => {
       {/* Calendar — no padding, fills full card width */}
       <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden">
         <style>{`
-          .cal-full .rdp { margin: 0; width: 100%; }
-          .cal-full .rdp-months { width: 100%; }
-          .cal-full .rdp-month { width: 100%; }
-          .cal-full .rdp-table { width: 100%; }
-          .cal-full .rdp-head_row,
-          .cal-full .rdp-row { display: grid; grid-template-columns: repeat(7, 1fr); }
-          .cal-full .rdp-head_cell,
-          .cal-full .rdp-cell { width: 100%; display: flex; align-items: center; justify-content: center; }
-          .cal-full .rdp-day { width: 100%; border-radius: 0.5rem; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
-          .cal-full .rdp-caption { padding: 12px 16px; }
+          .cal-full { width: 100%; }
+          .cal-full .rdp { margin: 0; width: 100% !important; max-width: 100% !important; }
+          .cal-full .rdp-months { width: 100% !important; }
+          .cal-full .rdp-month { width: 100% !important; }
+          .cal-full .rdp-caption { padding: 12px 16px; width: 100% !important; }
+          .cal-full .rdp-table { width: 100% !important; table-layout: fixed; border-collapse: collapse; }
+          .cal-full .rdp-head_row { display: table-row; }
+          .cal-full .rdp-row { display: table-row; }
+          .cal-full .rdp-head_cell { display: table-cell; text-align: center; padding: 6px 0; width: calc(100% / 7); }
+          .cal-full .rdp-cell { display: table-cell; text-align: center; padding: 2px; width: calc(100% / 7); }
+          .cal-full .rdp-day { width: 100% !important; max-width: none !important; aspect-ratio: 1; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; }
+          .cal-full .rdp-day_selected { background-color: #4d7c0f !important; color: white !important; }
+          .cal-full .rdp-day_today:not(.rdp-day_selected) { font-weight: bold; color: #4d7c0f; }
         `}</style>
         <div className="cal-full">
           <Calendar
@@ -404,3 +407,4 @@ const CalendarEvents = () => {
 };
 
 export default CalendarEvents;
+
