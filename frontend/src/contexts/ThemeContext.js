@@ -53,7 +53,7 @@ export const ThemeProvider = ({ children }) => {
     } else {
       setActualTheme(themeMode);
     }
-  }, [themeMode]);
+  }, [themeMode, actualTheme]);
 
   useEffect(() => {
     if (actualTheme === 'dark') {
