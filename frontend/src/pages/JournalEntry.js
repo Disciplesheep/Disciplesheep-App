@@ -129,7 +129,7 @@ const JournalEntry = () => {
                 <CalendarDays className="w-4 h-4" />
                 <div className="text-center">
                   <div className="font-serif text-lg font-semibold">{formatDisplayDate(selectedDate)}</div>
-                  <p className="text-xs text-stone-600 dark:text-stone-400">{format(selectedDate, 'EEEE')} • Click to jump to any date</p>
+                  <p className="text-xs text-stone-600 dark:text-stone-400">{format(selectedDate, 'EEEE')}</p>
                 </div>
               </Button>
             </PopoverTrigger>
