@@ -21,7 +21,7 @@ const SideNav = () => (
         <Sprout className="w-5 h-5 text-white" strokeWidth={2} />
       </div>
       <div>
-        <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100 leading-tight">Sow & Reap</p>
+        <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100 leading-tight">Disciplesheep</p>
         <p className="text-[10px] text-stone-500 dark:text-stone-400 tracking-wide uppercase">Journal</p>
       </div>
     </div>
