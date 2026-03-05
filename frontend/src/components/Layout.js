@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import {
   LayoutGrid, BookOpen, GitBranch, TrendingUp,
-  Settings as SettingsIcon, Sprout
+  Settings as SettingsIcon
 } from 'lucide-react';
 import { useScreenSize } from '@/hooks/useScreenSize';
 
@@ -18,7 +18,7 @@ const SideNav = () => (
   <aside className="fixed top-0 left-0 h-full w-56 bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-r border-stone-200 dark:border-stone-700 flex flex-col z-50 shadow-lg">
     <div className="flex items-center gap-3 px-5 py-6 border-b border-stone-100 dark:border-stone-800">
       <div className="w-9 h-9 rounded-xl bg-forest-500 flex items-center justify-center flex-shrink-0">
-        <Sprout className="w-5 h-5 text-white" strokeWidth={2} />
+        <span className="text-xl">🐑</span>
       </div>
       <div>
         <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100 leading-tight">Disciplesheep</p>
