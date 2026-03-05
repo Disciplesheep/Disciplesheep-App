@@ -1,10 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutGrid, BookOpen, GitBranch, TrendingUp,
-  CalendarDays, Settings as SettingsIcon, X, Camera, Check
+  CalendarDays, Settings as SettingsIcon, X, Camera, Check,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { useScreenSize } from '@/hooks/useScreenSize';
+import { format, addDays, subDays } from 'date-fns';
 
 const navItems = [
   { to: '/',            icon: LayoutGrid,   label: 'Dashboard' },
@@ -136,6 +138,41 @@ const ProfileMenu = () => {
   );
 };
 
+/* ── Journal Date Navigation Bar ────────────────────────────────────────── */
+const JournalDateBar = ({ journalDate, setJournalDate, setPickerOpen }) => {
+  const isToday = format(journalDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+  return (
+    <div className="flex items-center justify-between px-4 py-2 bg-forest-500 text-white">
+      <button
+        onClick={() => setJournalDate(d => subDays(d, 1))}
+        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+        style={{ minHeight: 0 }}
+      >
+        <ChevronLeft className="w-5 h-5" />
+      </button>
+
+      <button
+        onClick={() => setPickerOpen(v => !v)}
+        className="flex items-center gap-2 px-3 py-1 rounded-full hover:bg-white/20 transition-colors"
+        style={{ minHeight: 0 }}
+      >
+        <CalendarDays className="w-4 h-4" />
+        <span className="text-sm font-semibold">
+          {isToday ? 'Today · ' : ''}{format(journalDate, 'MMM d, yyyy')}
+        </span>
+      </button>
+
+      <button
+        onClick={() => setJournalDate(d => addDays(d, 1))}
+        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+        style={{ minHeight: 0 }}
+      >
+        <ChevronRight className="w-5 h-5" />
+      </button>
+    </div>
+  );
+};
+
 const SideNav = () => (
   <aside className="fixed top-0 left-0 h-full w-56 bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-r border-stone-200 dark:border-stone-700 flex flex-col z-50 shadow-lg">
     <div className="flex items-center justify-between px-5 py-6 border-b border-stone-100 dark:border-stone-800">
@@ -214,8 +251,9 @@ const BottomNav = () => (
 
 const Layout = () => {
   const { isTablet } = useScreenSize();
+  const location = useLocation();
+  const isJournalPage = location.pathname === '/journal';
 
-  // Journal date state — shared with JournalEntry via Outlet context
   const [journalDate, setJournalDate] = useState(new Date());
   const [pickerOpen, setPickerOpen]   = useState(false);
 
@@ -227,6 +265,16 @@ const Layout = () => {
         <>
           <SideNav />
           <main className="ml-56 min-h-screen">
+            {/* Journal date bar for tablet */}
+            {isJournalPage && (
+              <div className="sticky top-0 z-40">
+                <JournalDateBar
+                  journalDate={journalDate}
+                  setJournalDate={setJournalDate}
+                  setPickerOpen={setPickerOpen}
+                />
+              </div>
+            )}
             <div className="max-w-4xl mx-auto px-6 py-8 lg:px-10 lg:py-10">
               <Outlet context={outletContext} />
             </div>
@@ -234,14 +282,29 @@ const Layout = () => {
         </>
       ) : (
         <>
-          <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-b border-stone-200 dark:border-stone-700 flex items-center justify-between px-4 h-12">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🐑</span>
-              <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100">Disciplesheep</p>
+          {/* Mobile top bar */}
+          <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-b border-stone-200 dark:border-stone-700">
+            <div className="flex items-center justify-between px-4 h-12">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🐑</span>
+                <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100">Disciplesheep</p>
+              </div>
+              <ProfileMenu />
             </div>
-            <ProfileMenu />
+            {/* Journal date bar shown below header on journal page */}
+            {isJournalPage && (
+              <JournalDateBar
+                journalDate={journalDate}
+                setJournalDate={setJournalDate}
+                setPickerOpen={setPickerOpen}
+              />
+            )}
           </div>
-          <main style={{ paddingTop: '3rem', paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
+
+          <main style={{
+            paddingTop: isJournalPage ? '6rem' : '3rem',
+            paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))'
+          }}>
             <div className="max-w-xl mx-auto px-4 sm:px-6 py-5 sm:py-7">
               <Outlet context={outletContext} />
             </div>
