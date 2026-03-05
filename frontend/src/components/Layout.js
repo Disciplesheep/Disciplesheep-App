@@ -1,8 +1,8 @@
 import React from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 import {
   LayoutGrid, BookOpen, GitBranch, TrendingUp,
-  Settings as SettingsIcon, CalendarDays
+  Settings as SettingsIcon
 } from 'lucide-react';
 import { useScreenSize } from '@/hooks/useScreenSize';
 
@@ -54,7 +54,6 @@ const SideNav = () => (
   </aside>
 );
 
-/* ── Bottom Nav ─────────────────────────────────────────────────────────── */
 const BottomNav = () => (
   <nav
     className="fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-t border-stone-200 dark:border-stone-700 z-50"
@@ -88,85 +87,8 @@ const BottomNav = () => (
   </nav>
 );
 
-/* ── Journal Date Bar — shown only on /journal, sits above BottomNav ─────── */
-const JournalDateBar = ({ selectedDate, onPrev, onNext, onPickerOpen }) => {
-  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-
-  const day = days[selectedDate.getDay()];
-  const month = months[selectedDate.getMonth()];
-  const date = selectedDate.getDate().toString().padStart(2, '0');
-  const year = selectedDate.getFullYear();
-
-  return (
-    <div
-      className="fixed left-0 right-0 z-40 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-t border-stone-200 dark:border-stone-700"
-      style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}
-    >
-      <div className="h-14 flex items-center justify-between px-4 max-w-2xl mx-auto">
-        {/* Prev */}
-        <button
-          onClick={onPrev}
-          className="text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors px-3 text-sm font-medium"
-          style={{ minHeight: 0 }}
-        >
-          ← Prev
-        </button>
-
-        {/* Date — clicking opens the calendar popover */}
-        <button
-          onClick={onPickerOpen}
-          className="flex items-center gap-2 hover:bg-stone-100 dark:hover:bg-stone-800 px-3 py-1.5 rounded-xl transition-colors"
-          style={{ minHeight: 0 }}
-        >
-          <CalendarDays className="w-4 h-4 text-forest-500 dark:text-forest-400 flex-shrink-0" />
-          <div className="text-center">
-            <div className="font-serif text-base font-semibold text-forest-600 dark:text-forest-400 leading-tight">
-              {month} {date}, {year}
-            </div>
-            <div className="text-xs text-stone-500 dark:text-stone-400 leading-tight">{day}</div>
-          </div>
-        </button>
-
-        {/* Next */}
-        <button
-          onClick={onNext}
-          className="text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 transition-colors px-3 text-sm font-medium"
-          style={{ minHeight: 0 }}
-        >
-          Next →
-        </button>
-      </div>
-    </div>
-  );
-};
-
-/* ── Layout ─────────────────────────────────────────────────────────────── */
 const Layout = () => {
   const { isTablet } = useScreenSize();
-  const location = useLocation();
-  const isJournal = location.pathname === '/journal';
-
-  // Date state lives here so JournalDateBar and JournalEntry share it
-  const [journalDate, setJournalDate] = React.useState(new Date());
-  const [pickerOpen, setPickerOpen] = React.useState(false);
-
-  const handlePrev = () => {
-    const d = new Date(journalDate);
-    d.setDate(d.getDate() - 1);
-    setJournalDate(d);
-  };
-
-  const handleNext = () => {
-    const d = new Date(journalDate);
-    d.setDate(d.getDate() + 1);
-    setJournalDate(d);
-  };
-
-  // Extra bottom padding for journal page on mobile (date bar + bottom nav)
-  const mobilePaddingBottom = isJournal
-    ? 'calc(7.5rem + env(safe-area-inset-bottom, 0px))'
-    : 'calc(4rem + env(safe-area-inset-bottom, 0px))';
 
   return (
     <div className="min-h-screen bg-paper dark:bg-stone-900 transition-colors">
@@ -175,28 +97,17 @@ const Layout = () => {
           <SideNav />
           <main className="ml-56 min-h-screen">
             <div className="max-w-4xl mx-auto px-6 py-8 lg:px-10 lg:py-10">
-              <Outlet context={{ journalDate, setJournalDate, pickerOpen, setPickerOpen }} />
+              <Outlet />
             </div>
           </main>
         </>
       ) : (
         <>
-          <main style={{ paddingBottom: mobilePaddingBottom }}>
+          <main style={{ paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
             <div className="max-w-xl mx-auto px-4 sm:px-6 py-5 sm:py-7">
-              <Outlet context={{ journalDate, setJournalDate, pickerOpen, setPickerOpen }} />
+              <Outlet />
             </div>
           </main>
-
-          {/* Date bar — only on journal page */}
-          {isJournal && (
-            <JournalDateBar
-              selectedDate={journalDate}
-              onPrev={handlePrev}
-              onNext={handleNext}
-              onPickerOpen={() => setPickerOpen(true)}
-            />
-          )}
-
           <BottomNav />
         </>
       )}
