@@ -183,6 +183,14 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
   /* always show bar when picker is open */
   useEffect(() => { if (pickerOpen) setBarVisible(true); }, [pickerOpen]);
 
+  /* close calendar picker on scroll */
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const onScroll = () => setPickerOpen(false);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [pickerOpen, setPickerOpen]);
+
   /*
     barBottom: how far from the bottom of the viewport the bar sits.
     When visible  → sits on top of the bottom nav: NAV_H px from bottom
