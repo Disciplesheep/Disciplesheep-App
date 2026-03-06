@@ -180,12 +180,12 @@ const Dashboard = () => {
   );
 
   const budgetCard = (
-    <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="budget-progress-card">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className={`font-serif font-semibold text-stone-900 dark:text-stone-100 ${isTablet ? 'text-xl' : 'text-lg'}`}>Monthly Budget</h3>
-        <span className="text-sm font-mono text-stone-600 dark:text-stone-400">₱{monthExpenses.toFixed(0)} / ₱{monthlyBudget}</span>
+    <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 px-4 py-2" data-testid="budget-progress-card">
+      <div className="flex items-center justify-between mb-1.5">
+        <h3 className="font-serif font-semibold text-stone-900 dark:text-stone-100 text-base">Monthly Budget</h3>
+        <span className="text-xs font-mono text-stone-600 dark:text-stone-400">₱{monthExpenses.toFixed(0)} / ₱{monthlyBudget}</span>
       </div>
-      <div className="w-full bg-stone-100 dark:bg-stone-700 rounded-full h-3 overflow-hidden">
+      <div className="w-full bg-stone-100 dark:bg-stone-700 rounded-full h-2 overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${
             budgetPercentage > 90 ? 'bg-red-500' :
@@ -195,7 +195,7 @@ const Dashboard = () => {
           style={{ width: `${budgetPercentage}%` }}
         />
       </div>
-      <p className="text-xs text-stone-600 dark:text-stone-400 mt-2">
+      <p className="text-xs text-stone-600 dark:text-stone-400 mt-1">
         {budgetPercentage}% used &bull; ₱{(monthlyBudget - monthExpenses).toFixed(0)} remaining
       </p>
     </Card>
