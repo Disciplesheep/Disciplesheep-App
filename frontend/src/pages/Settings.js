@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Moon, Sun, Sunrise, Type, Settings as SettingsIcon, Lock, ShieldCheck, ShieldOff, Eye, EyeOff } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -45,7 +45,7 @@ const FontPreview = ({ fontSize }) => {
 };
 
 // ── Password Field helper ─────────────────────────────────────────────────────
-const PwField = ({ label, value, onChange, show, onToggle, onEnter, autoFocus }) => (
+const PwField = ({ label, value, onChange, show, onToggle, onEnter, autoFocus, isCorrect }) => (
   <div className="space-y-1">
     <label className="text-xs text-stone-500 dark:text-stone-400">{label}</label>
     <div className="relative">
@@ -56,11 +56,20 @@ const PwField = ({ label, value, onChange, show, onToggle, onEnter, autoFocus })
         onKeyDown={e => e.key === 'Enter' && onEnter?.()}
         autoFocus={autoFocus}
         autoComplete="new-password"
-        className="w-full px-4 py-2.5 pr-10 rounded-xl border border-stone-200 dark:border-stone-600 focus:border-forest-500 text-sm bg-stone-50 dark:bg-stone-700 text-stone-900 dark:text-stone-100 outline-none transition-colors"
+        className={`w-full px-4 py-2.5 pr-10 rounded-xl border text-sm bg-stone-50 dark:bg-stone-700 text-stone-900 dark:text-stone-100 outline-none transition-colors ${
+          isCorrect
+            ? 'border-forest-500 bg-forest-50 dark:bg-forest-900/20'
+            : 'border-stone-200 dark:border-stone-600 focus:border-forest-500'
+        }`}
       />
-      <button type="button" onClick={onToggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300">
-        {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-      </button>
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+        {isCorrect && (
+          <span className="text-forest-500 text-xs font-bold">✓</span>
+        )}
+        <button type="button" onClick={onToggle} className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-300">
+          {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        </button>
+      </div>
     </div>
   </div>
 );
@@ -75,6 +84,33 @@ const SecurityCard = () => {
   const [showPw,  setShowPw]  = useState(false);
   const [error,   setError]   = useState('');
   const [success, setSuccess] = useState('');
+
+  // Check if current password is correct as user types
+  const currentIsCorrect = (mode === 'change' || mode === 'remove') && current.length > 0 && verifyPassword(current);
+
+  // Auto-submit when current password is correct
+  useEffect(() => {
+    if (!currentIsCorrect) return;
+
+    if (mode === 'remove') {
+      // Auto-remove when password matches
+      const timer = setTimeout(() => {
+        removePassword();
+        setSuccess('Password removed. Deletions are unprotected.');
+        reset();
+      }, 400); // short delay so user sees the ✓ checkmark
+      return () => clearTimeout(timer);
+    }
+
+    if (mode === 'change') {
+      // Just move focus to the next field — don't auto-submit yet
+      const nextInput = document.querySelector('input[data-field="new-password"]');
+      if (nextInput) {
+        setTimeout(() => nextInput.focus(), 400);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIsCorrect]);
 
   const reset = () => { setMode(null); setCurrent(''); setNext(''); setConfirm(''); setError(''); setSuccess(''); };
 
@@ -149,30 +185,58 @@ const SecurityCard = () => {
       {mode !== null && (
         <div className="space-y-3">
           {(mode === 'change' || mode === 'remove') && (
-            <PwField label="Current password" value={current} onChange={e => { setCurrent(e.target.value); setError(''); }}
-              show={showPw} onToggle={() => setShowPw(v => !v)} autoFocus />
+            <PwField
+              label={mode === 'remove' ? 'Enter password to confirm removal' : 'Current password'}
+              value={current}
+              onChange={e => { setCurrent(e.target.value); setError(''); }}
+              show={showPw}
+              onToggle={() => setShowPw(v => !v)}
+              autoFocus
+              isCorrect={currentIsCorrect}
+            />
           )}
           {(mode === 'set' || mode === 'change') && (
             <>
-              <PwField label={mode === 'change' ? 'New password' : 'Password (min 4 characters)'}
-                value={next} onChange={e => { setNext(e.target.value); setError(''); }}
-                show={showPw} onToggle={() => setShowPw(v => !v)} autoFocus={mode === 'set'} />
-              <PwField label="Confirm password" value={confirm} onChange={e => { setConfirm(e.target.value); setError(''); }}
-                show={showPw} onToggle={() => setShowPw(v => !v)} onEnter={handleSubmit} />
+              <PwField
+                label={mode === 'change' ? 'New password' : 'Password (min 4 characters)'}
+                value={next}
+                onChange={e => { setNext(e.target.value); setError(''); }}
+                show={showPw}
+                onToggle={() => setShowPw(v => !v)}
+                autoFocus={mode === 'set'}
+                data-field="new-password"
+              />
+              <PwField
+                label="Confirm password"
+                value={confirm}
+                onChange={e => { setConfirm(e.target.value); setError(''); }}
+                show={showPw}
+                onToggle={() => setShowPw(v => !v)}
+                onEnter={handleSubmit}
+              />
             </>
           )}
 
-          {error   && <p className="text-xs text-red-500">{error}</p>}
+          {error && <p className="text-xs text-red-500">{error}</p>}
+
+          {/* Show hint when waiting for current password */}
+          {(mode === 'change' || mode === 'remove') && !currentIsCorrect && current.length > 0 && (
+            <p className="text-xs text-stone-400 dark:text-stone-500">
+              {mode === 'remove' ? 'Enter the correct password to auto-confirm removal.' : 'Enter the correct password to continue.'}
+            </p>
+          )}
 
           <div className="flex gap-2 pt-1">
             <button onClick={reset}
               className="flex-1 h-10 rounded-xl border border-stone-200 dark:border-stone-600 text-stone-600 dark:text-stone-400 text-sm hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">
               Cancel
             </button>
-            <button onClick={handleSubmit}
-              className={`flex-1 h-10 rounded-xl text-white text-sm transition-colors ${mode === 'remove' ? 'bg-red-500 hover:bg-red-600' : 'bg-forest-500 hover:bg-forest-600'}`}>
-              {mode === 'set' ? 'Save' : mode === 'change' ? 'Update' : 'Remove'}
-            </button>
+            {mode !== 'remove' && (
+              <button onClick={handleSubmit}
+                className={`flex-1 h-10 rounded-xl text-white text-sm transition-colors ${mode === 'set' ? 'bg-forest-500 hover:bg-forest-600' : 'bg-forest-500 hover:bg-forest-600'}`}>
+                {mode === 'set' ? 'Save' : 'Update'}
+              </button>
+            )}
           </div>
         </div>
       )}
