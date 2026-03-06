@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { useJournalData } from '@/hooks/useLocalStorage';
-import { Wallet, Plus, TrendingDown, TrendingUp, AlertCircle, Edit2, Trash2, HandCoins } from 'lucide-react';
+import { Wallet, Plus, TrendingDown, TrendingUp, AlertCircle, Edit2, Trash2, HandCoins, Target } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,6 @@ import { formatDate, EXPENSE_CATEGORIES, MONTHLY_BUDGET_PHP, MONTHLY_BUDGET_USD,
 const ExpenseLedger = () => {
   const { expenses, setExpenses } = useJournalData();
 
-  // Support/budget received — stored separately in localStorage
   const [supportList, setSupportList] = useState(() => {
     try { return JSON.parse(localStorage.getItem('supportReceived') || '[]'); }
     catch { return []; }
@@ -33,17 +32,16 @@ const ExpenseLedger = () => {
   const emptyExpense = { date: formatDate(new Date()), category: '', item: '', php: '', usd: '' };
   const emptySupport = { date: formatDate(new Date()), from: '', php: '', usd: '', note: '' };
 
-  const [formData, setFormData]         = useState(emptyExpense);
-  const [supportForm, setSupportForm]   = useState(emptySupport);
+  const [formData, setFormData]       = useState(emptyExpense);
+  const [supportForm, setSupportForm] = useState(emptySupport);
 
   const resetForm    = () => { setFormData(emptyExpense);   setEditingId(null); };
   const resetSupport = () => { setSupportForm(emptySupport); setEditingSupportId(null); };
 
-  const handlePhpChange = (value) => setFormData({ ...formData, php: value, usd: value ? (parseFloat(value) / USD_TO_PHP).toFixed(2) : '' });
-  const handleUsdChange = (value) => setFormData({ ...formData, usd: value, php: value ? (parseFloat(value) * USD_TO_PHP).toFixed(2) : '' });
-
-  const handleSupportPhpChange = (value) => setSupportForm({ ...supportForm, php: value, usd: value ? (parseFloat(value) / USD_TO_PHP).toFixed(2) : '' });
-  const handleSupportUsdChange = (value) => setSupportForm({ ...supportForm, usd: value, php: value ? (parseFloat(value) * USD_TO_PHP).toFixed(2) : '' });
+  const handlePhpChange        = (v) => setFormData({ ...formData, php: v, usd: v ? (parseFloat(v) / USD_TO_PHP).toFixed(2) : '' });
+  const handleUsdChange        = (v) => setFormData({ ...formData, usd: v, php: v ? (parseFloat(v) * USD_TO_PHP).toFixed(2) : '' });
+  const handleSupportPhpChange = (v) => setSupportForm({ ...supportForm, php: v, usd: v ? (parseFloat(v) / USD_TO_PHP).toFixed(2) : '' });
+  const handleSupportUsdChange = (v) => setSupportForm({ ...supportForm, usd: v, php: v ? (parseFloat(v) * USD_TO_PHP).toFixed(2) : '' });
 
   const handleSubmit = () => {
     if (!formData.category || !formData.item || !formData.php) { toast.error('Please fill in Category, Item, and Amount'); return; }
@@ -71,26 +69,33 @@ const ExpenseLedger = () => {
     setIsSupportDialogOpen(false);
   };
 
-  const handleEdit        = (e) => { setFormData(e);        setEditingId(e.id);        setIsAddDialogOpen(true); };
-  const handleEditSupport = (s) => { setSupportForm(s);     setEditingSupportId(s.id); setIsSupportDialogOpen(true); };
+  const handleEdit          = (e) => { setFormData(e);    setEditingId(e.id);        setIsAddDialogOpen(true); };
+  const handleEditSupport   = (s) => { setSupportForm(s); setEditingSupportId(s.id); setIsSupportDialogOpen(true); };
   const handleDelete        = (id) => { setExpenses(prev => prev.filter(e => e.id !== id)); toast.success('Expense removed'); };
   const handleDeleteSupport = (id) => { saveSupport(supportList.filter(s => s.id !== id)); toast.success('Support entry removed'); };
 
-  /* ── Month calculations ── */
-  const monthExpenses = expenses.filter(e => e.date?.startsWith(selectedMonth));
-  const monthSupport  = supportList.filter(s => s.date?.startsWith(selectedMonth));
+  /* ── Calculations ── */
+  const monthExpenses    = expenses.filter(e => e.date?.startsWith(selectedMonth));
+  const monthSupport     = supportList.filter(s => s.date?.startsWith(selectedMonth));
 
-  const totalPhp        = monthExpenses.reduce((sum, e) => sum + parseFloat(e.php || 0), 0);
-  const totalUsd        = monthExpenses.reduce((sum, e) => sum + parseFloat(e.usd || 0), 0);
-  const totalSupportPhp = monthSupport.reduce((sum, s)  => sum + parseFloat(s.php || 0), 0);
-  const totalSupportUsd = monthSupport.reduce((sum, s)  => sum + parseFloat(s.usd || 0), 0);
+  const totalSpentPhp    = monthExpenses.reduce((sum, e) => sum + parseFloat(e.php || 0), 0);
+  const totalSpentUsd    = monthExpenses.reduce((sum, e) => sum + parseFloat(e.usd || 0), 0);
+  const totalSupportPhp  = monthSupport.reduce((sum, s)  => sum + parseFloat(s.php || 0), 0);
+  const totalSupportUsd  = monthSupport.reduce((sum, s)  => sum + parseFloat(s.usd || 0), 0);
 
-  // Effective budget = fixed monthly budget + support received this month
-  const effectiveBudgetPhp = MONTHLY_BUDGET_PHP + totalSupportPhp;
-  const effectiveBudgetUsd = MONTHLY_BUDGET_USD + totalSupportUsd;
-  const remainingPhp       = effectiveBudgetPhp - totalPhp;
-  const remainingUsd       = effectiveBudgetUsd - totalUsd;
-  const budgetPercentage   = Math.min((totalPhp / effectiveBudgetPhp) * 100, 100);
+  // Budget = only what's received
+  const effectiveBudgetPhp = totalSupportPhp;
+  const effectiveBudgetUsd = totalSupportUsd;
+  const remainingPhp       = effectiveBudgetPhp - totalSpentPhp;
+  const remainingUsd       = effectiveBudgetUsd - totalSpentUsd;
+
+  // Progress bar 1: how much of received support has been spent
+  const spentPercentage = effectiveBudgetPhp > 0
+    ? Math.min((totalSpentPhp / effectiveBudgetPhp) * 100, 100)
+    : 0;
+
+  // Progress bar 2: how close received support is to the target
+  const targetPercentage = Math.min((totalSupportPhp / MONTHLY_BUDGET_PHP) * 100, 100);
 
   const categoryTotals = monthExpenses.reduce((acc, e) => {
     const cat = e.category || 'Other';
@@ -107,31 +112,55 @@ const ExpenseLedger = () => {
       <Card className="bg-gradient-to-br from-mango-500 to-mango-900 rounded-2xl p-8 text-white shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="font-serif text-3xl font-bold tracking-tight mb-2">Budget Ledger</h1>
-            <p className="text-white/80">
-              Base: ₱{MONTHLY_BUDGET_PHP.toLocaleString()} / ${MONTHLY_BUDGET_USD}
-              {totalSupportPhp > 0 && (
-                <span className="ml-2 text-green-300 font-semibold">
-                  + ₱{totalSupportPhp.toLocaleString()} support
-                </span>
-              )}
-            </p>
+            <h1 className="font-serif text-3xl font-bold tracking-tight mb-1">Budget Ledger</h1>
+            <p className="text-white/70 text-sm">Target: ₱{MONTHLY_BUDGET_PHP.toLocaleString()} / ${MONTHLY_BUDGET_USD} / month</p>
           </div>
           <Wallet className="w-12 h-12 text-white/30" />
         </div>
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-white/80">Month: {format(new Date(selectedMonth + '-01'), 'MMMM yyyy')}</span>
-            <span className="font-mono font-bold">{budgetPercentage.toFixed(0)}% used</span>
+
+        <p className="text-xs text-white/60 mb-1 uppercase tracking-widest">
+          {format(new Date(selectedMonth + '-01'), 'MMMM yyyy')}
+        </p>
+
+        {/* Progress bar 1 — Spending vs Received */}
+        <div className="mb-4">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-sm text-white/80">Spent vs Received</span>
+            <span className="font-mono font-bold text-sm">
+              ₱{totalSpentPhp.toLocaleString()} / ₱{totalSupportPhp.toLocaleString()}
+            </span>
           </div>
           <div className="w-full bg-white/20 rounded-full h-3 overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all ${budgetPercentage > 90 ? 'bg-red-400' : budgetPercentage > 75 ? 'bg-yellow-400' : 'bg-white'}`}
-              style={{ width: `${budgetPercentage}%` }}
+              className={`h-full rounded-full transition-all ${
+                spentPercentage > 90 ? 'bg-red-400' :
+                spentPercentage > 75 ? 'bg-yellow-400' : 'bg-white'
+              }`}
+              style={{ width: `${spentPercentage}%` }}
             />
           </div>
-          <p className="text-xs text-white/70 text-right">
-            Effective budget: ₱{effectiveBudgetPhp.toLocaleString()} / ${effectiveBudgetUsd.toFixed(0)}
+          <p className="text-xs text-white/60 mt-1 text-right">{spentPercentage.toFixed(0)}% of received support spent</p>
+        </div>
+
+        {/* Progress bar 2 — Support received vs Target */}
+        <div>
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-sm text-white/80 flex items-center gap-1">
+              <Target className="w-3.5 h-3.5" /> Support vs Target
+            </span>
+            <span className="font-mono font-bold text-sm">
+              ${totalSupportUsd.toFixed(0)} / ${MONTHLY_BUDGET_USD}
+            </span>
+          </div>
+          <div className="w-full bg-white/20 rounded-full h-3 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all bg-green-400"
+              style={{ width: `${targetPercentage}%` }}
+            />
+          </div>
+          <p className="text-xs text-white/60 mt-1 text-right">
+            {targetPercentage.toFixed(0)}% of monthly target received
+            {targetPercentage >= 100 && ' 🎉'}
           </p>
         </div>
       </Card>
@@ -141,10 +170,10 @@ const ExpenseLedger = () => {
         <Input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
           className={`${ic} rounded-xl flex-1`} />
 
-        {/* Add Support button */}
+        {/* Support button */}
         <Dialog open={isSupportDialogOpen} onOpenChange={o => { setIsSupportDialogOpen(o); if (!o) resetSupport(); }}>
           <DialogTrigger asChild>
-            <Button className="bg-green-600 hover:bg-green-700 text-white rounded-full px-4" title="Record support received">
+            <Button className="bg-green-600 hover:bg-green-700 text-white rounded-full px-4">
               <HandCoins className="w-4 h-4 mr-1" /> Support
             </Button>
           </DialogTrigger>
@@ -162,8 +191,7 @@ const ExpenseLedger = () => {
               <div>
                 <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">From (Sender / Source) *</Label>
                 <Input type="text" value={supportForm.from} onChange={e => setSupportForm({ ...supportForm, from: e.target.value })}
-                  placeholder="e.g. Home church, Pastor Juan, Anonymous"
-                  className={ic} />
+                  placeholder="e.g. Home church, Pastor Juan, Anonymous" className={ic} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -180,8 +208,7 @@ const ExpenseLedger = () => {
               <div>
                 <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Note (optional)</Label>
                 <Input type="text" value={supportForm.note} onChange={e => setSupportForm({ ...supportForm, note: e.target.value })}
-                  placeholder="e.g. Monthly support, One-time gift"
-                  className={ic} />
+                  placeholder="e.g. Monthly support, One-time gift" className={ic} />
               </div>
               <p className="text-xs text-stone-500 dark:text-stone-400">Exchange rate: ₱{USD_TO_PHP} = $1</p>
               <Button onClick={handleSupportSubmit} className="w-full bg-green-600 hover:bg-green-700 text-white rounded-full h-11">
@@ -246,47 +273,51 @@ const ExpenseLedger = () => {
       <div className="grid grid-cols-2 gap-4">
         <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-5">
           <TrendingDown className="w-5 h-5 text-red-500 mb-2" />
-          <p className="text-2xl font-bold font-mono text-stone-900 dark:text-stone-100">₱{totalPhp.toFixed(0)}</p>
+          <p className="text-2xl font-bold font-mono text-stone-900 dark:text-stone-100">₱{totalSpentPhp.toFixed(0)}</p>
           <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">Spent This Month</p>
-          <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">${totalUsd.toFixed(2)}</p>
+          <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">${totalSpentUsd.toFixed(2)}</p>
         </Card>
         <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-5">
           <Wallet className={`w-5 h-5 mb-2 ${remainingPhp >= 0 ? 'text-forest-500 dark:text-forest-400' : 'text-red-500'}`} />
           <p className={`text-2xl font-bold font-mono ${remainingPhp >= 0 ? 'text-forest-500 dark:text-forest-400' : 'text-red-500'}`}>
             ₱{Math.abs(remainingPhp).toFixed(0)}
           </p>
-          <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">{remainingPhp >= 0 ? 'Remaining' : 'Over Budget'}</p>
+          <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">
+            {remainingPhp >= 0 ? 'Remaining' : 'Over Budget'}
+          </p>
           <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">${Math.abs(remainingUsd).toFixed(2)}</p>
         </Card>
       </div>
 
-      {/* Support Received Card */}
-      {totalSupportPhp > 0 && (
-        <Card className="bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800 p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
-            <h3 className="font-semibold text-green-800 dark:text-green-300 text-sm">Support Received This Month</h3>
-          </div>
-          <p className="text-2xl font-bold font-mono text-green-700 dark:text-green-400 mb-1">
-            ₱{totalSupportPhp.toLocaleString()}
-          </p>
-          <p className="text-xs text-green-600 dark:text-green-500">${totalSupportUsd.toFixed(2)} · added to your budget</p>
-        </Card>
-      )}
+      {/* Support Received Summary Card */}
+      <Card className={`rounded-xl border p-5 ${totalSupportPhp > 0 ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-stone-50 dark:bg-stone-800 border-stone-200 dark:border-stone-700'}`}>
+        <div className="flex items-center gap-2 mb-2">
+          <TrendingUp className={`w-5 h-5 ${totalSupportPhp > 0 ? 'text-green-600 dark:text-green-400' : 'text-stone-400'}`} />
+          <h3 className={`font-semibold text-sm ${totalSupportPhp > 0 ? 'text-green-800 dark:text-green-300' : 'text-stone-500 dark:text-stone-400'}`}>
+            Support Received This Month
+          </h3>
+        </div>
+        <p className={`text-3xl font-bold font-mono mb-1 ${totalSupportPhp > 0 ? 'text-green-700 dark:text-green-400' : 'text-stone-400 dark:text-stone-500'}`}>
+          ₱{totalSupportPhp.toLocaleString()}
+        </p>
+        <p className="text-xs text-stone-500 dark:text-stone-400">
+          ${totalSupportUsd.toFixed(2)} · target is ${MONTHLY_BUDGET_USD} / ₱{MONTHLY_BUDGET_PHP.toLocaleString()}
+        </p>
+      </Card>
 
       {/* Budget Alert */}
-      {budgetPercentage > 75 && (
-        <Card className={`rounded-xl p-4 border ${budgetPercentage > 90 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'}`}>
+      {effectiveBudgetPhp > 0 && spentPercentage > 75 && (
+        <Card className={`rounded-xl p-4 border ${spentPercentage > 90 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'}`}>
           <div className="flex items-start gap-3">
-            <AlertCircle className={budgetPercentage > 90 ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'} />
+            <AlertCircle className={spentPercentage > 90 ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'} />
             <div>
               <p className="font-semibold text-sm text-stone-900 dark:text-stone-100">
-                {budgetPercentage > 90 ? 'Budget Alert!' : 'Budget Warning'}
+                {spentPercentage > 90 ? 'Budget Alert!' : 'Budget Warning'}
               </p>
               <p className="text-sm text-stone-700 dark:text-stone-300">
-                {budgetPercentage > 90
-                  ? 'You have used over 90% of your effective budget. Exercise caution with remaining expenses.'
-                  : 'You have used over 75% of your effective budget. Monitor your spending carefully.'}
+                {spentPercentage > 90
+                  ? 'You have spent over 90% of your received support this month.'
+                  : 'You have spent over 75% of your received support this month.'}
               </p>
             </div>
           </div>
@@ -305,7 +336,8 @@ const ExpenseLedger = () => {
                   <span className="font-mono font-medium text-stone-900 dark:text-stone-100">₱{amount.toFixed(0)}</span>
                 </div>
                 <div className="w-full bg-stone-100 dark:bg-stone-700 rounded-full h-2">
-                  <div className="bg-forest-500 h-2 rounded-full transition-all" style={{ width: `${(amount / totalPhp) * 100}%` }} />
+                  <div className="bg-forest-500 h-2 rounded-full transition-all"
+                    style={{ width: `${totalSpentPhp > 0 ? (amount / totalSpentPhp) * 100 : 0}%` }} />
                 </div>
               </div>
             ))}
