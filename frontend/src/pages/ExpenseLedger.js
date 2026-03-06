@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { useJournalData } from '@/hooks/useLocalStorage';
-import { Wallet, Plus, TrendingDown, AlertCircle, Edit2, Trash2 } from 'lucide-react';
+import { Wallet, Plus, TrendingDown, TrendingUp, AlertCircle, Edit2, Trash2, HandCoins } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,103 +13,109 @@ import { formatDate, EXPENSE_CATEGORIES, MONTHLY_BUDGET_PHP, MONTHLY_BUDGET_USD,
 
 const ExpenseLedger = () => {
   const { expenses, setExpenses } = useJournalData();
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
-  
-  const [formData, setFormData] = useState({
-    date: formatDate(new Date()),
-    category: '',
-    item: '',
-    php: '',
-    usd: ''
+
+  // Support/budget received — stored separately in localStorage
+  const [supportList, setSupportList] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('supportReceived') || '[]'); }
+    catch { return []; }
   });
-
-  const resetForm = () => {
-    setFormData({
-      date: formatDate(new Date()),
-      category: '',
-      item: '',
-      php: '',
-      usd: ''
-    });
-    setEditingId(null);
+  const saveSupport = (list) => {
+    setSupportList(list);
+    localStorage.setItem('supportReceived', JSON.stringify(list));
   };
 
-  const handlePhpChange = (value) => {
-    setFormData({
-      ...formData,
-      php: value,
-      usd: value ? (parseFloat(value) / USD_TO_PHP).toFixed(2) : ''
-    });
-  };
+  const [isAddDialogOpen, setIsAddDialogOpen]         = useState(false);
+  const [isSupportDialogOpen, setIsSupportDialogOpen] = useState(false);
+  const [editingId, setEditingId]                     = useState(null);
+  const [editingSupportId, setEditingSupportId]       = useState(null);
+  const [selectedMonth, setSelectedMonth]             = useState(format(new Date(), 'yyyy-MM'));
 
-  const handleUsdChange = (value) => {
-    setFormData({
-      ...formData,
-      usd: value,
-      php: value ? (parseFloat(value) * USD_TO_PHP).toFixed(2) : ''
-    });
-  };
+  const emptyExpense = { date: formatDate(new Date()), category: '', item: '', php: '', usd: '' };
+  const emptySupport = { date: formatDate(new Date()), from: '', php: '', usd: '', note: '' };
+
+  const [formData, setFormData]         = useState(emptyExpense);
+  const [supportForm, setSupportForm]   = useState(emptySupport);
+
+  const resetForm    = () => { setFormData(emptyExpense);   setEditingId(null); };
+  const resetSupport = () => { setSupportForm(emptySupport); setEditingSupportId(null); };
+
+  const handlePhpChange = (value) => setFormData({ ...formData, php: value, usd: value ? (parseFloat(value) / USD_TO_PHP).toFixed(2) : '' });
+  const handleUsdChange = (value) => setFormData({ ...formData, usd: value, php: value ? (parseFloat(value) * USD_TO_PHP).toFixed(2) : '' });
+
+  const handleSupportPhpChange = (value) => setSupportForm({ ...supportForm, php: value, usd: value ? (parseFloat(value) / USD_TO_PHP).toFixed(2) : '' });
+  const handleSupportUsdChange = (value) => setSupportForm({ ...supportForm, usd: value, php: value ? (parseFloat(value) * USD_TO_PHP).toFixed(2) : '' });
 
   const handleSubmit = () => {
-    if (!formData.category || !formData.item || !formData.php) {
-      toast.error('Please fill in Category, Item, and Amount');
-      return;
-    }
-
+    if (!formData.category || !formData.item || !formData.php) { toast.error('Please fill in Category, Item, and Amount'); return; }
     if (editingId) {
-      setExpenses(prev => 
-        prev.map(e => e.id === editingId ? { ...formData, id: editingId } : e)
-      );
+      setExpenses(prev => prev.map(e => e.id === editingId ? { ...formData, id: editingId } : e));
       toast.success('Expense updated!');
     } else {
-      const newExpense = {
-        ...formData,
-        id: Date.now().toString()
-      };
-      setExpenses(prev => [newExpense, ...prev]);
+      setExpenses(prev => [{ ...formData, id: Date.now().toString() }, ...prev]);
       toast.success('Expense recorded!');
     }
-    
     resetForm();
     setIsAddDialogOpen(false);
   };
 
-  const handleEdit = (expense) => {
-    setFormData(expense);
-    setEditingId(expense.id);
-    setIsAddDialogOpen(true);
+  const handleSupportSubmit = () => {
+    if (!supportForm.from || !supportForm.php) { toast.error('Please fill in From and Amount'); return; }
+    if (editingSupportId) {
+      saveSupport(supportList.map(s => s.id === editingSupportId ? { ...supportForm, id: editingSupportId } : s));
+      toast.success('Support updated!');
+    } else {
+      saveSupport([{ ...supportForm, id: Date.now().toString() }, ...supportList]);
+      toast.success('Support received recorded!');
+    }
+    resetSupport();
+    setIsSupportDialogOpen(false);
   };
 
-  const handleDelete = (id) => {
-    setExpenses(prev => prev.filter(e => e.id !== id));
-    toast.success('Expense removed');
-  };
+  const handleEdit        = (e) => { setFormData(e);        setEditingId(e.id);        setIsAddDialogOpen(true); };
+  const handleEditSupport = (s) => { setSupportForm(s);     setEditingSupportId(s.id); setIsSupportDialogOpen(true); };
+  const handleDelete        = (id) => { setExpenses(prev => prev.filter(e => e.id !== id)); toast.success('Expense removed'); };
+  const handleDeleteSupport = (id) => { saveSupport(supportList.filter(s => s.id !== id)); toast.success('Support entry removed'); };
 
-  // Calculate month stats
+  /* ── Month calculations ── */
   const monthExpenses = expenses.filter(e => e.date?.startsWith(selectedMonth));
-  const totalPhp = monthExpenses.reduce((sum, e) => sum + parseFloat(e.php || 0), 0);
-  const totalUsd = monthExpenses.reduce((sum, e) => sum + parseFloat(e.usd || 0), 0);
-  const remainingPhp = MONTHLY_BUDGET_PHP - totalPhp;
-  const remainingUsd = MONTHLY_BUDGET_USD - totalUsd;
-  const budgetPercentage = Math.min((totalPhp / MONTHLY_BUDGET_PHP) * 100, 100);
+  const monthSupport  = supportList.filter(s => s.date?.startsWith(selectedMonth));
 
-  // Category breakdown
-  const categoryTotals = monthExpenses.reduce((acc, expense) => {
-    const category = expense.category || 'Other';
-    acc[category] = (acc[category] || 0) + parseFloat(expense.php || 0);
+  const totalPhp        = monthExpenses.reduce((sum, e) => sum + parseFloat(e.php || 0), 0);
+  const totalUsd        = monthExpenses.reduce((sum, e) => sum + parseFloat(e.usd || 0), 0);
+  const totalSupportPhp = monthSupport.reduce((sum, s)  => sum + parseFloat(s.php || 0), 0);
+  const totalSupportUsd = monthSupport.reduce((sum, s)  => sum + parseFloat(s.usd || 0), 0);
+
+  // Effective budget = fixed monthly budget + support received this month
+  const effectiveBudgetPhp = MONTHLY_BUDGET_PHP + totalSupportPhp;
+  const effectiveBudgetUsd = MONTHLY_BUDGET_USD + totalSupportUsd;
+  const remainingPhp       = effectiveBudgetPhp - totalPhp;
+  const remainingUsd       = effectiveBudgetUsd - totalUsd;
+  const budgetPercentage   = Math.min((totalPhp / effectiveBudgetPhp) * 100, 100);
+
+  const categoryTotals = monthExpenses.reduce((acc, e) => {
+    const cat = e.category || 'Other';
+    acc[cat] = (acc[cat] || 0) + parseFloat(e.php || 0);
     return acc;
   }, {});
 
+  const ic = "border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100";
+
   return (
     <div className="space-y-6 pb-6">
+
       {/* Header */}
-      <Card className="bg-gradient-to-br from-mango-500 to-mango-900 rounded-2xl p-8 text-white shadow-lg" data-testid="expense-ledger-header">
+      <Card className="bg-gradient-to-br from-mango-500 to-mango-900 rounded-2xl p-8 text-white shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="font-serif text-3xl font-bold tracking-tight mb-2">Budget Ledger</h1>
-            <p className="text-white/80">₱{MONTHLY_BUDGET_PHP} / ${MONTHLY_BUDGET_USD} monthly</p>
+            <p className="text-white/80">
+              Base: ₱{MONTHLY_BUDGET_PHP.toLocaleString()} / ${MONTHLY_BUDGET_USD}
+              {totalSupportPhp > 0 && (
+                <span className="ml-2 text-green-300 font-semibold">
+                  + ₱{totalSupportPhp.toLocaleString()} support
+                </span>
+              )}
+            </p>
           </div>
           <Wallet className="w-12 h-12 text-white/30" />
         </div>
@@ -119,113 +125,116 @@ const ExpenseLedger = () => {
             <span className="font-mono font-bold">{budgetPercentage.toFixed(0)}% used</span>
           </div>
           <div className="w-full bg-white/20 rounded-full h-3 overflow-hidden">
-            <div 
-              className={`h-full rounded-full transition-all ${
-                budgetPercentage > 90 ? 'bg-red-400' : 
-                budgetPercentage > 75 ? 'bg-yellow-400' : 
-                'bg-white'
-              }`}
+            <div
+              className={`h-full rounded-full transition-all ${budgetPercentage > 90 ? 'bg-red-400' : budgetPercentage > 75 ? 'bg-yellow-400' : 'bg-white'}`}
               style={{ width: `${budgetPercentage}%` }}
             />
           </div>
+          <p className="text-xs text-white/70 text-right">
+            Effective budget: ₱{effectiveBudgetPhp.toLocaleString()} / ${effectiveBudgetUsd.toFixed(0)}
+          </p>
         </div>
       </Card>
 
-      {/* Month Selector and Add Button */}
-      <div className="flex gap-3">
-        <Input
-          type="month"
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-          className="border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100 rounded-xl flex-1"
-          data-testid="month-selector"
-        />
-        <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
-          setIsAddDialogOpen(open);
-          if (!open) resetForm();
-        }}>
+      {/* Month Selector + Buttons */}
+      <div className="flex gap-2">
+        <Input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
+          className={`${ic} rounded-xl flex-1`} />
+
+        {/* Add Support button */}
+        <Dialog open={isSupportDialogOpen} onOpenChange={o => { setIsSupportDialogOpen(o); if (!o) resetSupport(); }}>
           <DialogTrigger asChild>
-            <Button 
-              className="bg-forest-500 hover:bg-forest-900 text-white rounded-full px-6"
-              data-testid="add-expense-btn"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Add
+            <Button className="bg-green-600 hover:bg-green-700 text-white rounded-full px-4" title="Record support received">
+              <HandCoins className="w-4 h-4 mr-1" /> Support
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md" data-testid="add-expense-dialog">
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="font-serif text-2xl">
-                {editingId ? 'Edit Expense' : 'Add New Expense'}
+                {editingSupportId ? 'Edit Support' : 'Record Support Received'}
               </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-4">
               <div>
+                <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Date Received</Label>
+                <Input type="date" value={supportForm.date} onChange={e => setSupportForm({ ...supportForm, date: e.target.value })} className={ic} />
+              </div>
+              <div>
+                <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">From (Sender / Source) *</Label>
+                <Input type="text" value={supportForm.from} onChange={e => setSupportForm({ ...supportForm, from: e.target.value })}
+                  placeholder="e.g. Home church, Pastor Juan, Anonymous"
+                  className={ic} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">PHP *</Label>
+                  <Input type="number" step="0.01" value={supportForm.php} onChange={e => handleSupportPhpChange(e.target.value)}
+                    placeholder="0.00" className={`${ic} font-mono`} />
+                </div>
+                <div>
+                  <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">USD</Label>
+                  <Input type="number" step="0.01" value={supportForm.usd} onChange={e => handleSupportUsdChange(e.target.value)}
+                    placeholder="0.00" className={`${ic} font-mono`} />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Note (optional)</Label>
+                <Input type="text" value={supportForm.note} onChange={e => setSupportForm({ ...supportForm, note: e.target.value })}
+                  placeholder="e.g. Monthly support, One-time gift"
+                  className={ic} />
+              </div>
+              <p className="text-xs text-stone-500 dark:text-stone-400">Exchange rate: ₱{USD_TO_PHP} = $1</p>
+              <Button onClick={handleSupportSubmit} className="w-full bg-green-600 hover:bg-green-700 text-white rounded-full h-11">
+                {editingSupportId ? 'Update Support' : 'Record Support'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Expense button */}
+        <Dialog open={isAddDialogOpen} onOpenChange={o => { setIsAddDialogOpen(o); if (!o) resetForm(); }}>
+          <DialogTrigger asChild>
+            <Button className="bg-forest-500 hover:bg-forest-900 text-white rounded-full px-4">
+              <Plus className="w-4 h-4 mr-1" /> Add
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-serif text-2xl">{editingId ? 'Edit Expense' : 'Add New Expense'}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div>
                 <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Date</Label>
-                <Input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  className="border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100"
-                  data-testid="expense-date-input"
-                />
+                <Input type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className={ic} />
               </div>
               <div>
                 <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Category *</Label>
-                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                  <SelectTrigger className="border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100" data-testid="expense-category-select">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
+                <Select value={formData.category} onValueChange={v => setFormData({ ...formData, category: v })}>
+                  <SelectTrigger className={ic}><SelectValue placeholder="Select category" /></SelectTrigger>
                   <SelectContent>
-                    {EXPENSE_CATEGORIES.map(cat => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
+                    {EXPENSE_CATEGORIES.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Item / Description *</Label>
-                <Input
-                  type="text"
-                  value={formData.item}
-                  onChange={(e) => setFormData({ ...formData, item: e.target.value })}
-                  placeholder="What did you spend on?"
-                  className="border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100"
-                  data-testid="expense-item-input"
-                />
+                <Input type="text" value={formData.item} onChange={e => setFormData({ ...formData, item: e.target.value })}
+                  placeholder="What did you spend on?" className={ic} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">PHP *</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.php}
-                    onChange={(e) => handlePhpChange(e.target.value)}
-                    placeholder="0.00"
-                    className="border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100 font-mono"
-                    data-testid="expense-php-input"
-                  />
+                  <Input type="number" step="0.01" value={formData.php} onChange={e => handlePhpChange(e.target.value)}
+                    placeholder="0.00" className={`${ic} font-mono`} />
                 </div>
                 <div>
                   <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">USD</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.usd}
-                    onChange={(e) => handleUsdChange(e.target.value)}
-                    placeholder="0.00"
-                    className="border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100 font-mono"
-                    data-testid="expense-usd-input"
-                  />
+                  <Input type="number" step="0.01" value={formData.usd} onChange={e => handleUsdChange(e.target.value)}
+                    placeholder="0.00" className={`${ic} font-mono`} />
                 </div>
               </div>
               <p className="text-xs text-stone-500 dark:text-stone-400">Exchange rate: ₱{USD_TO_PHP} = $1</p>
-              <Button 
-                onClick={handleSubmit}
-                className="w-full bg-forest-500 hover:bg-forest-900 text-white rounded-full h-11"
-                data-testid="submit-expense-btn"
-              >
+              <Button onClick={handleSubmit} className="w-full bg-forest-500 hover:bg-forest-900 text-white rounded-full h-11">
                 {editingId ? 'Update Expense' : 'Add Expense'}
               </Button>
             </div>
@@ -235,13 +244,13 @@ const ExpenseLedger = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-4">
-        <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-5" data-testid="spent-card">
+        <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-5">
           <TrendingDown className="w-5 h-5 text-red-500 mb-2" />
           <p className="text-2xl font-bold font-mono text-stone-900 dark:text-stone-100">₱{totalPhp.toFixed(0)}</p>
           <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">Spent This Month</p>
           <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">${totalUsd.toFixed(2)}</p>
         </Card>
-        <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-5" data-testid="remaining-card">
+        <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-5">
           <Wallet className={`w-5 h-5 mb-2 ${remainingPhp >= 0 ? 'text-forest-500 dark:text-forest-400' : 'text-red-500'}`} />
           <p className={`text-2xl font-bold font-mono ${remainingPhp >= 0 ? 'text-forest-500 dark:text-forest-400' : 'text-red-500'}`}>
             ₱{Math.abs(remainingPhp).toFixed(0)}
@@ -251,11 +260,23 @@ const ExpenseLedger = () => {
         </Card>
       </div>
 
+      {/* Support Received Card */}
+      {totalSupportPhp > 0 && (
+        <Card className="bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <h3 className="font-semibold text-green-800 dark:text-green-300 text-sm">Support Received This Month</h3>
+          </div>
+          <p className="text-2xl font-bold font-mono text-green-700 dark:text-green-400 mb-1">
+            ₱{totalSupportPhp.toLocaleString()}
+          </p>
+          <p className="text-xs text-green-600 dark:text-green-500">${totalSupportUsd.toFixed(2)} · added to your budget</p>
+        </Card>
+      )}
+
       {/* Budget Alert */}
       {budgetPercentage > 75 && (
-        <Card className={`rounded-xl p-4 border ${
-          budgetPercentage > 90 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
-        }`} data-testid="budget-alert">
+        <Card className={`rounded-xl p-4 border ${budgetPercentage > 90 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'}`}>
           <div className="flex items-start gap-3">
             <AlertCircle className={budgetPercentage > 90 ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'} />
             <div>
@@ -263,9 +284,9 @@ const ExpenseLedger = () => {
                 {budgetPercentage > 90 ? 'Budget Alert!' : 'Budget Warning'}
               </p>
               <p className="text-sm text-stone-700 dark:text-stone-300">
-                {budgetPercentage > 90 
-                  ? 'You have used over 90% of your monthly budget. Exercise caution with remaining expenses.'
-                  : 'You have used over 75% of your monthly budget. Monitor your spending carefully.'}
+                {budgetPercentage > 90
+                  ? 'You have used over 90% of your effective budget. Exercise caution with remaining expenses.'
+                  : 'You have used over 75% of your effective budget. Monitor your spending carefully.'}
               </p>
             </div>
           </div>
@@ -274,43 +295,67 @@ const ExpenseLedger = () => {
 
       {/* Category Breakdown */}
       {Object.keys(categoryTotals).length > 0 && (
-        <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="category-breakdown-card">
+        <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6">
           <h3 className="font-serif text-lg font-semibold text-stone-900 dark:text-stone-100 mb-4">Category Breakdown</h3>
           <div className="space-y-3">
-            {Object.entries(categoryTotals)
-              .sort(([, a], [, b]) => b - a)
-              .map(([category, amount]) => {
-                const percentage = (amount / totalPhp) * 100;
-                return (
-                  <div key={category}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-stone-700 dark:text-stone-300">{category}</span>
-                      <span className="font-mono font-medium text-stone-900 dark:text-stone-100">₱{amount.toFixed(0)}</span>
-                    </div>
-                    <div className="w-full bg-stone-100 dark:bg-stone-700 rounded-full h-2">
-                      <div 
-                        className="bg-forest-500 h-2 rounded-full transition-all"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+            {Object.entries(categoryTotals).sort(([, a], [, b]) => b - a).map(([category, amount]) => (
+              <div key={category}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-stone-700 dark:text-stone-300">{category}</span>
+                  <span className="font-mono font-medium text-stone-900 dark:text-stone-100">₱{amount.toFixed(0)}</span>
+                </div>
+                <div className="w-full bg-stone-100 dark:bg-stone-700 rounded-full h-2">
+                  <div className="bg-forest-500 h-2 rounded-full transition-all" style={{ width: `${(amount / totalPhp) * 100}%` }} />
+                </div>
+              </div>
+            ))}
           </div>
         </Card>
+      )}
+
+      {/* Support Received List */}
+      {monthSupport.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="font-serif text-lg font-semibold text-stone-900 dark:text-stone-100">Support Received</h3>
+          {monthSupport.map(s => (
+            <Card key={s.id} className="bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-800 p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-300 font-medium">
+                      From: {s.from}
+                    </span>
+                    <span className="text-xs text-stone-500 dark:text-stone-400">{format(new Date(s.date), 'MMM dd')}</span>
+                  </div>
+                  {s.note && <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">{s.note}</p>}
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono font-bold text-green-700 dark:text-green-400">+₱{parseFloat(s.php).toFixed(2)}</span>
+                    <span className="font-mono text-sm text-stone-500 dark:text-stone-400">+${parseFloat(s.usd).toFixed(2)}</span>
+                  </div>
+                </div>
+                <div className="flex gap-1 ml-2">
+                  <Button variant="ghost" size="sm" onClick={() => handleEditSupport(s)}
+                    className="text-stone-600 dark:text-stone-400 hover:text-forest-600"><Edit2 className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleDeleteSupport(s.id)}
+                    className="text-stone-600 dark:text-stone-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       )}
 
       {/* Expenses List */}
       <div className="space-y-3">
         <h3 className="font-serif text-lg font-semibold text-stone-900 dark:text-stone-100">Recent Expenses</h3>
         {monthExpenses.length === 0 ? (
-          <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-12 text-center" data-testid="empty-expenses">
+          <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-12 text-center">
             <Wallet className="w-12 h-12 text-stone-300 dark:text-stone-600 mx-auto mb-3" />
             <p className="text-stone-600 dark:text-stone-400">No expenses recorded for this month</p>
           </Card>
         ) : (
           monthExpenses.map(expense => (
-            <Card key={expense.id} className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-4 hover:shadow-md transition-shadow" data-testid={`expense-card-${expense.id}`}>
+            <Card key={expense.id} className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-4 hover:shadow-md transition-shadow">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
@@ -326,22 +371,12 @@ const ExpenseLedger = () => {
                   </div>
                 </div>
                 <div className="flex gap-1 ml-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleEdit(expense)}
-                    className="text-stone-600 dark:text-stone-400 hover:text-forest-600 dark:hover:text-forest-400"
-                    data-testid={`edit-expense-${expense.id}`}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => handleEdit(expense)}
+                    className="text-stone-600 dark:text-stone-400 hover:text-forest-600 dark:hover:text-forest-400">
                     <Edit2 className="w-4 h-4" />
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => handleDelete(expense.id)}
-                    className="text-stone-600 dark:text-stone-400 hover:text-red-600 dark:hover:text-red-400"
-                    data-testid={`delete-expense-${expense.id}`}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => handleDelete(expense.id)}
+                    className="text-stone-600 dark:text-stone-400 hover:text-red-600 dark:hover:text-red-400">
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
