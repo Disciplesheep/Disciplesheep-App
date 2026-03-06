@@ -1,34 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { format } from 'date-fns';
 import { useOutletContext } from 'react-router-dom';
 import { useJournalData } from '@/hooks/useLocalStorage';
-import { useDiscipleshipTracking } from '@/hooks/useDiscipleshipTracking';
-import { Target, TrendingUp, CheckCircle2, Clock } from 'lucide-react';
+import { CheckCircle2, Clock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { formatDate, formatDisplayDate } from '@/utils/dateUtils';
-import { getDevotionalForDate, getCurrentMinistryYear, getYearTargets } from '@/data/dailyDevotionals';
-
-const progressColor = (pct) => {
-  if (pct <= 100) {
-    const hue = Math.round((pct / 100) * 120);
-    return `hsl(${hue}, 72%, 42%)`;
-  }
-  const over = Math.min(pct - 100, 50);
-  const hue = Math.round(120 - (over / 50) * 75);
-  return `hsl(${hue}, 80%, 42%)`;
-};
+import { formatDate } from '@/utils/dateUtils';
+import { getDevotionalForDate } from '@/data/dailyDevotionals';
 
 const JournalEntry = () => {
   const { journalDate: selectedDate } = useOutletContext();
 
   const dateKey  = formatDate(selectedDate);
-  const { dailyEntries, setDailyEntries, peopleContacts, expenses } = useJournalData();
-  const { disciples } = useDiscipleshipTracking();
-
-  const currentYear = getCurrentMinistryYear(selectedDate);
-  const yearTargets = getYearTargets(currentYear);
+  const { dailyEntries, setDailyEntries } = useJournalData();
   const devotional  = getDevotionalForDate(dateKey);
 
   // Always merge devotional fields so passage/keyVerse/principle/practice
@@ -75,57 +59,8 @@ const JournalEntry = () => {
     return () => clearTimeout(saveTimer.current);
   }, [entry]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const currentMonth  = format(new Date(), 'yyyy-MM');
-  const monthPeople   = peopleContacts.filter(p => p.date?.startsWith(currentMonth)).length;
-  const monthExpenses = expenses
-    .filter(e => e.date?.startsWith(currentMonth))
-    .reduce((sum, e) => sum + parseFloat(e.php || 0), 0);
-
-  const peopleProgress   = Math.round((monthPeople   / yearTargets.monthly.peopleContacted) * 100);
-  const budgetProgress   = Math.round((monthExpenses  / yearTargets.monthly.budgetLimit)    * 100);
-  const discipleProgress = yearTargets.yearly.disciples
-    ? Math.round((disciples.length / yearTargets.yearly.disciples) * 100)
-    : 0;
-
   return (
     <div className="space-y-6 pb-6">
-
-      {/* Goals & Progress */}
-      <Card className="bg-gradient-to-br from-mango-50 to-orange-50 dark:from-stone-800 dark:to-stone-700 rounded-xl shadow-sm border border-mango-100 dark:border-stone-600 p-6" data-testid="goals-progress-card">
-        <div className="flex items-center gap-2 mb-4">
-          <Target className="w-5 h-5 text-mango-700 dark:text-yellow-400" />
-          <h2 className="font-serif text-xl font-semibold text-stone-900 dark:text-yellow-50">
-            Year {currentYear}: {yearTargets.phase}
-          </h2>
-        </div>
-        <p className="text-xs text-stone-600 dark:text-yellow-100 mb-4 italic">"{yearTargets.motto}"</p>
-
-        <div className="space-y-4">
-          {[
-            { label: 'People Contacted (Monthly)', value: monthPeople,                   target: yearTargets.monthly.peopleContacted, progress: peopleProgress,   note: `${peopleProgress}% of monthly target` },
-            { label: 'Disciples (Yearly)',          value: disciples.length,              target: yearTargets.yearly.disciples,        progress: discipleProgress, note: `${discipleProgress}% of year ${currentYear} target` },
-            { label: 'Budget Used (Monthly)',       value: `₱${monthExpenses.toFixed(0)}`, target: `₱${yearTargets.monthly.budgetLimit}`, progress: budgetProgress, note: `${budgetProgress}% used · ₱${(yearTargets.monthly.budgetLimit - monthExpenses).toFixed(0)} remaining` },
-          ].map((item, i) => (
-            <div key={i}>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-stone-700 dark:text-gray-100 font-medium">{item.label}</span>
-                <span className="font-mono font-bold text-stone-900 dark:text-yellow-50">{item.value} / {item.target}</span>
-              </div>
-              <div className="w-full bg-white/60 dark:bg-stone-600 rounded-full h-2.5">
-                <div className="h-2.5 rounded-full transition-all" style={{ width: `${Math.min(item.progress, 100)}%`, backgroundColor: progressColor(item.progress) }} />
-              </div>
-              <p className="text-xs text-stone-600 dark:text-gray-200 mt-1">{item.note}</p>
-            </div>
-          ))}
-          <div className="pt-3 border-t border-mango-200 dark:border-stone-500">
-            <p className="text-xs text-stone-700 dark:text-gray-100">
-              <TrendingUp className="w-3 h-3 inline mr-1" />
-              <strong className="text-stone-900 dark:text-yellow-50">Year {currentYear} Goal:</strong>{' '}
-              {yearTargets.yearly.attendanceGoal} attendance, {yearTargets.yearly.totalPeopleReached} total reached
-            </p>
-          </div>
-        </div>
-      </Card>
 
       {/* 5P's Devotional */}
       <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="journal-5ps-card">
