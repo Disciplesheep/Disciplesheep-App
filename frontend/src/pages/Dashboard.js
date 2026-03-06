@@ -223,7 +223,7 @@ const Dashboard = () => {
               }}
               onBlur={() => { if (!newTaskInput.trim()) setIsAddingTask(false); }}
               placeholder="New task name…"
-              className={`${ic} h-5 text-sm py-0 px-1 flex-1`}
+              className="h-5 text-sm py-0 px-1 flex-1 border-none outline-none shadow-none bg-transparent focus:ring-0 focus-visible:ring-0 text-stone-700 dark:text-stone-300 placeholder:text-stone-400"
             />
           ) : (
             <span className="text-sm text-stone-400 dark:text-stone-500 cursor-pointer select-none"
