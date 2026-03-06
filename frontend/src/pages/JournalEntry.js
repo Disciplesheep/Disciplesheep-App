@@ -1,18 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { useOutletContext } from 'react-router-dom';
 import { useJournalData } from '@/hooks/useLocalStorage';
 import { useDiscipleshipTracking } from '@/hooks/useDiscipleshipTracking';
-import { Save, Target, TrendingUp } from 'lucide-react';
+import { Target, TrendingUp, CheckCircle2, Clock } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 import { formatDate, formatDisplayDate } from '@/utils/dateUtils';
 import { getDevotionalForDate, getCurrentMinistryYear, getYearTargets } from '@/data/dailyDevotionals';
 
-// Progress color: 0%=red → 100%=green → beyond=gold
 const progressColor = (pct) => {
   if (pct <= 100) {
     const hue = Math.round((pct / 100) * 120);
@@ -26,39 +23,57 @@ const progressColor = (pct) => {
 const JournalEntry = () => {
   const { journalDate: selectedDate } = useOutletContext();
 
-  const dateKey = formatDate(selectedDate);
+  const dateKey  = formatDate(selectedDate);
   const { dailyEntries, setDailyEntries, peopleContacts, expenses } = useJournalData();
   const { disciples } = useDiscipleshipTracking();
 
   const currentYear = getCurrentMinistryYear(selectedDate);
-  const yearTargets  = getYearTargets(currentYear);
-  const devotional   = getDevotionalForDate(dateKey);
+  const yearTargets = getYearTargets(currentYear);
+  const devotional  = getDevotionalForDate(dateKey);
 
-  const blankEntry = (dev) => ({
+  // Always merge devotional fields so passage/keyVerse/principle/practice
+  // are never blank even if the entry was saved before these fields existed.
+  const buildEntry = (dev, saved = {}) => ({
     passage:      dev.passage,
     keyVerse:     dev.keyVerse,
     keyVerseText: dev.keyVerseText,
     principle:    dev.principle,
     practice:     dev.practice,
-    praises: '',
-    prayer:  '',
-    tasks:   [],
+    praises: saved.praises || '',
+    prayer:  saved.prayer  || '',
+    tasks:   saved.tasks   || [],
   });
 
-  const [entry, setEntry] = useState(dailyEntries[dateKey] || blankEntry(devotional));
+  const [entry, setEntry]       = useState(buildEntry(devotional, dailyEntries[dateKey]));
+  const [saveStatus, setSaveStatus] = useState('saved'); // 'saved' | 'pending'
 
+  // Rebuild entry when date changes
   useEffect(() => {
     const dev = getDevotionalForDate(dateKey);
-    setEntry(dailyEntries[dateKey] || blankEntry(dev));
-  }, [dateKey, dailyEntries]);
+    setEntry(buildEntry(dev, dailyEntries[dateKey]));
+    setSaveStatus('saved');
+  }, [dateKey]);
 
-  const handleSave = () => {
-    setDailyEntries(prev => ({
-      ...prev,
-      [dateKey]: { ...entry, updatedAt: new Date().toISOString() },
-    }));
-    toast.success('Journal entry saved!', { description: formatDisplayDate(selectedDate) });
-  };
+  // ── Auto-save: debounce 1.5s after last change ────────────────────────────
+  const saveTimer = useRef(null);
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    // Skip the very first render to avoid overwriting with blank praises/prayer
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+
+    setSaveStatus('pending');
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      setDailyEntries(prev => ({
+        ...prev,
+        [dateKey]: { ...entry, updatedAt: new Date().toISOString() },
+      }));
+      setSaveStatus('saved');
+    }, 1500);
+
+    return () => clearTimeout(saveTimer.current);
+  }, [entry]);
 
   const currentMonth  = format(new Date(), 'yyyy-MM');
   const monthPeople   = peopleContacts.filter(p => p.date?.startsWith(currentMonth)).length;
@@ -87,8 +102,8 @@ const JournalEntry = () => {
 
         <div className="space-y-4">
           {[
-            { label: 'People Contacted (Monthly)', value: monthPeople,         target: yearTargets.monthly.peopleContacted, progress: peopleProgress,   note: `${peopleProgress}% of monthly target` },
-            { label: 'Disciples (Yearly)',          value: disciples.length,    target: yearTargets.yearly.disciples,        progress: discipleProgress, note: `${discipleProgress}% of year ${currentYear} target` },
+            { label: 'People Contacted (Monthly)', value: monthPeople,                   target: yearTargets.monthly.peopleContacted, progress: peopleProgress,   note: `${peopleProgress}% of monthly target` },
+            { label: 'Disciples (Yearly)',          value: disciples.length,              target: yearTargets.yearly.disciples,        progress: discipleProgress, note: `${discipleProgress}% of year ${currentYear} target` },
             { label: 'Budget Used (Monthly)',       value: `₱${monthExpenses.toFixed(0)}`, target: `₱${yearTargets.monthly.budgetLimit}`, progress: budgetProgress, note: `${budgetProgress}% used · ₱${(yearTargets.monthly.budgetLimit - monthExpenses).toFixed(0)} remaining` },
           ].map((item, i) => (
             <div key={i}>
@@ -114,7 +129,17 @@ const JournalEntry = () => {
 
       {/* 5P's Devotional */}
       <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="journal-5ps-card">
-        <h2 className="font-serif text-2xl font-bold text-stone-900 dark:text-stone-100 mb-2">5P's Devotional</h2>
+
+        {/* Header + auto-save indicator */}
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="font-serif text-2xl font-bold text-stone-900 dark:text-stone-100">5P's Devotional</h2>
+          <span className={`flex items-center gap-1 text-xs font-medium transition-colors ${saveStatus === 'saved' ? 'text-forest-600 dark:text-forest-400' : 'text-stone-400 dark:text-stone-500'}`}>
+            {saveStatus === 'saved'
+              ? <><CheckCircle2 className="w-3.5 h-3.5" /> Saved</>
+              : <><Clock className="w-3.5 h-3.5 animate-pulse" /> Saving…</>
+            }
+          </span>
+        </div>
         <p className="text-xs text-mango-600 dark:text-mango-400 font-medium mb-6 uppercase tracking-wide">
           Daily Scripture for Church Planting Journey
         </p>
@@ -127,25 +152,25 @@ const JournalEntry = () => {
             </div>
           </div>
           <div>
-            <Label className="text-xs uppercase tracking-widest text-amber-600 dark:text-amber-400 font-bold mb-2 block">🔑 Key Verse - {entry.keyVerse}</Label>
+            <Label className="text-xs uppercase tracking-widest text-amber-600 dark:text-amber-400 font-bold mb-2 block">🔑 Key Verse — {entry.keyVerse}</Label>
             <div className="bg-amber-50/50 dark:bg-amber-900/20 border-l-4 border-amber-500 p-4 rounded-r-lg">
               <p className="text-sm text-stone-800 dark:text-stone-200 leading-relaxed italic">"{entry.keyVerseText}"</p>
             </div>
           </div>
           <div>
-            <Label className="text-xs uppercase tracking-widest text-forest-700 dark:text-forest-400 font-bold mb-2 block">💡 Principle - Timeless Truth for Church Planting</Label>
+            <Label className="text-xs uppercase tracking-widest text-forest-700 dark:text-forest-400 font-bold mb-2 block">💡 Principle — Timeless Truth for Church Planting</Label>
             <div className="bg-stone-50 dark:bg-stone-700 border-l-4 border-stone-400 dark:border-stone-500 p-4 rounded-r-lg">
               <p className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed">{entry.principle}</p>
             </div>
           </div>
           <div>
-            <Label className="text-xs uppercase tracking-widest text-forest-700 dark:text-forest-400 font-bold mb-2 block">✓ Practice - Today's Action Step</Label>
+            <Label className="text-xs uppercase tracking-widest text-forest-700 dark:text-forest-400 font-bold mb-2 block">✓ Practice — Today's Action Step</Label>
             <div className="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 p-4 rounded-r-lg">
               <p className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed font-medium">{entry.practice}</p>
             </div>
           </div>
           <div>
-            <Label className="text-xs uppercase tracking-widest text-mango-500 dark:text-mango-400 font-bold mb-2 block">🙌 Praises - What do I thank God for?</Label>
+            <Label className="text-xs uppercase tracking-widest text-mango-500 dark:text-mango-400 font-bold mb-2 block">🙌 Praises — What do I thank God for?</Label>
             <Textarea
               value={entry.praises}
               onChange={(e) => setEntry({ ...entry, praises: e.target.value })}
@@ -155,7 +180,7 @@ const JournalEntry = () => {
             />
           </div>
           <div>
-            <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">🙏 Prayer - My prayers for today</Label>
+            <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">🙏 Prayer — My prayers for today</Label>
             <Textarea
               value={entry.prayer}
               onChange={(e) => setEntry({ ...entry, prayer: e.target.value })}
@@ -165,15 +190,6 @@ const JournalEntry = () => {
             />
           </div>
         </div>
-
-        <Button
-          onClick={handleSave}
-          className="w-full mt-6 bg-forest-500 hover:bg-forest-900 text-white rounded-full h-12 font-serif shadow-lg"
-          data-testid="save-journal-btn"
-        >
-          <Save className="w-4 h-4 mr-2" />
-          Save Journal Entry
-        </Button>
       </Card>
     </div>
   );
