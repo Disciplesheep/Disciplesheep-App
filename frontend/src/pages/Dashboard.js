@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { format } from 'date-fns';
 import { useJournalData } from '@/hooks/useLocalStorage';
-import { BookOpen, Users, Wallet, Plus, Calendar } from 'lucide-react';
+import { BookOpen, Users, Wallet, Plus, Calendar, X } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +23,6 @@ const budgetColor = (rawPct) => {
   return `hsl(${Math.round((rawPct / 100) * 120)}, 72%, 42%)`;
 };
 
-// ── text-xs added so all form inputs render smaller ────────────────────────
 const ic = "text-xs border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100";
 
 const Dashboard = () => {
@@ -32,6 +31,10 @@ const Dashboard = () => {
   const today = new Date();
   const todayKey = formatDate(today);
   const { dailyEntries, setDailyEntries, peopleContacts, setPeopleContacts, expenses, setExpenses } = useJournalData();
+
+  // ── Custom task input state ──
+  const [newTaskInput, setNewTaskInput] = useState('');
+  const newTaskRef = useRef(null);
 
   const emptyExpense = { date: formatDate(new Date()), category: '', item: '', php: '', usd: '' };
   const [isExpenseOpen, setIsExpenseOpen] = useState(false);
@@ -81,15 +84,47 @@ const Dashboard = () => {
     setIsPersonOpen(false);
   };
 
-  const todayEntry = dailyEntries[todayKey] || { tasks: [] };
+  // ── Task helpers ──
+  const todayEntry = dailyEntries[todayKey] || { tasks: [], customTasks: [] };
+  const customTasks = todayEntry.customTasks || [];
+  const allTasks = [...DAILY_TASKS, ...customTasks.map(ct => ct.label)];
   const completedTasks = todayEntry.tasks?.length || 0;
-  const totalTasks = DAILY_TASKS.length;
-  const completionPercentage = Math.round((completedTasks / totalTasks) * 100);
+  const totalTasks = allTasks.length;
+  const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   const handleTaskToggle = (task) => {
-    const current = dailyEntries[todayKey] || { tasks: [] };
-    const newTasks = current.tasks.includes(task) ? current.tasks.filter(t => t !== task) : [...current.tasks, task];
+    const current = dailyEntries[todayKey] || { tasks: [], customTasks: [] };
+    const newTasks = current.tasks.includes(task)
+      ? current.tasks.filter(t => t !== task)
+      : [...current.tasks, task];
     setDailyEntries(prev => ({ ...prev, [todayKey]: { ...current, tasks: newTasks, updatedAt: new Date().toISOString() } }));
+  };
+
+  const handleAddCustomTask = () => {
+    const label = newTaskInput.trim();
+    if (!label) return;
+    const current = dailyEntries[todayKey] || { tasks: [], customTasks: [] };
+    const existing = current.customTasks || [];
+    if ([...DAILY_TASKS, ...existing.map(ct => ct.label)].includes(label)) {
+      toast.error('Task already exists'); return;
+    }
+    const newCustomTask = { id: Date.now().toString(), label };
+    setDailyEntries(prev => ({
+      ...prev,
+      [todayKey]: { ...current, customTasks: [...existing, newCustomTask], updatedAt: new Date().toISOString() }
+    }));
+    setNewTaskInput('');
+    toast.success('Task added!');
+  };
+
+  const handleDeleteCustomTask = (taskId, taskLabel) => {
+    const current = dailyEntries[todayKey] || { tasks: [], customTasks: [] };
+    const newCustomTasks = (current.customTasks || []).filter(ct => ct.id !== taskId);
+    const newTasks = current.tasks.filter(t => t !== taskLabel);
+    setDailyEntries(prev => ({
+      ...prev,
+      [todayKey]: { ...current, customTasks: newCustomTasks, tasks: newTasks, updatedAt: new Date().toISOString() }
+    }));
   };
 
   const todayPeople = peopleContacts.filter(p => p.date === todayKey).length;
@@ -137,7 +172,9 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
       <div className="space-y-1 mb-4">
+        {/* Fixed daily tasks */}
         {DAILY_TASKS.map((task, idx) => (
           <div key={idx} className="flex items-center gap-2 cursor-pointer py-0.5" onClick={() => handleTaskToggle(task)}>
             <div className={`w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors ${todayEntry.tasks.includes(task) ? 'bg-forest-500 border-forest-500' : 'bg-white border-stone-300 dark:bg-stone-700 dark:border-stone-500'}`}>
@@ -146,7 +183,45 @@ const Dashboard = () => {
             <span className={`text-sm flex-1 transition-colors ${todayEntry.tasks.includes(task) ? 'text-stone-400 dark:text-stone-500 line-through' : 'text-stone-700 dark:text-stone-300'}`}>{task}</span>
           </div>
         ))}
+
+        {/* Custom tasks */}
+        {customTasks.map((ct) => (
+          <div key={ct.id} className="flex items-center gap-2 py-0.5 group">
+            <div className={`w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors cursor-pointer ${todayEntry.tasks.includes(ct.label) ? 'bg-forest-500 border-forest-500' : 'bg-white border-stone-300 dark:bg-stone-700 dark:border-stone-500'}`}
+              onClick={() => handleTaskToggle(ct.label)}>
+              {todayEntry.tasks.includes(ct.label) && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+            </div>
+            <span className={`text-sm flex-1 cursor-pointer transition-colors ${todayEntry.tasks.includes(ct.label) ? 'text-stone-400 dark:text-stone-500 line-through' : 'text-stone-700 dark:text-stone-300'}`}
+              onClick={() => handleTaskToggle(ct.label)}>{ct.label}</span>
+            <button onClick={() => handleDeleteCustomTask(ct.id, ct.label)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity text-stone-400 hover:text-red-500 dark:text-stone-500 dark:hover:text-red-400 p-0.5 rounded">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
       </div>
+
+      {/* Add custom task input */}
+      <div className="flex gap-2 mb-4">
+        <Input
+          ref={newTaskRef}
+          type="text"
+          value={newTaskInput}
+          onChange={e => setNewTaskInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') handleAddCustomTask(); }}
+          placeholder="Add a task for today..."
+          className={`${ic} h-8 text-xs`}
+        />
+        <Button
+          onClick={handleAddCustomTask}
+          disabled={!newTaskInput.trim()}
+          size="sm"
+          className="h-8 px-3 bg-forest-500 hover:bg-forest-900 text-white shrink-0"
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </Button>
+      </div>
+
       <Button onClick={() => navigate('/journal')} className="w-full bg-forest-500 hover:bg-forest-900 text-white rounded-full h-12 font-serif" data-testid="open-journal-btn">
         <BookOpen className="w-4 h-4 mr-2" /> Open Today's Journal
       </Button>
