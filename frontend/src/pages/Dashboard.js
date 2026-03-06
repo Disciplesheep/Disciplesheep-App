@@ -34,6 +34,7 @@ const Dashboard = () => {
 
   // ── Custom task input state ──
   const [newTaskInput, setNewTaskInput] = useState('');
+  const [isAddingTask, setIsAddingTask] = useState(false);
   const newTaskRef = useRef(null);
 
   const emptyExpense = { date: formatDate(new Date()), category: '', item: '', php: '', usd: '' };
@@ -114,6 +115,7 @@ const Dashboard = () => {
       [todayKey]: { ...current, customTasks: [...existing, newCustomTask], updatedAt: new Date().toISOString() }
     }));
     setNewTaskInput('');
+    setIsAddingTask(false);
     toast.success('Task added!');
   };
 
@@ -199,27 +201,37 @@ const Dashboard = () => {
             </button>
           </div>
         ))}
-      </div>
 
-      {/* Add custom task input */}
-      <div className="flex gap-2 mb-4">
-        <Input
-          ref={newTaskRef}
-          type="text"
-          value={newTaskInput}
-          onChange={e => setNewTaskInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') handleAddCustomTask(); }}
-          placeholder="Add a task for today..."
-          className={`${ic} h-8 text-xs`}
-        />
-        <Button
-          onClick={handleAddCustomTask}
-          disabled={!newTaskInput.trim()}
-          size="sm"
-          className="h-8 px-3 bg-forest-500 hover:bg-forest-900 text-white shrink-0"
-        >
-          <Plus className="w-3.5 h-3.5" />
-        </Button>
+        {/* Add task row */}
+        <div className="flex items-center gap-2 py-0.5">
+          <div
+            onClick={() => { setNewTaskInput(''); setTimeout(() => newTaskRef.current?.focus(), 50); setIsAddingTask(true); }}
+            className="w-5 h-5 shrink-0 rounded border-2 border-stone-300 dark:border-stone-500 bg-white dark:bg-stone-700 flex items-center justify-center cursor-pointer hover:border-forest-500 hover:bg-forest-50 dark:hover:bg-stone-600 transition-colors"
+          >
+            <svg className="w-3 h-3 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" /></svg>
+          </div>
+          {isAddingTask ? (
+            <Input
+              ref={newTaskRef}
+              type="text"
+              value={newTaskInput}
+              autoFocus
+              onChange={e => setNewTaskInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { handleAddCustomTask(); setIsAddingTask(false); }
+                if (e.key === 'Escape') { setIsAddingTask(false); setNewTaskInput(''); }
+              }}
+              onBlur={() => { if (!newTaskInput.trim()) setIsAddingTask(false); }}
+              placeholder="New task name…"
+              className={`${ic} h-5 text-sm py-0 px-1 flex-1`}
+            />
+          ) : (
+            <span className="text-sm text-stone-400 dark:text-stone-500 cursor-pointer select-none"
+              onClick={() => { setIsAddingTask(true); setTimeout(() => newTaskRef.current?.focus(), 50); }}>
+              Add a task
+            </span>
+          )}
+        </div>
       </div>
 
       <Button onClick={() => navigate('/journal')} className="w-full bg-forest-500 hover:bg-forest-900 text-white rounded-full h-12 font-serif" data-testid="open-journal-btn">
