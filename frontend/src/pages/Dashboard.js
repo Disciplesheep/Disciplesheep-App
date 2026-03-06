@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { useJournalData } from '@/hooks/useLocalStorage';
-import { BookOpen, Users, Wallet, Plus, Calendar } from 'lucide-react';
+import { BookOpen, Users, Wallet, Plus, Calendar, X } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,6 @@ import { useNavigate } from 'react-router-dom';
 import { formatDate, formatDisplayDate, formatDayOfWeek, getWeekNumber, DAILY_TASKS, EXPENSE_CATEGORIES, GENERATIONS, USD_TO_PHP } from '@/utils/dateUtils';
 import { useScreenSize } from '@/hooks/useScreenSize';
 
-// Progress color: 0%=red(0) → 100%=green(120) → 100%+=gold(45)
 const progressColor = (pct) => {
   if (pct <= 100) {
     const hue = Math.round((pct / 100) * 120);
@@ -24,7 +23,6 @@ const progressColor = (pct) => {
   return `hsl(${hue}, 80%, 42%)`;
 };
 
-// Budget color: 0–100% red→green, >100% red
 const budgetColor = (rawPct) => {
   if (rawPct > 100) return 'hsl(0, 72%, 42%)';
   const hue = Math.round((rawPct / 100) * 120);
@@ -75,11 +73,43 @@ const Dashboard = () => {
     setIsPersonOpen(false);
   };
 
+  // ── Add Custom Task ─────────────────────────────────────────────────────────
+  const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
+  const [newTaskInput, setNewTaskInput]   = useState('');
+
+  const handleAddCustomTask = () => {
+    const trimmed = newTaskInput.trim();
+    if (!trimmed) { toast.error('Please enter a task name'); return; }
+    const current = dailyEntries[todayKey] || { tasks: [], customTasks: [] };
+    const customTasks = current.customTasks || [];
+    if (customTasks.includes(trimmed) || DAILY_TASKS.includes(trimmed)) {
+      toast.error('Task already exists'); return;
+    }
+    setDailyEntries(prev => ({
+      ...prev,
+      [todayKey]: { ...current, customTasks: [...customTasks, trimmed], updatedAt: new Date().toISOString() },
+    }));
+    toast.success('Task added!');
+    setNewTaskInput('');
+    setIsAddTaskOpen(false);
+  };
+
+  const handleDeleteCustomTask = (task) => {
+    const current = dailyEntries[todayKey] || { tasks: [], customTasks: [] };
+    const customTasks = (current.customTasks || []).filter(t => t !== task);
+    const tasks = (current.tasks || []).filter(t => t !== task);
+    setDailyEntries(prev => ({
+      ...prev,
+      [todayKey]: { ...current, customTasks, tasks, updatedAt: new Date().toISOString() },
+    }));
+  };
+
   // ── Tasks ───────────────────────────────────────────────────────────────────
-  const todayEntry = dailyEntries[todayKey] || { tasks: [] };
+  const todayEntry = dailyEntries[todayKey] || { tasks: [], customTasks: [] };
+  const allTasks = [...DAILY_TASKS, ...(todayEntry.customTasks || [])];
   const completedTasks = todayEntry.tasks?.length || 0;
-  const totalTasks = DAILY_TASKS.length;
-  const completionPercentage = Math.round((completedTasks / totalTasks) * 100);
+  const totalTasks = allTasks.length;
+  const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   const handleTaskToggle = (task) => {
     const current = dailyEntries[todayKey] || { tasks: [] };
@@ -152,6 +182,7 @@ const Dashboard = () => {
       </div>
 
       <div className="space-y-1 mb-4">
+        {/* Default tasks */}
         {DAILY_TASKS.map((task, idx) => (
           <div key={idx} className="flex items-center gap-2 cursor-pointer py-0.5" onClick={() => handleTaskToggle(task)}>
             <div className={`w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors ${
@@ -172,7 +203,72 @@ const Dashboard = () => {
             }`}>{task}</span>
           </div>
         ))}
+
+        {/* Custom tasks */}
+        {(todayEntry.customTasks || []).map((task, idx) => (
+          <div key={`custom-${idx}`} className="flex items-center gap-2 py-0.5 group">
+            <div
+              className={`w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors cursor-pointer ${
+                todayEntry.tasks.includes(task)
+                  ? 'bg-forest-500 border-forest-500'
+                  : 'bg-white border-stone-300 dark:bg-stone-700 dark:border-stone-500'
+              }`}
+              onClick={() => handleTaskToggle(task)}
+            >
+              {todayEntry.tasks.includes(task) && (
+                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+            <span
+              className={`text-sm flex-1 transition-colors cursor-pointer ${
+                todayEntry.tasks.includes(task)
+                  ? 'text-stone-400 dark:text-stone-500 line-through'
+                  : 'text-stone-700 dark:text-stone-300'
+              }`}
+              onClick={() => handleTaskToggle(task)}
+            >{task}</span>
+            {/* Delete custom task */}
+            <button
+              onClick={() => handleDeleteCustomTask(task)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity text-stone-400 hover:text-red-500 p-0.5 rounded"
+              style={{ minHeight: 0 }}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
       </div>
+
+      {/* Add task button */}
+      {isAddTaskOpen ? (
+        <div className="flex gap-2 mb-4">
+          <Input
+            autoFocus
+            value={newTaskInput}
+            onChange={e => setNewTaskInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') handleAddCustomTask(); if (e.key === 'Escape') { setIsAddTaskOpen(false); setNewTaskInput(''); } }}
+            placeholder="Enter task name..."
+            className="h-9 text-sm dark:bg-stone-700 dark:border-stone-600 dark:text-stone-100"
+          />
+          <Button onClick={handleAddCustomTask} className="h-9 bg-forest-500 hover:bg-forest-900 text-white px-3 rounded-lg shrink-0">
+            Add
+          </Button>
+          <Button variant="ghost" onClick={() => { setIsAddTaskOpen(false); setNewTaskInput(''); }} className="h-9 px-2 rounded-lg shrink-0">
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setIsAddTaskOpen(true)}
+          className="flex items-center gap-1.5 text-xs text-forest-600 dark:text-forest-400 hover:text-forest-800 dark:hover:text-forest-300 mb-4 transition-colors"
+          style={{ minHeight: 0, background: 'none', border: 'none', cursor: 'pointer' }}
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Add a task
+        </button>
+      )}
 
       <Button
         onClick={() => navigate('/journal')}
@@ -251,7 +347,6 @@ const Dashboard = () => {
 
   const quickActions = (
     <div className="grid gap-3 grid-cols-2">
-      {/* Add Person — opens dialog inline */}
       <Button
         variant="outline"
         onClick={() => setIsPersonOpen(true)}
@@ -261,8 +356,6 @@ const Dashboard = () => {
         <Plus className="w-4 h-4 mr-2" />
         Add Person
       </Button>
-
-      {/* Add Expense — opens dialog inline */}
       <Button
         variant="outline"
         onClick={() => setIsExpenseOpen(true)}
@@ -272,7 +365,6 @@ const Dashboard = () => {
         <Plus className="w-4 h-4 mr-2" />
         Add Expense
       </Button>
-
       {isTablet && (
         <>
           <Button
