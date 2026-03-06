@@ -44,7 +44,8 @@ const Stewardship = () => {
       description: 'Log and track outreach contacts',
       icon: Users,
       path: '/stewardship/people',
-      stat: `${monthPeople} this month`,
+      stat: `${monthPeople}`,
+      statLabel: 'this month',
       bgColor: 'bg-forest-50 dark:bg-forest-900/20',
       iconColor: 'text-forest-500 dark:text-forest-400',
       testId: 'people-tracker-card'
@@ -54,7 +55,8 @@ const Stewardship = () => {
       description: 'Track expenses and budget',
       icon: Wallet,
       path: '/stewardship/expenses',
-      stat: `₱${monthExpenses.toFixed(0)} spent`,
+      stat: `₱${monthExpenses.toFixed(0)}`,
+      statLabel: 'spent',
       bgColor: 'bg-orange-50 dark:bg-orange-900/20',
       iconColor: 'text-mango-500 dark:text-mango-400',
       testId: 'budget-ledger-card'
@@ -64,7 +66,8 @@ const Stewardship = () => {
       description: 'Weekly and monthly analytics',
       icon: FileText,
       path: '/stewardship/reports',
-      stat: 'Track progress',
+      stat: 'Track',
+      statLabel: 'progress',
       bgColor: 'bg-blue-50 dark:bg-blue-900/20',
       iconColor: 'text-blue-500 dark:text-blue-400',
       testId: 'reports-card'
@@ -74,7 +77,7 @@ const Stewardship = () => {
   return (
     <div className="space-y-6 pb-6">
 
-      {/* Header */}
+      {/* Header — with verse inside */}
       <div
         className="relative overflow-hidden rounded-2xl p-8 text-white"
         style={{
@@ -90,7 +93,15 @@ const Stewardship = () => {
             <h1 className="font-serif text-3xl font-bold tracking-tight">Stewardship</h1>
           </div>
           <p className="text-white/90 text-lg font-medium mb-1">Manage Your Ministry Resources</p>
-          <p className="text-white/70 text-sm">People, Budget, and Progress Tracking</p>
+          <p className="text-white/70 text-sm mb-4">People, Budget, and Progress Tracking</p>
+
+          {/* Verse moved inside header */}
+          <div className="border-t border-white/20 pt-4">
+            <p className="font-serif text-sm text-white/90 italic leading-relaxed">
+              "Give an account of your management, for you can no longer be manager."
+            </p>
+            <p className="text-xs text-white/60 mt-1">— Luke 16:2 (NASB)</p>
+          </div>
         </div>
       </div>
 
@@ -147,21 +158,13 @@ const Stewardship = () => {
               <div>
                 <h3 className="font-serif text-sm font-semibold text-stone-900 dark:text-stone-100 mb-0.5">{item.title}</h3>
                 <p className="text-xs text-stone-600 dark:text-stone-400 mb-2">{item.description}</p>
-                <p className="text-lg font-bold font-mono text-stone-900 dark:text-stone-100">{item.stat}</p>
-                <p className="text-xs text-stone-500 uppercase tracking-wide mt-0.5">Current</p>
+                <p className="text-sm font-bold font-mono text-stone-900 dark:text-stone-100 leading-tight">{item.stat}</p>
+                <p className="text-xs text-stone-500 uppercase tracking-wide mt-0.5">{item.statLabel}</p>
               </div>
             </div>
           </Card>
         ))}
       </div>
-
-      {/* Accountability Quote */}
-      <Card className="bg-forest-50 dark:bg-stone-800 rounded-xl border border-forest-100 dark:border-stone-700 p-6">
-        <p className="font-serif text-base text-forest-900 dark:text-stone-100 italic text-center leading-relaxed">
-          "Give an account of your management, for you can no longer be manager."
-        </p>
-        <p className="text-center text-sm text-stone-600 dark:text-stone-300 mt-2">— Luke 16:2 (NASB)</p>
-      </Card>
 
     </div>
   );
