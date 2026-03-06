@@ -6,14 +6,16 @@ import {
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { useScreenSize } from '@/hooks/useScreenSize';
-import { format, addDays, subDays } from 'date-fns';
+import { format, addDays, subDays, addYears } from 'date-fns';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { CHURCH_PLANT_START_DATE } from '@/data/dailyDevotionals';
 
 const navItems = [
-  { to: '/',            icon: LayoutGrid,   label: 'Dashboard' },
-  { to: '/stewardship', icon: TrendingUp,   label: 'Stewardship' },
-  { to: '/journal',     icon: BookOpen,     label: 'Journal' },
-  { to: '/calendar',    icon: CalendarDays, label: 'Calendar' },
-  { to: '/discipleship',icon: GitBranch,    label: 'Disciples' },
+  { to: '/',             icon: LayoutGrid,   label: 'Dashboard' },
+  { to: '/stewardship',  icon: TrendingUp,   label: 'Stewardship' },
+  { to: '/journal',      icon: BookOpen,     label: 'Journal' },
+  { to: '/calendar',     icon: CalendarDays, label: 'Calendar' },
+  { to: '/discipleship', icon: GitBranch,    label: 'Disciples' },
 ];
 
 const useProfile = () => {
@@ -72,7 +74,6 @@ const ProfileMenu = () => {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-11 z-50 w-64 bg-white dark:bg-stone-800 rounded-2xl shadow-xl border border-stone-100 dark:border-stone-700 overflow-hidden">
-
             <div className="px-4 py-4 border-b border-stone-100 dark:border-stone-700 flex items-center justify-between">
               <p className="font-serif font-bold text-stone-900 dark:text-stone-100 text-sm">My Profile</p>
               <button onClick={() => setOpen(false)} className="text-stone-400 hover:text-stone-600">
@@ -138,37 +139,110 @@ const ProfileMenu = () => {
   );
 };
 
-/* ── Journal Date Navigation Bar ────────────────────────────────────────── */
-const JournalDateBar = ({ journalDate, setJournalDate, setPickerOpen }) => {
+/* ── Journal Date Navigation Bar (with inline full-width calendar popup) ── */
+const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen }) => {
   const isToday = format(journalDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+  const ministryEndDate = addYears(CHURCH_PLANT_START_DATE, 6);
+
   return (
-    <div className="flex items-center justify-between px-4 py-2 bg-forest-500 text-white">
-      <button
-        onClick={() => setJournalDate(d => subDays(d, 1))}
-        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
-        style={{ minHeight: 0 }}
-      >
-        <ChevronLeft className="w-5 h-5" />
-      </button>
+    <div className="relative">
 
-      <button
-        onClick={() => setPickerOpen(v => !v)}
-        className="flex items-center gap-2 px-3 py-1 rounded-full hover:bg-white/20 transition-colors"
-        style={{ minHeight: 0 }}
-      >
-        <CalendarDays className="w-4 h-4" />
-        <span className="text-sm font-semibold">
-          {isToday ? 'Today · ' : ''}{format(journalDate, 'MMM d, yyyy')}
-        </span>
-      </button>
+      {/* ── Full-width calendar popup — floats above the bar ── */}
+      {pickerOpen && (
+        <>
+          {/* Tap-outside backdrop */}
+          <div
+            className="fixed inset-0 z-40 bg-black/20"
+            onClick={() => setPickerOpen(false)}
+          />
+          {/* Calendar panel — pinned to full viewport width with small margin */}
+          <div
+            className="fixed z-50 bg-white dark:bg-stone-800 rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-700 overflow-hidden"
+            style={{
+              left: '0.5rem',
+              right: '0.5rem',
+              bottom: 'calc(var(--bottom-nav-height, 106px) + 0.5rem)',
+            }}
+          >
+            <div className="flex items-center justify-between px-4 pt-3 pb-1">
+              <p className="font-serif font-semibold text-stone-800 dark:text-stone-100 text-sm">
+                Select a Date
+              </p>
+              <button
+                onClick={() => setPickerOpen(false)}
+                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-400 hover:text-stone-600 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-      <button
-        onClick={() => setJournalDate(d => addDays(d, 1))}
-        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
-        style={{ minHeight: 0 }}
-      >
-        <ChevronRight className="w-5 h-5" />
-      </button>
+            {/* Calendar fills the full width of the panel */}
+            <div className="w-full px-2 pb-2">
+              <CalendarComponent
+                mode="single"
+                selected={journalDate}
+                onSelect={(d) => { if (d) { setJournalDate(d); setPickerOpen(false); } }}
+                fromDate={CHURCH_PLANT_START_DATE}
+                toDate={ministryEndDate}
+                defaultMonth={journalDate}
+                initialFocus
+                classNames={{
+                  months: 'w-full',
+                  month: 'w-full',
+                  table: 'w-full',
+                  head_row: 'w-full flex',
+                  head_cell: 'flex-1 text-center text-xs font-medium text-stone-500 dark:text-stone-400 py-1',
+                  row: 'w-full flex',
+                  cell: 'flex-1 text-center',
+                  day: 'w-full h-9 text-sm rounded-lg hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors',
+                  day_selected: 'bg-forest-500 text-white hover:bg-forest-600',
+                  day_today: 'font-bold text-forest-600 dark:text-forest-400',
+                  day_outside: 'opacity-30',
+                  caption: 'flex items-center justify-between px-2 py-2',
+                  caption_label: 'font-serif font-semibold text-stone-800 dark:text-stone-100',
+                  nav_button: 'w-8 h-8 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors',
+                }}
+              />
+            </div>
+
+            <div className="px-4 py-2 border-t border-stone-100 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/60">
+              <p className="text-[11px] text-stone-400 dark:text-stone-500 text-center">
+                6-Year Journal · {format(CHURCH_PLANT_START_DATE, 'MMM yyyy')} – {format(ministryEndDate, 'MMM yyyy')}
+              </p>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Date navigation row ── */}
+      <div className="flex items-center justify-between px-4 py-2 bg-forest-500 text-white">
+        <button
+          onClick={() => setJournalDate(d => subDays(d, 1))}
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+          style={{ minHeight: 0 }}
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+
+        <button
+          onClick={() => setPickerOpen(v => !v)}
+          className="flex items-center gap-2 px-3 py-1 rounded-full hover:bg-white/20 transition-colors"
+          style={{ minHeight: 0 }}
+        >
+          <CalendarDays className="w-4 h-4" />
+          <span className="text-sm font-semibold">
+            {isToday ? 'Today · ' : ''}{format(journalDate, 'MMM d, yyyy')}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setJournalDate(d => addDays(d, 1))}
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+          style={{ minHeight: 0 }}
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
     </div>
   );
 };
@@ -216,8 +290,8 @@ const SideNav = () => (
   </aside>
 );
 
-/* ── Bottom Nav + optional Journal Date Bar stacked above it ─────────────── */
-const BottomNav = ({ isJournalPage, journalDate, setJournalDate, setPickerOpen }) => {
+/* ── Bottom Nav + Journal Date Bar stacked above it ─────────────────────── */
+const BottomNav = ({ isJournalPage, journalDate, setJournalDate, pickerOpen, setPickerOpen }) => {
   const [visible, setVisible] = useState(true);
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
@@ -227,7 +301,6 @@ const BottomNav = ({ isJournalPage, journalDate, setJournalDate, setPickerOpen }
       if (!ticking.current) {
         window.requestAnimationFrame(() => {
           const currentY = window.scrollY;
-          // Show when scrolling up or near bottom; hide when scrolling down
           if (currentY < lastScrollY.current || currentY <= 10) {
             setVisible(true);
           } else if (currentY > lastScrollY.current && currentY > 60) {
@@ -239,30 +312,26 @@ const BottomNav = ({ isJournalPage, journalDate, setJournalDate, setPickerOpen }
         ticking.current = true;
       }
     };
-
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Always show when navigating to journal page
-  useEffect(() => {
-    if (isJournalPage) setVisible(true);
-  }, [isJournalPage]);
+  // Always reveal when arriving on journal page or calendar is open
+  useEffect(() => { if (isJournalPage) setVisible(true); }, [isJournalPage]);
+  useEffect(() => { if (pickerOpen) setVisible(true); }, [pickerOpen]);
 
   return (
     <div
       className="fixed left-0 right-0 z-50 transition-transform duration-300"
-      style={{
-        bottom: 0,
-        transform: visible ? 'translateY(0)' : 'translateY(100%)',
-      }}
+      style={{ bottom: 0, transform: visible ? 'translateY(0)' : 'translateY(100%)' }}
       data-testid="bottom-nav-container"
     >
-      {/* Journal date bar sits just above the nav tabs */}
+      {/* Journal date bar (calendar pops out of here) */}
       {isJournalPage && (
         <JournalDateBar
           journalDate={journalDate}
           setJournalDate={setJournalDate}
+          pickerOpen={pickerOpen}
           setPickerOpen={setPickerOpen}
         />
       )}
@@ -311,9 +380,8 @@ const Layout = () => {
 
   const outletContext = { journalDate, setJournalDate, pickerOpen, setPickerOpen };
 
-  // Calculate bottom padding: on journal page, add JournalDateBar height (~42px) on top of nav
   const journalDateBarHeight = isJournalPage ? 42 : 0;
-  const navHeight = 64; // h-16
+  const navHeight = 64;
 
   return (
     <div className="min-h-screen bg-paper dark:bg-stone-900 transition-colors">
@@ -321,12 +389,12 @@ const Layout = () => {
         <>
           <SideNav />
           <main className="ml-56 min-h-screen">
-            {/* Journal date bar for tablet — sticky below the side nav header area */}
             {isJournalPage && (
               <div className="sticky top-0 z-40">
                 <JournalDateBar
                   journalDate={journalDate}
                   setJournalDate={setJournalDate}
+                  pickerOpen={pickerOpen}
                   setPickerOpen={setPickerOpen}
                 />
               </div>
@@ -338,7 +406,7 @@ const Layout = () => {
         </>
       ) : (
         <>
-          {/* Mobile top bar — no date bar here anymore */}
+          {/* Mobile top bar */}
           <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-b border-stone-200 dark:border-stone-700">
             <div className="flex items-center justify-between px-4 h-12">
               <div className="flex items-center gap-2">
@@ -362,6 +430,7 @@ const Layout = () => {
             isJournalPage={isJournalPage}
             journalDate={journalDate}
             setJournalDate={setJournalDate}
+            pickerOpen={pickerOpen}
             setPickerOpen={setPickerOpen}
           />
         </>
