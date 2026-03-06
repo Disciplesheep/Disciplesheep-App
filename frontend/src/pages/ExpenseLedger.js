@@ -13,11 +13,23 @@ import { toast } from 'sonner';
 import { formatDate, EXPENSE_CATEGORIES, MONTHLY_BUDGET_PHP, MONTHLY_BUDGET_USD, USD_TO_PHP } from '@/utils/dateUtils';
 import DeleteGuardDialog from '@/components/DeleteGuardDialog';
 
+/* ── Auto-focus next field helper ─────────────────────────────────────────── */
+const focusNext = (currentRef) => {
+  const form = currentRef?.closest('[data-form]');
+  if (!form) return;
+  const fields = Array.from(form.querySelectorAll('input, select, textarea'));
+  const idx = fields.indexOf(currentRef);
+  if (idx >= 0 && idx < fields.length - 1) fields[idx + 1]?.focus();
+};
+
+const onEnter = (ref) => (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); focusNext(ref.current); }
+};
+
 const ExpenseLedger = () => {
   const { expenses, setExpenses } = useJournalData();
   const location = useLocation();
 
-  // Auto-hide FABs while scrolling
   const [fabVisible, setFabVisible] = useState(true);
   const scrollTimer = useRef(null);
   useEffect(() => {
@@ -30,32 +42,22 @@ const ExpenseLedger = () => {
     return () => { window.removeEventListener('scroll', handleScroll); clearTimeout(scrollTimer.current); };
   }, []);
 
-  // Auto-open the Add Expense dialog when navigated here from Dashboard
   useEffect(() => {
     if (location.state?.openForm) {
       setIsAddDialogOpen(true);
-      // Clear the state so back-navigation doesn't re-trigger it
       window.history.replaceState({}, '');
     }
   }, [location.state]);
 
   const [supportList, setSupportList] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('supportReceived') || '[]'); }
-    catch { return []; }
+    try { return JSON.parse(localStorage.getItem('supportReceived') || '[]'); } catch { return []; }
   });
-  const saveSupport = (list) => {
-    setSupportList(list);
-    localStorage.setItem('supportReceived', JSON.stringify(list));
-  };
+  const saveSupport = (list) => { setSupportList(list); localStorage.setItem('supportReceived', JSON.stringify(list)); };
 
   const [giftList, setGiftList] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('oneTimeGifts') || '[]'); }
-    catch { return []; }
+    try { return JSON.parse(localStorage.getItem('oneTimeGifts') || '[]'); } catch { return []; }
   });
-  const saveGifts = (list) => {
-    setGiftList(list);
-    localStorage.setItem('oneTimeGifts', JSON.stringify(list));
-  };
+  const saveGifts = (list) => { setGiftList(list); localStorage.setItem('oneTimeGifts', JSON.stringify(list)); };
 
   const [isAddDialogOpen,     setIsAddDialogOpen]     = useState(false);
   const [isSupportDialogOpen, setIsSupportDialogOpen] = useState(false);
@@ -64,10 +66,7 @@ const ExpenseLedger = () => {
   const [editingSupportId,    setEditingSupportId]    = useState(null);
   const [editingGiftId,       setEditingGiftId]       = useState(null);
   const [selectedMonth,       setSelectedMonth]       = useState(format(new Date(), 'yyyy-MM'));
-
-  // ── Delete guard state ──────────────────────────────────────────────────────
-  // pending: { type: 'expense' | 'support' | 'gift', id: string, label: string }
-  const [pending, setPending] = useState(null);
+  const [pending,             setPending]             = useState(null);
 
   const emptyExpense = { date: formatDate(new Date()), category: '', item: '', php: '', usd: '' };
   const emptySupport = { date: formatDate(new Date()), from: '', php: '', usd: '', note: '' };
@@ -77,7 +76,17 @@ const ExpenseLedger = () => {
   const [supportForm, setSupportForm] = useState(emptySupport);
   const [giftForm,    setGiftForm]    = useState(emptyGift);
 
-  const resetForm    = () => { setFormData(emptyExpense);   setEditingId(null); };
+  // Expense form refs
+  const refExpDate = useRef(); const refExpItem = useRef();
+  const refExpPhp  = useRef(); const refExpUsd  = useRef();
+
+  // Support/Gift form refs
+  const refSupDate = useRef(); const refSupFrom = useRef();
+  const refSupPhp  = useRef(); const refSupUsd  = useRef(); const refSupNote = useRef();
+  const refGiftDate = useRef(); const refGiftFrom = useRef();
+  const refGiftPhp  = useRef(); const refGiftUsd  = useRef(); const refGiftNote = useRef();
+
+  const resetForm    = () => { setFormData(emptyExpense);    setEditingId(null); };
   const resetSupport = () => { setSupportForm(emptySupport); setEditingSupportId(null); };
   const resetGift    = () => { setGiftForm(emptyGift);       setEditingGiftId(null); };
 
@@ -128,28 +137,18 @@ const ExpenseLedger = () => {
   const handleEditSupport = (s) => { setSupportForm(s); setEditingSupportId(s.id); setIsSupportDialogOpen(true); };
   const handleEditGift    = (g) => { setGiftForm(g);    setEditingGiftId(g.id);    setIsGiftDialogOpen(true); };
 
-  // ── Delete: open guard dialog instead of deleting immediately ───────────────
   const handleDelete        = (expense) => setPending({ type: 'expense', id: expense.id, label: `"${expense.item}"` });
   const handleDeleteSupport = (s)       => setPending({ type: 'support', id: s.id,       label: `support from ${s.from}` });
   const handleDeleteGift    = (g)       => setPending({ type: 'gift',    id: g.id,       label: `gift from ${g.from}` });
 
-  // ── Called by DeleteGuardDialog after password passes ───────────────────────
   const confirmDelete = () => {
     if (!pending) return;
-    if (pending.type === 'expense') {
-      setExpenses(prev => prev.filter(e => e.id !== pending.id));
-      toast.success('Expense removed');
-    } else if (pending.type === 'support') {
-      saveSupport(supportList.filter(s => s.id !== pending.id));
-      toast.success('Support entry removed');
-    } else if (pending.type === 'gift') {
-      saveGifts(giftList.filter(g => g.id !== pending.id));
-      toast.success('Gift entry removed');
-    }
+    if (pending.type === 'expense') { setExpenses(prev => prev.filter(e => e.id !== pending.id)); toast.success('Expense removed'); }
+    else if (pending.type === 'support') { saveSupport(supportList.filter(s => s.id !== pending.id)); toast.success('Support entry removed'); }
+    else if (pending.type === 'gift')    { saveGifts(giftList.filter(g => g.id !== pending.id));     toast.success('Gift entry removed'); }
     setPending(null);
   };
 
-  /* ── Calculations ── */
   const monthExpenses   = expenses.filter(e => e.date?.startsWith(selectedMonth));
   const monthSupport    = supportList.filter(s => s.date?.startsWith(selectedMonth));
   const monthGifts      = giftList.filter(g => g.date?.startsWith(selectedMonth));
@@ -174,31 +173,44 @@ const ExpenseLedger = () => {
 
   const ic = "border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100";
 
-  const SupportFormFields = ({ form, setForm, onPhpChange, onUsdChange, onSubmit, isEditing }) => (
-    <div className="space-y-4 mt-4">
+  // Reusable Support/Gift form with auto-next
+  const SupportFormFields = ({ form, setForm, onPhpChange, onUsdChange, onSubmit, isEditing, refs }) => (
+    <div className="space-y-4 mt-4" data-form>
       <div>
         <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Date Received</Label>
-        <Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className={ic} />
+        <Input ref={refs.date} type="date" value={form.date}
+          onChange={e => setForm({ ...form, date: e.target.value })}
+          onKeyDown={onEnter(refs.date)} className={ic} />
       </div>
       <div>
         <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">From (Sender / Source) *</Label>
-        <Input type="text" value={form.from} onChange={e => setForm({ ...form, from: e.target.value })}
-          placeholder="e.g. Home church, Pastor Juan, Anonymous" className={ic} />
+        <Input ref={refs.from} type="text" value={form.from}
+          onChange={e => setForm({ ...form, from: e.target.value })}
+          onKeyDown={onEnter(refs.from)}
+          placeholder="e.g. Home church, Pastor Juan, Anonymous" className={ic} autoFocus />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">PHP *</Label>
-          <Input type="number" step="0.01" value={form.php} onChange={e => onPhpChange(e.target.value)} placeholder="0.00" className={`${ic} font-mono`} />
+          <Input ref={refs.php} type="number" step="0.01" value={form.php}
+            onChange={e => onPhpChange(e.target.value)}
+            onKeyDown={onEnter(refs.php)}
+            placeholder="0.00" className={`${ic} font-mono`} />
         </div>
         <div>
           <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">USD</Label>
-          <Input type="number" step="0.01" value={form.usd} onChange={e => onUsdChange(e.target.value)} placeholder="0.00" className={`${ic} font-mono`} />
+          <Input ref={refs.usd} type="number" step="0.01" value={form.usd}
+            onChange={e => onUsdChange(e.target.value)}
+            onKeyDown={onEnter(refs.usd)}
+            placeholder="0.00" className={`${ic} font-mono`} />
         </div>
       </div>
       <div>
         <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Note (optional)</Label>
-        <Input type="text" value={form.note} onChange={e => setForm({ ...form, note: e.target.value })}
-          placeholder="e.g. Birthday gift, Special offering" className={ic} />
+        <Input ref={refs.note} type="text" value={form.note}
+          onChange={e => setForm({ ...form, note: e.target.value })}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onSubmit(); } }}
+          placeholder="e.g. Birthday gift, Special offering · Press Enter to save" className={ic} />
       </div>
       <p className="text-xs text-stone-500 dark:text-stone-400">Exchange rate: ₱{USD_TO_PHP} = $1</p>
       <Button onClick={onSubmit} className="w-full bg-forest-500 hover:bg-forest-900 text-white rounded-full h-11">
@@ -210,7 +222,6 @@ const ExpenseLedger = () => {
   return (
     <div className="space-y-6 pb-6">
 
-      {/* Delete Guard Dialog */}
       <DeleteGuardDialog
         open={!!pending}
         onClose={() => setPending(null)}
@@ -224,10 +235,8 @@ const ExpenseLedger = () => {
         {/* Support */}
         <Dialog open={isSupportDialogOpen} onOpenChange={o => { setIsSupportDialogOpen(o); if (!o) resetSupport(); }}>
           <DialogTrigger asChild>
-            <button
-              title="Record Monthly Support"
-              className="w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 active:scale-95 text-white shadow-lg shadow-green-900/30 flex items-center justify-center transition-all"
-            >
+            <button title="Record Monthly Support"
+              className="w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 active:scale-95 text-white shadow-lg shadow-green-900/30 flex items-center justify-center transition-all">
               <HandCoins className="w-6 h-6" />
             </button>
           </DialogTrigger>
@@ -237,17 +246,16 @@ const ExpenseLedger = () => {
             </DialogHeader>
             <SupportFormFields form={supportForm} setForm={setSupportForm}
               onPhpChange={handleSupportPhpChange} onUsdChange={handleSupportUsdChange}
-              onSubmit={handleSupportSubmit} isEditing={!!editingSupportId} />
+              onSubmit={handleSupportSubmit} isEditing={!!editingSupportId}
+              refs={{ date: refSupDate, from: refSupFrom, php: refSupPhp, usd: refSupUsd, note: refSupNote }} />
           </DialogContent>
         </Dialog>
 
         {/* Gift */}
         <Dialog open={isGiftDialogOpen} onOpenChange={o => { setIsGiftDialogOpen(o); if (!o) resetGift(); }}>
           <DialogTrigger asChild>
-            <button
-              title="Record One-Time Gift"
-              className="w-14 h-14 rounded-full bg-purple-600 hover:bg-purple-700 active:scale-95 text-white shadow-lg shadow-purple-900/30 flex items-center justify-center transition-all"
-            >
+            <button title="Record One-Time Gift"
+              className="w-14 h-14 rounded-full bg-purple-600 hover:bg-purple-700 active:scale-95 text-white shadow-lg shadow-purple-900/30 flex items-center justify-center transition-all">
               <Gift className="w-6 h-6" />
             </button>
           </DialogTrigger>
@@ -257,17 +265,16 @@ const ExpenseLedger = () => {
             </DialogHeader>
             <SupportFormFields form={giftForm} setForm={setGiftForm}
               onPhpChange={handleGiftPhpChange} onUsdChange={handleGiftUsdChange}
-              onSubmit={handleGiftSubmit} isEditing={!!editingGiftId} />
+              onSubmit={handleGiftSubmit} isEditing={!!editingGiftId}
+              refs={{ date: refGiftDate, from: refGiftFrom, php: refGiftPhp, usd: refGiftUsd, note: refGiftNote }} />
           </DialogContent>
         </Dialog>
 
         {/* Add Expense */}
         <Dialog open={isAddDialogOpen} onOpenChange={o => { setIsAddDialogOpen(o); if (!o) resetForm(); }}>
           <DialogTrigger asChild>
-            <button
-              title="Add New Expense"
-              className="w-14 h-14 rounded-full bg-forest-500 hover:bg-forest-600 active:scale-95 text-white shadow-lg shadow-forest-900/30 flex items-center justify-center transition-all"
-            >
+            <button title="Add New Expense"
+              className="w-14 h-14 rounded-full bg-forest-500 hover:bg-forest-600 active:scale-95 text-white shadow-lg shadow-forest-900/30 flex items-center justify-center transition-all">
               <Plus className="w-6 h-6" />
             </button>
           </DialogTrigger>
@@ -275,14 +282,20 @@ const ExpenseLedger = () => {
             <DialogHeader>
               <DialogTitle className="font-serif text-2xl">{editingId ? 'Edit Expense' : 'Add New Expense'}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 mt-4">
+            <div className="space-y-4 mt-4" data-form>
               <div>
                 <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Date</Label>
-                <Input type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className={ic} />
+                <Input ref={refExpDate} type="date" value={formData.date}
+                  onChange={e => setFormData({ ...formData, date: e.target.value })}
+                  onKeyDown={onEnter(refExpDate)} className={ic} />
               </div>
               <div>
                 <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Category *</Label>
-                <Select value={formData.category} onValueChange={v => setFormData({ ...formData, category: v })}>
+                <Select value={formData.category} onValueChange={v => {
+                  setFormData({ ...formData, category: v });
+                  // Auto-focus item field after category selection
+                  setTimeout(() => refExpItem.current?.focus(), 100);
+                }}>
                   <SelectTrigger className={ic}><SelectValue placeholder="Select category" /></SelectTrigger>
                   <SelectContent>
                     {EXPENSE_CATEGORIES.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
@@ -291,19 +304,25 @@ const ExpenseLedger = () => {
               </div>
               <div>
                 <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Item / Description *</Label>
-                <Input type="text" value={formData.item} onChange={e => setFormData({ ...formData, item: e.target.value })}
+                <Input ref={refExpItem} type="text" value={formData.item}
+                  onChange={e => setFormData({ ...formData, item: e.target.value })}
+                  onKeyDown={onEnter(refExpItem)}
                   placeholder="What did you spend on?" className={ic} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-xs uppercase tracking-widests text-stone-500 dark:text-stone-400 font-bold mb-2 block">PHP *</Label>
-                  <Input type="number" step="0.01" value={formData.php} onChange={e => handlePhpChange(e.target.value)}
+                  <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">PHP *</Label>
+                  <Input ref={refExpPhp} type="number" step="0.01" value={formData.php}
+                    onChange={e => handlePhpChange(e.target.value)}
+                    onKeyDown={onEnter(refExpPhp)}
                     placeholder="0.00" className={`${ic} font-mono`} />
                 </div>
                 <div>
                   <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">USD</Label>
-                  <Input type="number" step="0.01" value={formData.usd} onChange={e => handleUsdChange(e.target.value)}
-                    placeholder="0.00" className={`${ic} font-mono`} />
+                  <Input ref={refExpUsd} type="number" step="0.01" value={formData.usd}
+                    onChange={e => handleUsdChange(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit(); } }}
+                    placeholder="0.00 · Press Enter to save" className={`${ic} font-mono`} />
                 </div>
               </div>
               <p className="text-xs text-stone-500 dark:text-stone-400">Exchange rate: ₱{USD_TO_PHP} = $1</p>
@@ -313,7 +332,6 @@ const ExpenseLedger = () => {
             </div>
           </DialogContent>
         </Dialog>
-
       </div>
 
       {/* Header */}
@@ -325,18 +343,11 @@ const ExpenseLedger = () => {
           </div>
           <Wallet className="w-12 h-12 text-white/30" />
         </div>
-
-        <p className="text-xs text-white/60 mb-3 uppercase tracking-widest">
-          {format(new Date(selectedMonth + '-01'), 'MMMM yyyy')}
-        </p>
-
-        {/* Bar 1 — Spending vs Received */}
+        <p className="text-xs text-white/60 mb-3 uppercase tracking-widest">{format(new Date(selectedMonth + '-01'), 'MMMM yyyy')}</p>
         <div className="mb-4">
           <div className="flex justify-between items-center mb-1">
             <span className="text-sm text-white/80">Spent vs Received</span>
-            <span className="font-mono font-bold text-sm">
-              ₱{totalSpentPhp.toLocaleString()} / ₱{totalSupportPhp.toLocaleString()}
-            </span>
+            <span className="font-mono font-bold text-sm">₱{totalSpentPhp.toLocaleString()} / ₱{totalSupportPhp.toLocaleString()}</span>
           </div>
           <div className="w-full bg-white/20 rounded-full h-3 overflow-hidden">
             <div className={`h-full rounded-full transition-all ${spentPercentage > 90 ? 'bg-red-400' : spentPercentage > 75 ? 'bg-yellow-400' : 'bg-white'}`}
@@ -344,21 +355,15 @@ const ExpenseLedger = () => {
           </div>
           <p className="text-xs text-white/60 mt-1 text-right">{spentPercentage.toFixed(0)}% of received support spent</p>
         </div>
-
-        {/* Bar 2 — Support vs Target */}
         <div>
           <div className="flex justify-between items-center mb-1">
-            <span className="text-sm text-white/80 flex items-center gap-1">
-              <Target className="w-3.5 h-3.5" /> Support vs Target
-            </span>
+            <span className="text-sm text-white/80 flex items-center gap-1"><Target className="w-3.5 h-3.5" /> Support vs Target</span>
             <span className="font-mono font-bold text-sm">${totalSupportUsd.toFixed(0)} / ${MONTHLY_BUDGET_USD}</span>
           </div>
           <div className="w-full bg-white/20 rounded-full h-3 overflow-hidden">
             <div className="h-full rounded-full transition-all bg-green-400" style={{ width: `${targetPercentage}%` }} />
           </div>
-          <p className="text-xs text-white/60 mt-1 text-right">
-            {targetPercentage.toFixed(0)}% of monthly target received{targetPercentage >= 100 && ' 🎉'}
-          </p>
+          <p className="text-xs text-white/60 mt-1 text-right">{targetPercentage.toFixed(0)}% of monthly target received{targetPercentage >= 100 && ' 🎉'}</p>
         </div>
       </Card>
 
@@ -381,9 +386,7 @@ const ExpenseLedger = () => {
           <p className={`text-2xl font-bold font-mono ${remainingPhp >= 0 ? 'text-forest-500 dark:text-forest-400' : 'text-red-500'}`}>
             ₱{Math.abs(remainingPhp).toFixed(0)}
           </p>
-          <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">
-            {remainingPhp >= 0 ? 'Remaining' : 'Over Budget'}
-          </p>
+          <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">{remainingPhp >= 0 ? 'Remaining' : 'Over Budget'}</p>
           <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">${Math.abs(remainingUsd).toFixed(2)}</p>
         </Card>
       </div>
@@ -394,13 +397,9 @@ const ExpenseLedger = () => {
           <div className="flex items-start gap-3">
             <AlertCircle className={spentPercentage > 90 ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400'} />
             <div>
-              <p className="font-semibold text-sm text-stone-900 dark:text-stone-100">
-                {spentPercentage > 90 ? 'Budget Alert!' : 'Budget Warning'}
-              </p>
+              <p className="font-semibold text-sm text-stone-900 dark:text-stone-100">{spentPercentage > 90 ? 'Budget Alert!' : 'Budget Warning'}</p>
               <p className="text-sm text-stone-700 dark:text-stone-300">
-                {spentPercentage > 90
-                  ? 'You have spent over 90% of your received support this month.'
-                  : 'You have spent over 75% of your received support this month.'}
+                {spentPercentage > 90 ? 'You have spent over 90% of your received support this month.' : 'You have spent over 75% of your received support this month.'}
               </p>
             </div>
           </div>
@@ -434,18 +433,14 @@ const ExpenseLedger = () => {
           <div className="flex items-center gap-2">
             <HandCoins className="w-5 h-5 text-green-600 dark:text-green-400" />
             <h3 className="font-serif text-lg font-semibold text-stone-900 dark:text-stone-100">Monthly Support</h3>
-            <span className="ml-auto font-mono font-bold text-green-700 dark:text-green-400">
-              ₱{totalSupportPhp.toLocaleString()}
-            </span>
+            <span className="ml-auto font-mono font-bold text-green-700 dark:text-green-400">₱{totalSupportPhp.toLocaleString()}</span>
           </div>
           {monthSupport.map(s => (
             <Card key={s.id} className="bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-800 p-4">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-300 font-medium">
-                      From: {s.from}
-                    </span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 dark:bg-green-800 text-green-800 dark:text-green-300 font-medium">From: {s.from}</span>
                     <span className="text-xs text-stone-500 dark:text-stone-400">{format(new Date(s.date), 'MMM dd')}</span>
                   </div>
                   {s.note && <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">{s.note}</p>}
@@ -455,10 +450,8 @@ const ExpenseLedger = () => {
                   </div>
                 </div>
                 <div className="flex gap-1 ml-2">
-                  <Button variant="ghost" size="sm" onClick={() => handleEditSupport(s)}
-                    className="text-stone-600 dark:text-stone-400 hover:text-forest-600"><Edit2 className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDeleteSupport(s)}
-                    className="text-stone-600 dark:text-stone-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleEditSupport(s)} className="text-stone-600 dark:text-stone-400 hover:text-forest-600"><Edit2 className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleDeleteSupport(s)} className="text-stone-600 dark:text-stone-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
                 </div>
               </div>
             </Card>
@@ -472,23 +465,17 @@ const ExpenseLedger = () => {
           <div className="flex items-center gap-2">
             <Gift className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             <h3 className="font-serif text-lg font-semibold text-stone-900 dark:text-stone-100">One-Time Gifts</h3>
-            <span className="ml-auto font-mono font-bold text-purple-700 dark:text-purple-400">
-              ₱{totalGiftsPhp.toLocaleString()}
-            </span>
+            <span className="ml-auto font-mono font-bold text-purple-700 dark:text-purple-400">₱{totalGiftsPhp.toLocaleString()}</span>
           </div>
           <Card className="bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-100 dark:border-purple-800 p-4 mb-1">
-            <p className="text-xs text-purple-700 dark:text-purple-300 flex items-center gap-1">
-              <Gift className="w-3 h-3" /> One-time gifts are tracked separately and do not affect your monthly budget.
-            </p>
+            <p className="text-xs text-purple-700 dark:text-purple-300 flex items-center gap-1"><Gift className="w-3 h-3" /> One-time gifts are tracked separately and do not affect your monthly budget.</p>
           </Card>
           {monthGifts.map(g => (
             <Card key={g.id} className="bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-100 dark:border-purple-800 p-4">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-300 font-medium">
-                      From: {g.from}
-                    </span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-purple-100 dark:bg-purple-800 text-purple-800 dark:text-purple-300 font-medium">From: {g.from}</span>
                     <span className="text-xs text-stone-500 dark:text-stone-400">{format(new Date(g.date), 'MMM dd')}</span>
                   </div>
                   {g.note && <p className="text-sm text-stone-600 dark:text-stone-400 mb-1">{g.note}</p>}
@@ -498,10 +485,8 @@ const ExpenseLedger = () => {
                   </div>
                 </div>
                 <div className="flex gap-1 ml-2">
-                  <Button variant="ghost" size="sm" onClick={() => handleEditGift(g)}
-                    className="text-stone-600 dark:text-stone-400 hover:text-forest-600"><Edit2 className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDeleteGift(g)}
-                    className="text-stone-600 dark:text-stone-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleEditGift(g)} className="text-stone-600 dark:text-stone-400 hover:text-forest-600"><Edit2 className="w-4 h-4" /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleDeleteGift(g)} className="text-stone-600 dark:text-stone-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
                 </div>
               </div>
             </Card>
@@ -517,37 +502,27 @@ const ExpenseLedger = () => {
             <Wallet className="w-12 h-12 text-stone-300 dark:text-stone-600 mx-auto mb-3" />
             <p className="text-stone-600 dark:text-stone-400">No expenses recorded for this month</p>
           </Card>
-        ) : (
-          monthExpenses.map(expense => (
-            <Card key={expense.id} className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-4 hover:shadow-md transition-shadow">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs px-2 py-1 rounded-full bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-300 font-medium">
-                      {expense.category}
-                    </span>
-                    <span className="text-xs text-stone-500 dark:text-stone-400">{format(new Date(expense.date), 'MMM dd')}</span>
-                  </div>
-                  <p className="text-sm text-stone-900 dark:text-stone-100 font-medium mb-1">{expense.item}</p>
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono font-bold text-stone-900 dark:text-stone-100">₱{parseFloat(expense.php).toFixed(2)}</span>
-                    <span className="font-mono text-sm text-stone-600 dark:text-stone-400">${parseFloat(expense.usd).toFixed(2)}</span>
-                  </div>
+        ) : monthExpenses.map(expense => (
+          <Card key={expense.id} className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-4 hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs px-2 py-1 rounded-full bg-stone-100 dark:bg-stone-700 text-stone-700 dark:text-stone-300 font-medium">{expense.category}</span>
+                  <span className="text-xs text-stone-500 dark:text-stone-400">{format(new Date(expense.date), 'MMM dd')}</span>
                 </div>
-                <div className="flex gap-1 ml-2">
-                  <Button variant="ghost" size="sm" onClick={() => handleEdit(expense)}
-                    className="text-stone-600 dark:text-stone-400 hover:text-forest-600 dark:hover:text-forest-400">
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(expense)}
-                    className="text-stone-600 dark:text-stone-400 hover:text-red-600 dark:hover:text-red-400">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                <p className="text-sm text-stone-900 dark:text-stone-100 font-medium mb-1">{expense.item}</p>
+                <div className="flex items-center gap-3">
+                  <span className="font-mono font-bold text-stone-900 dark:text-stone-100">₱{parseFloat(expense.php).toFixed(2)}</span>
+                  <span className="font-mono text-sm text-stone-600 dark:text-stone-400">${parseFloat(expense.usd).toFixed(2)}</span>
                 </div>
               </div>
-            </Card>
-          ))
-        )}
+              <div className="flex gap-1 ml-2">
+                <Button variant="ghost" size="sm" onClick={() => handleEdit(expense)} className="text-stone-600 dark:text-stone-400 hover:text-forest-600 dark:hover:text-forest-400"><Edit2 className="w-4 h-4" /></Button>
+                <Button variant="ghost" size="sm" onClick={() => handleDelete(expense)} className="text-stone-600 dark:text-stone-400 hover:text-red-600 dark:hover:text-red-400"><Trash2 className="w-4 h-4" /></Button>
+              </div>
+            </div>
+          </Card>
+        ))}
       </div>
     </div>
   );
