@@ -3,18 +3,17 @@ import { format } from 'date-fns';
 import { useOutletContext } from 'react-router-dom';
 import { useJournalData } from '@/hooks/useLocalStorage';
 import { useDiscipleshipTracking } from '@/hooks/useDiscipleshipTracking';
-import { Save, CheckCircle2, Target, TrendingUp } from 'lucide-react';
+import { Save, Target, TrendingUp } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { formatDate, formatDisplayDate, DAILY_TASKS } from '@/utils/dateUtils';
+import { formatDate, formatDisplayDate } from '@/utils/dateUtils';
 import { getDevotionalForDate, getCurrentMinistryYear, getYearTargets } from '@/data/dailyDevotionals';
 
 const JournalEntry = () => {
-  // Receive shared date state from Layout
-  const { journalDate: selectedDate, setJournalDate: setSelectedDate } = useOutletContext();
+  const { journalDate: selectedDate } = useOutletContext();
 
   const dateKey = formatDate(selectedDate);
   const { dailyEntries, setDailyEntries, peopleContacts, expenses } = useJournalData();
@@ -50,13 +49,6 @@ const JournalEntry = () => {
     toast.success('Journal entry saved!', { description: formatDisplayDate(selectedDate) });
   };
 
-  const handleTaskToggle = (task) => {
-    const newTasks = entry.tasks.includes(task)
-      ? entry.tasks.filter(t => t !== task)
-      : [...entry.tasks, task];
-    setEntry({ ...entry, tasks: newTasks });
-  };
-
   const currentMonth  = format(new Date(), 'yyyy-MM');
   const monthPeople   = peopleContacts.filter(p => p.date?.startsWith(currentMonth)).length;
   const monthExpenses = expenses
@@ -71,35 +63,6 @@ const JournalEntry = () => {
 
   return (
     <div className="space-y-6 pb-6">
-
-      {/* Daily Tasks */}
-      <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="daily-tasks-card">
-        <h2 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-4">Daily Tasks</h2>
-        <div className="space-y-3">
-          {DAILY_TASKS.map((task, idx) => (
-            <div key={idx} className="flex items-center space-x-3 cursor-pointer" onClick={() => handleTaskToggle(task)}>
-              <div className={`w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center ${
-                entry.tasks.includes(task)
-                  ? 'bg-forest-500 border-forest-500'
-                  : 'bg-white border-stone-300 dark:bg-stone-700 dark:border-stone-500'
-              }`}>
-                {entry.tasks.includes(task) && (
-                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </div>
-              <span className="text-sm text-stone-700 dark:text-stone-300 flex-1">{task}</span>
-            </div>
-          ))}
-        </div>
-        <div className="mt-4 pt-4 border-t border-stone-100 dark:border-stone-700">
-          <p className="text-sm text-stone-600 dark:text-stone-200">
-            <CheckCircle2 className="w-4 h-4 inline mr-1 text-forest-500 dark:text-forest-400" />
-            {entry.tasks.length} of {DAILY_TASKS.length} completed
-          </p>
-        </div>
-      </Card>
 
       {/* Goals & Progress */}
       <Card className="bg-gradient-to-br from-mango-50 to-orange-50 dark:from-stone-800 dark:to-stone-700 rounded-xl shadow-sm border border-mango-100 dark:border-stone-600 p-6" data-testid="goals-progress-card">

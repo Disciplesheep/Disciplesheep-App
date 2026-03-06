@@ -13,12 +13,23 @@ const Dashboard = () => {
   const { isTablet } = useScreenSize();
   const today = new Date();
   const todayKey = formatDate(today);
-  const { dailyEntries, peopleContacts, expenses } = useJournalData();
+  const { dailyEntries, setDailyEntries, peopleContacts, expenses } = useJournalData();
 
   const todayEntry = dailyEntries[todayKey] || { tasks: [] };
   const completedTasks = todayEntry.tasks?.length || 0;
   const totalTasks = DAILY_TASKS.length;
   const completionPercentage = Math.round((completedTasks / totalTasks) * 100);
+
+  const handleTaskToggle = (task) => {
+    const current = dailyEntries[todayKey] || { tasks: [] };
+    const newTasks = current.tasks.includes(task)
+      ? current.tasks.filter(t => t !== task)
+      : [...current.tasks, task];
+    setDailyEntries(prev => ({
+      ...prev,
+      [todayKey]: { ...current, tasks: newTasks, updatedAt: new Date().toISOString() },
+    }));
+  };
 
   const todayPeople = peopleContacts.filter(p => p.date === todayKey).length;
   const todayExpenses = expenses.filter(e => e.date === todayKey)
@@ -54,6 +65,7 @@ const Dashboard = () => {
 
   const taskCard = (
     <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="task-progress-card">
+      {/* Header row */}
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className={`font-serif font-semibold text-stone-900 dark:text-stone-100 ${isTablet ? 'text-2xl' : 'text-xl'}`}>Today's Tasks</h2>
@@ -76,6 +88,42 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* ── Daily task checklist ── */}
+      <div className="space-y-2 mb-4">
+        {DAILY_TASKS.map((task, idx) => (
+          <div
+            key={idx}
+            className="flex items-center gap-3 cursor-pointer py-1"
+            onClick={() => handleTaskToggle(task)}
+          >
+            <div className={`w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors ${
+              todayEntry.tasks.includes(task)
+                ? 'bg-forest-500 border-forest-500'
+                : 'bg-white border-stone-300 dark:bg-stone-700 dark:border-stone-500'
+            }`}>
+              {todayEntry.tasks.includes(task) && (
+                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+            <span className={`text-sm flex-1 transition-colors ${
+              todayEntry.tasks.includes(task)
+                ? 'text-stone-400 dark:text-stone-500 line-through'
+                : 'text-stone-700 dark:text-stone-300'
+            }`}>{task}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="pt-3 border-t border-stone-100 dark:border-stone-700 mb-4">
+        <p className="text-sm text-stone-600 dark:text-stone-200">
+          <CheckCircle2 className="w-4 h-4 inline mr-1 text-forest-500 dark:text-forest-400" />
+          {completedTasks} of {totalTasks} completed
+        </p>
+      </div>
+
       <Button
         onClick={() => navigate('/journal')}
         className="w-full bg-forest-500 hover:bg-forest-900 text-white rounded-full h-12 font-serif"
