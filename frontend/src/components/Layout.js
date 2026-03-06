@@ -140,7 +140,7 @@ const ProfileMenu = () => {
 };
 
 /* ── Journal Date Bar — auto-hides on scroll, sits just above bottom nav ── */
-const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen, navHeight }) => {
+const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen }) => {
   const [visible, setVisible] = useState(true);
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
@@ -186,11 +186,13 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
             onClick={() => setPickerOpen(false)}
           />
           <div
-            className="fixed z-[70] bg-white dark:bg-stone-800 rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-700 overflow-hidden"
+            className="fixed z-[70] bg-white dark:bg-stone-800 rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-700"
             style={{
               left: '0.5rem',
               right: '0.5rem',
               top: 'calc(3rem + 42px + 0.5rem)',
+              maxHeight: 'calc(100vh - 3rem - 42px - 5rem)',
+              overflowY: 'auto',
             }}
           >
             <div className="flex items-center justify-between px-4 pt-3 pb-1">
@@ -370,7 +372,6 @@ const Layout = () => {
                   setJournalDate={setJournalDate}
                   pickerOpen={pickerOpen}
                   setPickerOpen={setPickerOpen}
-                  navHeight={0}
                 />
               </div>
             )}
@@ -411,7 +412,6 @@ const Layout = () => {
               setJournalDate={setJournalDate}
               pickerOpen={pickerOpen}
               setPickerOpen={setPickerOpen}
-              navHeight={NAV_H}
             />
           )}
         </>
