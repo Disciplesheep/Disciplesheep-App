@@ -12,6 +12,17 @@ import { toast } from 'sonner';
 import { formatDate, formatDisplayDate } from '@/utils/dateUtils';
 import { getDevotionalForDate, getCurrentMinistryYear, getYearTargets } from '@/data/dailyDevotionals';
 
+// Progress color: 0%=red → 100%=green → beyond=gold
+const progressColor = (pct) => {
+  if (pct <= 100) {
+    const hue = Math.round((pct / 100) * 120);
+    return `hsl(${hue}, 72%, 42%)`;
+  }
+  const over = Math.min(pct - 100, 50);
+  const hue = Math.round(120 - (over / 50) * 75);
+  return `hsl(${hue}, 80%, 42%)`;
+};
+
 const JournalEntry = () => {
   const { journalDate: selectedDate } = useOutletContext();
 
@@ -76,9 +87,9 @@ const JournalEntry = () => {
 
         <div className="space-y-4">
           {[
-            { label: 'People Contacted (Monthly)', value: monthPeople,         target: yearTargets.monthly.peopleContacted, progress: peopleProgress,   color: 'bg-forest-500', note: `${peopleProgress}% of monthly target` },
-            { label: 'Disciples (Yearly)',          value: disciples.length,    target: yearTargets.yearly.disciples,        progress: discipleProgress, color: 'bg-blue-500',   note: `${discipleProgress}% of year ${currentYear} target` },
-            { label: 'Budget Used (Monthly)',       value: `₱${monthExpenses.toFixed(0)}`, target: `₱${yearTargets.monthly.budgetLimit}`, progress: budgetProgress, color: budgetProgress > 90 ? 'bg-red-500' : budgetProgress > 75 ? 'bg-yellow-500' : 'bg-forest-500', note: `${budgetProgress}% used · ₱${(yearTargets.monthly.budgetLimit - monthExpenses).toFixed(0)} remaining` },
+            { label: 'People Contacted (Monthly)', value: monthPeople,         target: yearTargets.monthly.peopleContacted, progress: peopleProgress,   note: `${peopleProgress}% of monthly target` },
+            { label: 'Disciples (Yearly)',          value: disciples.length,    target: yearTargets.yearly.disciples,        progress: discipleProgress, note: `${discipleProgress}% of year ${currentYear} target` },
+            { label: 'Budget Used (Monthly)',       value: `₱${monthExpenses.toFixed(0)}`, target: `₱${yearTargets.monthly.budgetLimit}`, progress: budgetProgress, note: `${budgetProgress}% used · ₱${(yearTargets.monthly.budgetLimit - monthExpenses).toFixed(0)} remaining` },
           ].map((item, i) => (
             <div key={i}>
               <div className="flex justify-between text-sm mb-2">
@@ -86,7 +97,7 @@ const JournalEntry = () => {
                 <span className="font-mono font-bold text-stone-900 dark:text-yellow-50">{item.value} / {item.target}</span>
               </div>
               <div className="w-full bg-white/60 dark:bg-stone-600 rounded-full h-2.5">
-                <div className={`${item.color} h-2.5 rounded-full transition-all`} style={{ width: `${Math.min(item.progress, 100)}%` }} />
+                <div className="h-2.5 rounded-full transition-all" style={{ width: `${Math.min(item.progress, 100)}%`, backgroundColor: progressColor(item.progress) }} />
               </div>
               <p className="text-xs text-stone-600 dark:text-gray-200 mt-1">{item.note}</p>
             </div>

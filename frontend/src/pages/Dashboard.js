@@ -8,6 +8,18 @@ import { useNavigate } from 'react-router-dom';
 import { formatDate, formatDisplayDate, formatDayOfWeek, getWeekNumber, DAILY_TASKS } from '@/utils/dateUtils';
 import { useScreenSize } from '@/hooks/useScreenSize';
 
+// Progress color: 0%=red(0) → 100%=green(120) → 100%+=gold(45)
+const progressColor = (pct) => {
+  if (pct <= 100) {
+    const hue = Math.round((pct / 100) * 120); // 0→120
+    return `hsl(${hue}, 72%, 42%)`;
+  }
+  // beyond 100 → shift from green toward gold
+  const over = Math.min(pct - 100, 50);
+  const hue = Math.round(120 - (over / 50) * 75); // 120→45
+  return `hsl(${hue}, 80%, 42%)`;
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { isTablet } = useScreenSize();
@@ -76,7 +88,7 @@ const Dashboard = () => {
             <circle cx="32" cy="32" r="28" className="stroke-stone-200 dark:stroke-stone-600" strokeWidth="6" fill="none" />
             <circle
               cx="32" cy="32" r="28"
-              className="stroke-forest-500"
+              style={{ stroke: progressColor(completionPercentage) }}
               strokeWidth="6" fill="none"
               strokeDasharray={`${2 * Math.PI * 28}`}
               strokeDashoffset={`${2 * Math.PI * 28 * (1 - completedTasks / totalTasks)}`}
@@ -84,7 +96,7 @@ const Dashboard = () => {
             />
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-sm font-bold text-forest-500 dark:text-forest-400">{completionPercentage}%</span>
+            <span className="text-sm font-bold" style={{ color: progressColor(completionPercentage) }}>{completionPercentage}%</span>
           </div>
         </div>
       </div>
@@ -183,15 +195,11 @@ const Dashboard = () => {
       </div>
       <div className="w-full bg-stone-100 dark:bg-stone-700 rounded-full h-2 overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all ${
-            budgetPercentage > 90 ? 'bg-red-500' :
-            budgetPercentage > 75 ? 'bg-yellow-500' :
-            'bg-forest-500'
-          }`}
-          style={{ width: `${budgetPercentage}%` }}
+          className="h-full rounded-full transition-all"
+          style={{ width: `${budgetPercentage}%`, backgroundColor: progressColor(budgetPercentage) }}
         />
       </div>
-      <p className="text-xs text-stone-600 dark:text-stone-400 mt-1">
+      <p className="text-xs mt-1" style={{ color: progressColor(budgetPercentage) }}>
         {budgetPercentage}% used &bull; ₱{(monthlyBudget - monthExpenses).toFixed(0)} remaining
       </p>
     </Card>
