@@ -306,7 +306,7 @@ const JournalEntry = () => {
               <Textarea value={entry.praises}
                 onChange={(e) => setEntry({ ...entry, praises: e.target.value })}
                 placeholder="Express your gratitude based on today's passage..."
-                className="min-h-[300px] lined-paper bg-transparent border-none focus:ring-0 text-base font-serif text-stone-800 dark:text-stone-200 resize-none placeholder:text-stone-400 dark:placeholder:text-stone-500"
+                className="min-h-[300px] lined-paper bg-transparent border-none focus:ring-0 text-base font-serif text-stone-800 dark:text-stone-200 resize-none placeholder:text-stone-400 dark:placeholder:text-stone-500 leading-[2rem] pt-1 pb-0"
                 data-testid="praises-input" />
             </div>
             <div>
@@ -314,7 +314,7 @@ const JournalEntry = () => {
               <Textarea value={entry.prayer}
                 onChange={(e) => setEntry({ ...entry, prayer: e.target.value })}
                 placeholder="Pray the passage back to God, intercede for Timothys and Puerto Princesa..."
-                className="min-h-[360px] lined-paper bg-transparent border-none focus:ring-0 text-base font-serif text-stone-800 dark:text-stone-200 resize-none placeholder:text-stone-400 dark:placeholder:text-stone-500"
+                className="min-h-[360px] lined-paper bg-transparent border-none focus:ring-0 text-base font-serif text-stone-800 dark:text-stone-200 resize-none placeholder:text-stone-400 dark:placeholder:text-stone-500 leading-[2rem] pt-1 pb-0"
                 data-testid="prayer-input" />
             </div>
           </div>
