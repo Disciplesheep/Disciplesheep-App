@@ -139,6 +139,25 @@ const JournalEntry = () => {
     return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, []);
 
+  // Push a history entry when PDF viewer opens so Back button closes it
+  useEffect(() => {
+    if (activePdfUrl) {
+      window.history.pushState({ pdfOpen: true }, '');
+    }
+  }, [activePdfUrl]);
+
+  // Handle Back button — close PDF viewer instead of leaving page
+  useEffect(() => {
+    const onPopState = (e) => {
+      if (activePdfUrl) {
+        closePdf();
+        // Don't navigate away
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [activePdfUrl]);
+
   const fmtSize = (bytes) => {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
