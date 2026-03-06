@@ -35,7 +35,9 @@ const fmtSize = (bytes) => {
 };
 
 /* ── DOCX Viewer ─────────────────────────────────────────────────────────── */
-const DocxViewer = ({ dataUrl }) => {
+const FONT_SIZES = [12, 14, 16, 18, 20, 24];
+
+const DocxViewer = ({ dataUrl, fontSize = 16 }) => {
   const [html, setHtml]       = useState('');
   const [error, setError]     = useState('');
   const [loading, setLoading] = useState(true);
@@ -76,7 +78,7 @@ const DocxViewer = ({ dataUrl }) => {
   return (
     <div
       className="prose prose-stone dark:prose-invert max-w-none p-6 overflow-y-auto"
-      style={{ fontFamily: 'Georgia, serif', lineHeight: 1.7 }}
+      style={{ fontFamily: 'Georgia, serif', lineHeight: 1.7, fontSize: `${fontSize}px` }}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -133,6 +135,7 @@ const JournalEntry = () => {
   const [activeFile, setActiveFile]       = useState(null); // { name, dataUrl, fileType, temp? }
   const [isFullscreen, setIsFullscreen]   = useState(false);
   const [tempObjectUrl, setTempObjectUrl] = useState(null);
+  const [docFontSize, setDocFontSize]     = useState(16);
   const fileInputRef  = useRef();
   const tempFileRef   = useRef();
   const fullscreenRef = useRef();
@@ -360,6 +363,23 @@ const JournalEntry = () => {
                   {activeFile.temp && <span className="ml-2 text-xs text-stone-400 shrink-0">(not saved)</span>}
                 </p>
                 <div className="flex items-center gap-1 shrink-0">
+                  {activeFile.fileType === 'docx' && (
+                    <div className="flex items-center gap-0.5 mr-1 bg-stone-100 dark:bg-stone-700 rounded-lg p-0.5">
+                      <button
+                        onClick={() => setDocFontSize(s => Math.max(12, s - 2))}
+                        className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white dark:hover:bg-stone-600 text-stone-600 dark:text-stone-300 font-bold transition-colors text-sm"
+                        title="Decrease font size" style={{ minHeight: 0 }}>
+                        A−
+                      </button>
+                      <span className="text-xs text-stone-500 dark:text-stone-400 font-mono w-6 text-center">{docFontSize}</span>
+                      <button
+                        onClick={() => setDocFontSize(s => Math.min(32, s + 2))}
+                        className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white dark:hover:bg-stone-600 text-stone-600 dark:text-stone-300 font-bold transition-colors text-sm"
+                        title="Increase font size" style={{ minHeight: 0 }}>
+                        A+
+                      </button>
+                    </div>
+                  )}
                   <button onClick={toggleFullscreen}
                     className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400 transition-colors"
                     title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} style={{ minHeight: 0 }}>
@@ -379,7 +399,7 @@ const JournalEntry = () => {
                   style={{ height: isFullscreen ? 'calc(100vh - 48px)' : '70vh', border: 'none', display: 'block' }} />
               ) : (
                 <div style={{ height: isFullscreen ? 'calc(100vh - 48px)' : '70vh', overflowY: 'auto' }}>
-                  <DocxViewer dataUrl={activeFile.dataUrl} />
+                  <DocxViewer dataUrl={activeFile.dataUrl} fontSize={docFontSize} />
                 </div>
               )}
             </Card>
