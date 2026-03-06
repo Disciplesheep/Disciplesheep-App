@@ -90,11 +90,11 @@ const Dashboard = () => {
       </div>
 
       {/* ── Daily task checklist ── */}
-      <div className="space-y-2 mb-4">
+      <div className="space-y-1 mb-4">
         {DAILY_TASKS.map((task, idx) => (
           <div
             key={idx}
-            className="flex items-center gap-3 cursor-pointer py-1"
+            className="flex items-center gap-2 cursor-pointer py-0.5"
             onClick={() => handleTaskToggle(task)}
           >
             <div className={`w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors ${
