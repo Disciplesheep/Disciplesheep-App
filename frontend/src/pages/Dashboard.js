@@ -138,22 +138,30 @@ const Dashboard = () => {
   const statsGrid = (
     <div className="grid gap-4 grid-cols-2">
       <Card
-        className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-5 cursor-pointer hover:shadow-md transition-shadow"
+        className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 px-4 py-3 cursor-pointer hover:shadow-md transition-shadow"
         onClick={() => navigate('/stewardship/people')}
         data-testid="people-stat-card"
       >
-        <Users className="w-6 h-6 text-forest-500 dark:text-forest-400 mb-3" />
-        <p className="text-2xl font-bold font-mono text-stone-900 dark:text-stone-100">{todayPeople}</p>
-        <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">People Today</p>
+        <div className="flex items-center gap-3">
+          <Users className="w-6 h-6 text-forest-500 dark:text-forest-400 shrink-0" />
+          <div>
+            <p className="text-xl font-bold font-mono text-stone-900 dark:text-stone-100">{todayPeople}</p>
+            <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">People Today</p>
+          </div>
+        </div>
       </Card>
       <Card
-        className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-5 cursor-pointer hover:shadow-md transition-shadow"
+        className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 px-4 py-3 cursor-pointer hover:shadow-md transition-shadow"
         onClick={() => navigate('/stewardship/expenses')}
         data-testid="expense-stat-card"
       >
-        <Wallet className="w-6 h-6 text-mango-500 mb-3" />
-        <p className="text-2xl font-bold font-mono text-stone-900 dark:text-stone-100">₱{todayExpenses.toFixed(0)}</p>
-        <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">Spent Today</p>
+        <div className="flex items-center gap-3">
+          <Wallet className="w-6 h-6 text-mango-500 shrink-0" />
+          <div>
+            <p className="text-xl font-bold font-mono text-stone-900 dark:text-stone-100">₱{todayExpenses.toFixed(0)}</p>
+            <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">Spent Today</p>
+          </div>
+        </div>
       </Card>
       {isTablet && (
         <>
