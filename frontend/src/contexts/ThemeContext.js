@@ -18,7 +18,9 @@ export const ThemeProvider = ({ children }) => {
 
   const [fontSize, setFontSize] = useState(() => {
     const saved = localStorage.getItem('fontSize');
-    return saved || 'medium';
+    // Migrate old values that no longer exist to the new default
+    const validSizes = ['small', 'medium', 'large'];
+    return validSizes.includes(saved) ? saved : 'small';
   });
 
   const getSystemTheme = () => {

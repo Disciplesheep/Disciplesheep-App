@@ -29,11 +29,11 @@ const SegmentedToggle = ({ options, value, onChange, name }) => {
 // ── Font Preview ──────────────────────────────────────────────────────────────
 const FontPreview = ({ fontSize }) => {
   const config = {
-    small:  { labelSize:'11px', bodySize:'12px', note:'Compact — more content per screen' },
-    medium: { labelSize:'12px', bodySize:'14px', note:'Comfortable — default reading size' },
-    large:  { labelSize:'13px', bodySize:'15px', note:'Easy reading — ideal for longer sessions' },
+    small:  { labelSize:'13px', bodySize:'15px', note:'Easy reading — ideal for longer sessions' },
+    medium: { labelSize:'14px', bodySize:'17px', note:'Comfortable large — great for daily use' },
+    large:  { labelSize:'15px', bodySize:'19px', note:'Maximum size — easiest on the eyes' },
   };
-  const c = config[fontSize] || config.medium;
+  const c = config[fontSize] || config.small;
   return (
     <div style={{ marginTop:'10px', padding:'12px 14px', borderRadius:'0.65rem', background:'var(--preview-bg)', border:'1px solid var(--preview-border)', transition:'all 0.2s ease' }}>
       <p style={{ fontFamily:"'Playfair Display', serif", fontSize:c.bodySize, lineHeight:1.6, color:'var(--preview-text)', margin:0, transition:'font-size 0.2s ease' }}>
@@ -85,25 +85,21 @@ const SecurityCard = () => {
   const [error,   setError]   = useState('');
   const [success, setSuccess] = useState('');
 
-  // Check if current password is correct as user types
   const currentIsCorrect = (mode === 'change' || mode === 'remove') && current.length > 0 && verifyPassword(current);
 
-  // Auto-submit when current password is correct
   useEffect(() => {
     if (!currentIsCorrect) return;
 
     if (mode === 'remove') {
-      // Auto-remove when password matches
       const timer = setTimeout(() => {
         removePassword();
         setSuccess('Password removed. Deletions are unprotected.');
         reset();
-      }, 400); // short delay so user sees the ✓ checkmark
+      }, 400);
       return () => clearTimeout(timer);
     }
 
     if (mode === 'change') {
-      // Just move focus to the next field — don't auto-submit yet
       const nextInput = document.querySelector('input[data-field="new-password"]');
       if (nextInput) {
         setTimeout(() => nextInput.focus(), 400);
@@ -219,7 +215,6 @@ const SecurityCard = () => {
 
           {error && <p className="text-xs text-red-500">{error}</p>}
 
-          {/* Show hint when waiting for current password */}
           {(mode === 'change' || mode === 'remove') && !currentIsCorrect && current.length > 0 && (
             <p className="text-xs text-stone-400 dark:text-stone-500">
               {mode === 'remove' ? 'Enter the correct password to auto-confirm removal.' : 'Enter the correct password to continue.'}
@@ -275,6 +270,15 @@ const Settings = () => {
     { value: 'medium', label: 'Medium' },
     { value: 'large',  label: 'Large'  },
   ];
+
+  const getFontSizeDescription = () => {
+    const descriptions = {
+      small:  'Easy reading — ideal for longer sessions',
+      medium: 'Comfortable large — great for daily use',
+      large:  'Maximum size — easiest on the eyes',
+    };
+    return descriptions[fontSize] || descriptions.small;
+  };
 
   return (
     <>
@@ -337,7 +341,7 @@ const Settings = () => {
               <Type className="w-5 h-5 text-stone-600 dark:text-stone-300" />
               <div>
                 <Label className="text-sm font-semibold text-stone-900 dark:text-stone-100">Font Size</Label>
-                <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">Adjust reading comfort</p>
+                <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">{getFontSizeDescription()}</p>
               </div>
             </div>
             <SegmentedToggle name="Font size" options={fontSizeOptions} value={fontSize} onChange={changeFontSize} />
