@@ -34,6 +34,13 @@ const budgetColor = (rawPct) => {
 
 const ic = "border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100";
 
+const field = (label, children) => (
+  <div>
+    <label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">{label}</label>
+    {children}
+  </div>
+);
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { isTablet } = useScreenSize();
@@ -111,6 +118,13 @@ const Dashboard = () => {
   const budgetPercentage = Math.min(rawBudgetPercentage, 100);
 
   // ── Sections ────────────────────────────────────────────────────────────────
+  const field = (label, children) => (
+    <div>
+      <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">{label}</Label>
+      {children}
+    </div>
+  );
+
   const headerContent = (
     <div
       className="relative overflow-hidden rounded-2xl text-white"
