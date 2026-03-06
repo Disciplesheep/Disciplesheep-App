@@ -52,7 +52,7 @@ const JournalEntry = () => {
     const dev = getDevotionalForDate(dateKey);
     setEntry(buildEntry(dev, dailyEntries[dateKey]));
     setSaveStatus('saved');
-  }, [dateKey]);
+  }, [dateKey, dailyEntries]);
 
   // ── Auto-save: debounce 1.5s after last change ────────────────────────────
   const saveTimer = useRef(null);
@@ -73,7 +73,7 @@ const JournalEntry = () => {
     }, 1500);
 
     return () => clearTimeout(saveTimer.current);
-  }, [entry]);
+  }, [entry]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentMonth  = format(new Date(), 'yyyy-MM');
   const monthPeople   = peopleContacts.filter(p => p.date?.startsWith(currentMonth)).length;
