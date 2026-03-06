@@ -14,15 +14,36 @@ import { useScreenSize } from '@/hooks/useScreenSize';
 import { format } from 'date-fns';
 import DeleteGuardDialog from '@/components/DeleteGuardDialog';
 
-/* ── Auto-focus next field helper ─────────────────────────────────────────── */
+/* ── Auto-focus next field ─────────────────────────────────────────────── */
 const focusNext = (currentRef) => {
   const form = currentRef?.closest('[data-form]');
   if (!form) return;
   const fields = Array.from(form.querySelectorAll('input, select, textarea, button[data-focusable]'));
   const idx = fields.indexOf(currentRef);
-  if (idx >= 0 && idx < fields.length - 1) {
-    fields[idx + 1]?.focus();
-  }
+  if (idx >= 0 && idx < fields.length - 1) fields[idx + 1]?.focus();
+};
+
+/* ── Derive generation from age ─────────────────────────────────────────── */
+const getGenerationFromAge = (age) => {
+  const a = parseInt(age);
+  if (isNaN(a)) return '';
+  if (a <= 12)  return 'Alpha';
+  if (a <= 27)  return 'Gen Z';
+  if (a <= 43)  return 'Millennial';
+  if (a <= 59)  return 'Gen X';
+  if (a <= 77)  return 'Boomer';
+  return 'Silent';
+};
+
+/* ── Calculate age from birthday ─────────────────────────────────────────── */
+const getAgeFromBirthday = (birthday) => {
+  if (!birthday) return '';
+  const b = new Date(birthday + 'T00:00:00');
+  const today = new Date();
+  let age = today.getFullYear() - b.getFullYear();
+  const m = today.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < b.getDate())) age--;
+  return age > 0 ? String(age) : '';
 };
 
 const PeopleTracker = () => {
@@ -35,7 +56,6 @@ const PeopleTracker = () => {
   const [editingId, setEditingId]             = useState(null);
   const [pending, setPending]                 = useState(null);
 
-  // Field refs for auto-next
   const refDate        = useRef();
   const refName        = useRef();
   const refAge         = useRef();
@@ -64,6 +84,20 @@ const PeopleTracker = () => {
       window.history.replaceState({}, '');
     }
   }, [location.state]);
+
+  /* Birthday → auto-fill age + generation */
+  const handleBirthdayChange = (val) => {
+    const age = getAgeFromBirthday(val);
+    const generation = age ? getGenerationFromAge(age) : formData.generation;
+    setFormData(f => ({ ...f, birthday: val, age, generation }));
+    setTimeout(() => refPhone.current?.focus(), 100);
+  };
+
+  /* Age → auto-fill generation */
+  const handleAgeChange = (val) => {
+    const generation = getGenerationFromAge(val);
+    setFormData(f => ({ ...f, age: val, generation }));
+  };
 
   const resetForm = () => { setFormData(emptyForm); setEditingId(null); };
 
@@ -116,7 +150,6 @@ const PeopleTracker = () => {
     </div>
   );
 
-  // Enter key handler for inputs
   const onEnter = (ref) => (e) => {
     if (e.key === 'Enter') { e.preventDefault(); focusNext(ref.current); }
   };
@@ -165,51 +198,62 @@ const PeopleTracker = () => {
 
               {field('Date contacted',
                 <Input ref={refDate} type="date" value={formData.date}
-                  onChange={e => setFormData({ ...formData, date: e.target.value })}
+                  onChange={e => setFormData(f => ({ ...f, date: e.target.value }))}
                   onKeyDown={onEnter(refDate)} className={ic} />
               )}
 
               {field('Name *',
                 <Input ref={refName} type="text" value={formData.name} placeholder="Full name"
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  onChange={e => setFormData(f => ({ ...f, name: e.target.value }))}
                   onKeyDown={onEnter(refName)} className={ic} autoFocus />
               )}
 
               <div className="grid grid-cols-2 gap-4">
                 {field('Age',
                   <Input ref={refAge} type="number" min="1" max="120" value={formData.age} placeholder="e.g. 24"
-                    onChange={e => setFormData({ ...formData, age: e.target.value })}
+                    onChange={e => handleAgeChange(e.target.value)}
                     onKeyDown={onEnter(refAge)} className={`${ic} font-mono`} />
                 )}
                 {field('Birthday',
                   <Input ref={refBirthday} type="date" value={formData.birthday}
-                    onChange={e => setFormData({ ...formData, birthday: e.target.value })}
-                    onKeyDown={onEnter(refBirthday)} className={ic} />
+                    onChange={e => handleBirthdayChange(e.target.value)}
+                    className={ic} />
                 )}
               </div>
 
+              {field('Generation *',
+                <Select value={formData.generation} onValueChange={v => {
+                  setFormData(f => ({ ...f, generation: v }));
+                  setTimeout(() => refPhone.current?.focus(), 100);
+                }}>
+                  <SelectTrigger className={ic}><SelectValue placeholder="Select generation" /></SelectTrigger>
+                  <SelectContent>
+                    {GENERATIONS.map(g => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+
               {field('Contact Number',
                 <Input ref={refPhone} type="tel" value={formData.contactNumber} placeholder="e.g. 09171234567"
-                  onChange={e => setFormData({ ...formData, contactNumber: e.target.value })}
+                  onChange={e => setFormData(f => ({ ...f, contactNumber: e.target.value }))}
                   onKeyDown={onEnter(refPhone)} className={ic} />
               )}
 
               {field('Address',
                 <Input ref={refAddress} type="text" value={formData.address} placeholder="e.g. Brgy. San Jose, Puerto Princesa"
-                  onChange={e => setFormData({ ...formData, address: e.target.value })}
+                  onChange={e => setFormData(f => ({ ...f, address: e.target.value }))}
                   onKeyDown={onEnter(refAddress)} className={ic} />
               )}
 
               {field('Facebook Profile Link',
                 <Input ref={refFacebook} type="text" value={formData.facebookUrl} placeholder="e.g. https://facebook.com/username"
-                  onChange={e => setFormData({ ...formData, facebookUrl: e.target.value })}
+                  onChange={e => setFormData(f => ({ ...f, facebookUrl: e.target.value }))}
                   onKeyDown={onEnter(refFacebook)} className={ic} />
               )}
 
               {field('Generation *',
                 <Select value={formData.generation} onValueChange={v => {
-                  setFormData({ ...formData, generation: v });
-                  // Auto-focus next field after selection
+                  setFormData(f => ({ ...f, generation: v }));
                   setTimeout(() => refConnection.current?.focus(), 100);
                 }}>
                   <SelectTrigger className={ic}><SelectValue placeholder="Select generation" /></SelectTrigger>
@@ -221,26 +265,26 @@ const PeopleTracker = () => {
 
               {field('How Connected',
                 <Input ref={refConnection} type="text" value={formData.connection} placeholder="e.g. WPU campus, Coffee shop"
-                  onChange={e => setFormData({ ...formData, connection: e.target.value })}
+                  onChange={e => setFormData(f => ({ ...f, connection: e.target.value }))}
                   onKeyDown={onEnter(refConnection)} className={ic} />
               )}
 
               {field('Conversation Topic',
                 <Input ref={refTopic} type="text" value={formData.topic} placeholder="What did you discuss?"
-                  onChange={e => setFormData({ ...formData, topic: e.target.value })}
+                  onChange={e => setFormData(f => ({ ...f, topic: e.target.value }))}
                   onKeyDown={onEnter(refTopic)} className={ic} />
               )}
 
               {field('Next Step',
                 <Input ref={refNextStep} type="text" value={formData.nextStep} placeholder="Follow-up action"
-                  onChange={e => setFormData({ ...formData, nextStep: e.target.value })}
+                  onChange={e => setFormData(f => ({ ...f, nextStep: e.target.value }))}
                   onKeyDown={onEnter(refNextStep)} className={ic} />
               )}
 
               {field('Contact Frequency (days)',
                 <>
                   <Input ref={refFrequency} type="number" min="1" max="365" value={formData.contactFrequencyDays}
-                    onChange={e => setFormData({ ...formData, contactFrequencyDays: parseInt(e.target.value) || 7 })}
+                    onChange={e => setFormData(f => ({ ...f, contactFrequencyDays: parseInt(e.target.value) || 7 }))}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit(); } }}
                     placeholder="Days between follow-ups" className={`${ic} font-mono`} />
                   <p className="text-xs text-stone-400 mt-1">How often to follow up · Press Enter to save</p>
