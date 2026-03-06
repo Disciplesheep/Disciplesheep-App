@@ -8,15 +8,13 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { toast } from 'sonner';
 import { formatDate, formatDisplayDate, DAILY_TASKS } from '@/utils/dateUtils';
 import { getDevotionalForDate, getCurrentMinistryYear, getYearTargets, CHURCH_PLANT_START_DATE } from '@/data/dailyDevotionals';
 
 const JournalEntry = () => {
   // Receive shared date state from Layout
-  const { journalDate: selectedDate, setJournalDate: setSelectedDate, pickerOpen, setPickerOpen } = useOutletContext();
+  const { journalDate: selectedDate, setJournalDate: setSelectedDate } = useOutletContext();
 
   const dateKey = formatDate(selectedDate);
   const { dailyEntries, setDailyEntries, peopleContacts, expenses } = useJournalData();
@@ -59,8 +57,6 @@ const JournalEntry = () => {
     setEntry({ ...entry, tasks: newTasks });
   };
 
-  const ministryEndDate = addYears(CHURCH_PLANT_START_DATE, 6);
-
   const currentMonth  = format(new Date(), 'yyyy-MM');
   const monthPeople   = peopleContacts.filter(p => p.date?.startsWith(currentMonth)).length;
   const monthExpenses = expenses
@@ -75,29 +71,6 @@ const JournalEntry = () => {
 
   return (
     <div className="space-y-6 pb-6">
-
-      {/* Hidden popover anchor — triggered by the date bar in Layout */}
-      <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-        <PopoverTrigger asChild>
-          <span style={{ position: 'fixed', bottom: 'calc(7rem + env(safe-area-inset-bottom,0px))', left: '50%', width: 0, height: 0, overflow: 'hidden' }} />
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="center" side="top">
-          <CalendarComponent
-            mode="single"
-            selected={selectedDate}
-            onSelect={(d) => { if (d) { setSelectedDate(d); setPickerOpen(false); } }}
-            fromDate={CHURCH_PLANT_START_DATE}
-            toDate={ministryEndDate}
-            defaultMonth={selectedDate}
-            initialFocus
-          />
-          <div className="p-3 border-t border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800">
-            <p className="text-xs text-stone-500 dark:text-stone-400 text-center">
-              6-Year Journal · {format(CHURCH_PLANT_START_DATE, 'MMM yyyy')} – {format(ministryEndDate, 'MMM yyyy')}
-            </p>
-          </div>
-        </PopoverContent>
-      </Popover>
 
       {/* Daily Tasks */}
       <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="daily-tasks-card">
