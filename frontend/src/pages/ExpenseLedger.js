@@ -205,6 +205,104 @@ const ExpenseLedger = () => {
         label={pending?.label || 'this record'}
       />
 
+      {/* ── Floating Action Buttons ── */}
+      <div className="fixed right-4 bottom-24 z-40 flex flex-col gap-3 items-center">
+
+        {/* Support */}
+        <Dialog open={isSupportDialogOpen} onOpenChange={o => { setIsSupportDialogOpen(o); if (!o) resetSupport(); }}>
+          <DialogTrigger asChild>
+            <button
+              title="Record Monthly Support"
+              className="w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 active:scale-95 text-white shadow-lg shadow-green-900/30 flex items-center justify-center transition-all"
+            >
+              <HandCoins className="w-6 h-6" />
+            </button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-serif text-2xl">{editingSupportId ? 'Edit Support' : 'Record Monthly Support'}</DialogTitle>
+            </DialogHeader>
+            <SupportFormFields form={supportForm} setForm={setSupportForm}
+              onPhpChange={handleSupportPhpChange} onUsdChange={handleSupportUsdChange}
+              onSubmit={handleSupportSubmit} isEditing={!!editingSupportId} />
+          </DialogContent>
+        </Dialog>
+
+        {/* Gift */}
+        <Dialog open={isGiftDialogOpen} onOpenChange={o => { setIsGiftDialogOpen(o); if (!o) resetGift(); }}>
+          <DialogTrigger asChild>
+            <button
+              title="Record One-Time Gift"
+              className="w-14 h-14 rounded-full bg-purple-600 hover:bg-purple-700 active:scale-95 text-white shadow-lg shadow-purple-900/30 flex items-center justify-center transition-all"
+            >
+              <Gift className="w-6 h-6" />
+            </button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-serif text-2xl">{editingGiftId ? 'Edit Gift' : 'Record One-Time Gift'}</DialogTitle>
+            </DialogHeader>
+            <SupportFormFields form={giftForm} setForm={setGiftForm}
+              onPhpChange={handleGiftPhpChange} onUsdChange={handleGiftUsdChange}
+              onSubmit={handleGiftSubmit} isEditing={!!editingGiftId} />
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Expense */}
+        <Dialog open={isAddDialogOpen} onOpenChange={o => { setIsAddDialogOpen(o); if (!o) resetForm(); }}>
+          <DialogTrigger asChild>
+            <button
+              title="Add New Expense"
+              className="w-14 h-14 rounded-full bg-forest-500 hover:bg-forest-600 active:scale-95 text-white shadow-lg shadow-forest-900/30 flex items-center justify-center transition-all"
+            >
+              <Plus className="w-6 h-6" />
+            </button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-serif text-2xl">{editingId ? 'Edit Expense' : 'Add New Expense'}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div>
+                <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Date</Label>
+                <Input type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className={ic} />
+              </div>
+              <div>
+                <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Category *</Label>
+                <Select value={formData.category} onValueChange={v => setFormData({ ...formData, category: v })}>
+                  <SelectTrigger className={ic}><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent>
+                    {EXPENSE_CATEGORIES.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Item / Description *</Label>
+                <Input type="text" value={formData.item} onChange={e => setFormData({ ...formData, item: e.target.value })}
+                  placeholder="What did you spend on?" className={ic} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs uppercase tracking-widests text-stone-500 dark:text-stone-400 font-bold mb-2 block">PHP *</Label>
+                  <Input type="number" step="0.01" value={formData.php} onChange={e => handlePhpChange(e.target.value)}
+                    placeholder="0.00" className={`${ic} font-mono`} />
+                </div>
+                <div>
+                  <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">USD</Label>
+                  <Input type="number" step="0.01" value={formData.usd} onChange={e => handleUsdChange(e.target.value)}
+                    placeholder="0.00" className={`${ic} font-mono`} />
+                </div>
+              </div>
+              <p className="text-xs text-stone-500 dark:text-stone-400">Exchange rate: ₱{USD_TO_PHP} = $1</p>
+              <Button onClick={handleSubmit} className="w-full bg-forest-500 hover:bg-forest-900 text-white rounded-full h-11">
+                {editingId ? 'Update Expense' : 'Add Expense'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+      </div>
+
       {/* Header */}
       <Card className="bg-gradient-to-br from-mango-500 to-mango-900 rounded-2xl p-8 text-white shadow-lg">
         <div className="flex items-center justify-between mb-4">
@@ -251,94 +349,10 @@ const ExpenseLedger = () => {
         </div>
       </Card>
 
-      {/* Month Selector + Buttons */}
+      {/* Month Selector */}
       <div className="flex gap-2 flex-wrap">
         <Input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
           className={`${ic} rounded-xl flex-1 min-w-[130px]`} />
-
-        {/* Support button */}
-        <Dialog open={isSupportDialogOpen} onOpenChange={o => { setIsSupportDialogOpen(o); if (!o) resetSupport(); }}>
-          <DialogTrigger asChild>
-            <Button className="bg-green-600 hover:bg-green-700 text-white rounded-full w-10 h-10 p-0" title="Record Monthly Support">
-              <HandCoins className="w-4 h-4" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="font-serif text-2xl">{editingSupportId ? 'Edit Support' : 'Record Monthly Support'}</DialogTitle>
-            </DialogHeader>
-            <SupportFormFields form={supportForm} setForm={setSupportForm}
-              onPhpChange={handleSupportPhpChange} onUsdChange={handleSupportUsdChange}
-              onSubmit={handleSupportSubmit} isEditing={!!editingSupportId} />
-          </DialogContent>
-        </Dialog>
-
-        {/* Gift button */}
-        <Dialog open={isGiftDialogOpen} onOpenChange={o => { setIsGiftDialogOpen(o); if (!o) resetGift(); }}>
-          <DialogTrigger asChild>
-            <Button className="bg-purple-600 hover:bg-purple-700 text-white rounded-full w-10 h-10 p-0" title="Record One-Time Gift">
-              <Gift className="w-4 h-4" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="font-serif text-2xl">{editingGiftId ? 'Edit Gift' : 'Record One-Time Gift'}</DialogTitle>
-            </DialogHeader>
-            <SupportFormFields form={giftForm} setForm={setGiftForm}
-              onPhpChange={handleGiftPhpChange} onUsdChange={handleGiftUsdChange}
-              onSubmit={handleGiftSubmit} isEditing={!!editingGiftId} />
-          </DialogContent>
-        </Dialog>
-
-        {/* Add Expense button */}
-        <Dialog open={isAddDialogOpen} onOpenChange={o => { setIsAddDialogOpen(o); if (!o) resetForm(); }}>
-          <DialogTrigger asChild>
-            <Button className="bg-forest-500 hover:bg-forest-900 text-white rounded-full w-10 h-10 p-0" title="Add New Expense">
-              <Plus className="w-4 h-4" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="font-serif text-2xl">{editingId ? 'Edit Expense' : 'Add New Expense'}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 mt-4">
-              <div>
-                <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Date</Label>
-                <Input type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className={ic} />
-              </div>
-              <div>
-                <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Category *</Label>
-                <Select value={formData.category} onValueChange={v => setFormData({ ...formData, category: v })}>
-                  <SelectTrigger className={ic}><SelectValue placeholder="Select category" /></SelectTrigger>
-                  <SelectContent>
-                    {EXPENSE_CATEGORIES.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Item / Description *</Label>
-                <Input type="text" value={formData.item} onChange={e => setFormData({ ...formData, item: e.target.value })}
-                  placeholder="What did you spend on?" className={ic} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">PHP *</Label>
-                  <Input type="number" step="0.01" value={formData.php} onChange={e => handlePhpChange(e.target.value)}
-                    placeholder="0.00" className={`${ic} font-mono`} />
-                </div>
-                <div>
-                  <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">USD</Label>
-                  <Input type="number" step="0.01" value={formData.usd} onChange={e => handleUsdChange(e.target.value)}
-                    placeholder="0.00" className={`${ic} font-mono`} />
-                </div>
-              </div>
-              <p className="text-xs text-stone-500 dark:text-stone-400">Exchange rate: ₱{USD_TO_PHP} = $1</p>
-              <Button onClick={handleSubmit} className="w-full bg-forest-500 hover:bg-forest-900 text-white rounded-full h-11">
-                {editingId ? 'Update Expense' : 'Add Expense'}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
 
       {/* Summary Cards */}
