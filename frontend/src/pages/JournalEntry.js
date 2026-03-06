@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useJournalData } from '@/hooks/useLocalStorage';
 import { CheckCircle2, Clock, BookOpen, FileText, Upload, Maximize2, Minimize2, Trash2, FolderOpen, X } from 'lucide-react';
@@ -75,12 +75,15 @@ const JournalEntry = () => {
     setTempPdfUrl(null);
   };
 
-  const closePdf = () => {
+  const closePdf = useCallback(() => {
     setActivePdfUrl(null);
     setActivePdfName('');
     setIsFullscreen(false);
-    if (tempPdfUrl) { URL.revokeObjectURL(tempPdfUrl); setTempPdfUrl(null); }
-  };
+    setTempPdfUrl(prev => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  }, []);
 
   const handleSaveFile = (e) => {
     const file = e.target.files[0];
@@ -107,8 +110,10 @@ const JournalEntry = () => {
     if (!file) return;
     if (file.type !== 'application/pdf') { toast.error('Please select a PDF file'); return; }
     const url = URL.createObjectURL(file);
-    if (tempPdfUrl) URL.revokeObjectURL(tempPdfUrl);
-    setTempPdfUrl(url);
+    setTempPdfUrl(prev => {
+      if (prev) URL.revokeObjectURL(prev);
+      return url;
+    });
     setActivePdfUrl(url);
     setActivePdfName(file.name);
     e.target.value = '';
@@ -148,15 +153,14 @@ const JournalEntry = () => {
 
   // Handle Back button — close PDF viewer instead of leaving page
   useEffect(() => {
-    const onPopState = (e) => {
+    const onPopState = () => {
       if (activePdfUrl) {
         closePdf();
-        // Don't navigate away
       }
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
-  }, [activePdfUrl]);
+  }, [activePdfUrl, closePdf]);
 
   const fmtSize = (bytes) => {
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
