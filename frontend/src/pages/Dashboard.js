@@ -351,57 +351,97 @@ const Dashboard = () => {
 
       {/* ── Add Person Dialog ── */}
       <Dialog open={isPersonOpen} onOpenChange={o => { setIsPersonOpen(o); if (!o) setPersonForm(emptyPerson); }}>
-        <DialogContent className="max-w-md">
+        <DialogContent className={isTablet ? 'max-w-2xl' : 'max-w-md'}>
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl">Add New Contact</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 mt-2 max-h-[70vh] overflow-y-auto pr-1">
-            <div>
-              <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Date contacted</Label>
-              <Input type="date" value={personForm.date} onChange={e => setPersonForm({ ...personForm, date: e.target.value })} className={ic} />
+          <div className="space-y-4 mt-4 max-h-[70vh] overflow-y-auto pr-1" data-form>
+
+            {field('Date contacted',
+              <Input ref={refPDate} type="date" value={personForm.date}
+                onChange={e => setPersonForm(f => ({ ...f, date: e.target.value }))}
+                onKeyDown={onPersonEnter(refPDate)} className={ic} />
+            )}
+
+            {field('Name *',
+              <Input ref={refPName} type="text" value={personForm.name} placeholder="Full name" autoFocus
+                onChange={e => setPersonForm(f => ({ ...f, name: e.target.value }))}
+                onKeyDown={onPersonEnter(refPName)} className={ic} />
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              {field('Age',
+                <Input ref={refPAge} type="number" min="1" max="120" value={personForm.age} placeholder="e.g. 24"
+                  onChange={e => handleAgeChange(e.target.value)}
+                  onKeyDown={onPersonEnter(refPAge)} className={`${ic} font-mono`} />
+              )}
+              {field('Birthday',
+                <Input ref={refPBirthday} type="date" value={personForm.birthday}
+                  onChange={e => handleBirthdayChange(e.target.value)}
+                  className={ic} />
+              )}
             </div>
-            <div>
-              <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Name *</Label>
-              <Input type="text" value={personForm.name} placeholder="Full name"
-                onChange={e => setPersonForm({ ...personForm, name: e.target.value })} className={ic} />
-            </div>
-            <div>
-              <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Generation *</Label>
-              <Select value={personForm.generation} onValueChange={v => setPersonForm({ ...personForm, generation: v })}>
+
+            {field('Generation *',
+              <Select value={personForm.generation} onValueChange={v => {
+                setPersonForm(f => ({ ...f, generation: v }));
+                setTimeout(() => refPPhone.current?.focus(), 100);
+              }}>
                 <SelectTrigger className={ic}><SelectValue placeholder="Select generation" /></SelectTrigger>
                 <SelectContent>
                   {GENERATIONS.map(g => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Contact Number</Label>
-              <Input type="tel" value={personForm.contactNumber} placeholder="e.g. 09171234567"
-                onChange={e => setPersonForm({ ...personForm, contactNumber: e.target.value })} className={ic} />
-            </div>
-            <div>
-              <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Address</Label>
+            )}
+
+            {field('Contact Number',
+              <Input ref={refPPhone} type="tel" value={personForm.contactNumber} placeholder="e.g. 09171234567"
+                onChange={e => setPersonForm(f => ({ ...f, contactNumber: e.target.value }))}
+                onKeyDown={onPersonEnter(refPPhone)} className={ic} />
+            )}
+
+            {field('Address',
               <AddressFields
                 value={personForm.address}
                 onChange={addr => setPersonForm(f => ({ ...f, address: addr }))}
                 ic={ic}
               />
-            </div>
-            <div>
-              <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">How Connected</Label>
-              <Input type="text" value={personForm.connection} placeholder="e.g. WPU campus, Coffee shop"
-                onChange={e => setPersonForm({ ...personForm, connection: e.target.value })} className={ic} />
-            </div>
-            <div>
-              <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Conversation Topic</Label>
-              <Input type="text" value={personForm.topic} placeholder="What did you discuss?"
-                onChange={e => setPersonForm({ ...personForm, topic: e.target.value })} className={ic} />
-            </div>
-            <div>
-              <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Next Step</Label>
-              <Input type="text" value={personForm.nextStep} placeholder="Follow-up action"
-                onChange={e => setPersonForm({ ...personForm, nextStep: e.target.value })} className={ic} />
-            </div>
+            )}
+
+            {field('Facebook Profile Link',
+              <Input ref={refPFacebook} type="text" value={personForm.facebookUrl} placeholder="e.g. https://facebook.com/username"
+                onChange={e => setPersonForm(f => ({ ...f, facebookUrl: e.target.value }))}
+                onKeyDown={onPersonEnter(refPFacebook)} className={ic} />
+            )}
+
+            {field('How Connected',
+              <Input ref={refPConnection} type="text" value={personForm.connection} placeholder="e.g. WPU campus, Coffee shop"
+                onChange={e => setPersonForm(f => ({ ...f, connection: e.target.value }))}
+                onKeyDown={onPersonEnter(refPConnection)} className={ic} />
+            )}
+
+            {field('Conversation Topic',
+              <Input ref={refPTopic} type="text" value={personForm.topic} placeholder="What did you discuss?"
+                onChange={e => setPersonForm(f => ({ ...f, topic: e.target.value }))}
+                onKeyDown={onPersonEnter(refPTopic)} className={ic} />
+            )}
+
+            {field('Next Step',
+              <Input ref={refPNextStep} type="text" value={personForm.nextStep} placeholder="Follow-up action"
+                onChange={e => setPersonForm(f => ({ ...f, nextStep: e.target.value }))}
+                onKeyDown={onPersonEnter(refPNextStep)} className={ic} />
+            )}
+
+            {field('Contact Frequency (days)',
+              <>
+                <Input ref={refPFrequency} type="number" min="1" max="365" value={personForm.contactFrequencyDays}
+                  onChange={e => setPersonForm(f => ({ ...f, contactFrequencyDays: parseInt(e.target.value) || 7 }))}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handlePersonSubmit(); } }}
+                  placeholder="Days between follow-ups" className={`${ic} font-mono`} />
+                <p className="text-xs text-stone-400 mt-1">How often to follow up · Press Enter to save</p>
+              </>
+            )}
+
             <Button onClick={handlePersonSubmit} className="w-full bg-forest-500 hover:bg-forest-900 text-white rounded-full h-11">
               Add Contact
             </Button>
