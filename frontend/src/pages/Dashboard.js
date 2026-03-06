@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { format } from 'date-fns';
 import { useJournalData } from '@/hooks/useLocalStorage';
 import { BookOpen, Users, Wallet, Plus, Calendar } from 'lucide-react';
@@ -34,13 +34,6 @@ const budgetColor = (rawPct) => {
 
 const ic = "border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100";
 
-const field = (label, children) => (
-  <div>
-    <label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">{label}</label>
-    {children}
-  </div>
-);
-
 const Dashboard = () => {
   const navigate = useNavigate();
   const { isTablet } = useScreenSize();
@@ -75,6 +68,45 @@ const Dashboard = () => {
   };
   const [isPersonOpen, setIsPersonOpen] = useState(false);
   const [personForm, setPersonForm]     = useState(emptyPerson);
+
+  // ── Person dialog refs ──────────────────────────────────────────────────────
+  const refPDate       = useRef(null);
+  const refPName       = useRef(null);
+  const refPAge        = useRef(null);
+  const refPBirthday   = useRef(null);
+  const refPPhone      = useRef(null);
+  const refPFacebook   = useRef(null);
+  const refPConnection = useRef(null);
+  const refPTopic      = useRef(null);
+  const refPNextStep   = useRef(null);
+  const refPFrequency  = useRef(null);
+
+  // Enter key advances focus to the next person field
+  const PERSON_REFS = [
+    refPDate, refPName, refPAge, refPBirthday,
+    refPPhone, refPFacebook, refPConnection, refPTopic, refPNextStep, refPFrequency,
+  ];
+  const onPersonEnter = (currentRef) => (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const idx = PERSON_REFS.indexOf(currentRef);
+      const next = PERSON_REFS[idx + 1];
+      if (next?.current) next.current.focus();
+    }
+  };
+
+  // Age ↔ Birthday sync helpers
+  const handleAgeChange = (val) => {
+    setPersonForm(f => ({ ...f, age: val }));
+  };
+  const handleBirthdayChange = (val) => {
+    setPersonForm(f => ({ ...f, birthday: val }));
+    if (val) {
+      const birthYear = new Date(val).getFullYear();
+      const age = new Date().getFullYear() - birthYear;
+      setPersonForm(f => ({ ...f, birthday: val, age: String(age) }));
+    }
+  };
 
   const handlePersonSubmit = () => {
     if (!personForm.name || !personForm.generation) {
@@ -117,7 +149,7 @@ const Dashboard = () => {
   const rawBudgetPercentage = Math.round((monthExpenses / monthlyBudget) * 100);
   const budgetPercentage = Math.min(rawBudgetPercentage, 100);
 
-  // ── Sections ────────────────────────────────────────────────────────────────
+  // ── Shared field wrapper ────────────────────────────────────────────────────
   const field = (label, children) => (
     <div>
       <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">{label}</Label>
@@ -125,6 +157,7 @@ const Dashboard = () => {
     </div>
   );
 
+  // ── Sections ────────────────────────────────────────────────────────────────
   const headerContent = (
     <div
       className="relative overflow-hidden rounded-2xl text-white"
@@ -271,7 +304,6 @@ const Dashboard = () => {
 
   const quickActions = (
     <div className="grid gap-3 grid-cols-2">
-      {/* Add Person — opens dialog inline */}
       <Button
         variant="outline"
         onClick={() => setIsPersonOpen(true)}
@@ -282,7 +314,6 @@ const Dashboard = () => {
         Add Person
       </Button>
 
-      {/* Add Expense — opens dialog inline */}
       <Button
         variant="outline"
         onClick={() => setIsExpenseOpen(true)}
@@ -325,35 +356,30 @@ const Dashboard = () => {
             <DialogTitle className="font-serif text-2xl">Add New Expense</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
-            <div>
-              <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Date</Label>
+            {field('Date',
               <Input type="date" value={expenseForm.date} onChange={e => setExpenseForm({ ...expenseForm, date: e.target.value })} className={ic} />
-            </div>
-            <div>
-              <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Category *</Label>
+            )}
+            {field('Category *',
               <Select value={expenseForm.category} onValueChange={v => setExpenseForm({ ...expenseForm, category: v })}>
                 <SelectTrigger className={ic}><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent>
                   {EXPENSE_CATEGORIES.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
-            <div>
-              <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Item / Description *</Label>
+            )}
+            {field('Item / Description *',
               <Input type="text" value={expenseForm.item} onChange={e => setExpenseForm({ ...expenseForm, item: e.target.value })}
                 placeholder="What did you spend on?" className={ic} />
-            </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">PHP *</Label>
+              {field('PHP *',
                 <Input type="number" step="0.01" value={expenseForm.php} onChange={e => handleExpensePhp(e.target.value)}
                   placeholder="0.00" className={`${ic} font-mono`} />
-              </div>
-              <div>
-                <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">USD</Label>
+              )}
+              {field('USD',
                 <Input type="number" step="0.01" value={expenseForm.usd} onChange={e => handleExpenseUsd(e.target.value)}
                   placeholder="0.00" className={`${ic} font-mono`} />
-              </div>
+              )}
             </div>
             <p className="text-xs text-stone-500 dark:text-stone-400">Exchange rate: ₱{USD_TO_PHP} = $1</p>
             <Button onClick={handleExpenseSubmit} className="w-full bg-forest-500 hover:bg-forest-900 text-white rounded-full h-11">
