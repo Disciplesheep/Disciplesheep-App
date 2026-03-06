@@ -135,12 +135,10 @@ const Dashboard = () => {
         onClick={() => navigate('/stewardship/people')}
         data-testid="people-stat-card"
       >
-        <div className="flex items-center gap-3">
-          <Users className="w-6 h-6 text-forest-500 dark:text-forest-400 shrink-0" />
-          <div>
-            <p className="text-xl font-bold font-mono text-stone-900 dark:text-stone-100">{todayPeople}</p>
-            <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">People Today</p>
-          </div>
+        <div className="flex items-center gap-2">
+          <Users className="w-5 h-5 text-forest-500 dark:text-forest-400 shrink-0" />
+          <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">People Today</p>
+          <p className="text-lg font-bold font-mono text-stone-900 dark:text-stone-100 ml-auto">{todayPeople}</p>
         </div>
       </Card>
       <Card
@@ -148,12 +146,10 @@ const Dashboard = () => {
         onClick={() => navigate('/stewardship/expenses')}
         data-testid="expense-stat-card"
       >
-        <div className="flex items-center gap-3">
-          <Wallet className="w-6 h-6 text-mango-500 shrink-0" />
-          <div>
-            <p className="text-xl font-bold font-mono text-stone-900 dark:text-stone-100">₱{todayExpenses.toFixed(0)}</p>
-            <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">Spent Today</p>
-          </div>
+        <div className="flex items-center gap-2">
+          <Wallet className="w-5 h-5 text-mango-500 shrink-0" />
+          <p className="text-xs text-stone-600 dark:text-stone-400 uppercase tracking-wide">Spent Today</p>
+          <p className="text-lg font-bold font-mono text-stone-900 dark:text-stone-100 ml-auto">₱{todayExpenses.toFixed(0)}</p>
         </div>
       </Card>
       {isTablet && (
