@@ -219,7 +219,7 @@ const ExpenseLedger = () => {
       />
 
       {/* ── Floating Action Buttons ── */}
-      <div className={`fixed right-16 top-[62%] z-40 flex flex-col gap-3 items-center transition-all duration-300 ${fabVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-16 pointer-events-none'}`}>
+      <div className={`fixed right-16 top-[62%] z-40 flex flex-col gap-6 items-center transition-all duration-300 ${fabVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-16 pointer-events-none'}`}>
 
         {/* Support */}
         <Dialog open={isSupportDialogOpen} onOpenChange={o => { setIsSupportDialogOpen(o); if (!o) resetSupport(); }}>
