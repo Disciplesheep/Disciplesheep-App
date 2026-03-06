@@ -77,8 +77,8 @@ const ExpenseLedger = () => {
   const [giftForm,    setGiftForm]    = useState(emptyGift);
 
   // Expense form refs
-  const refExpDate = useRef(); const refExpItem = useRef();
-  const refExpPhp  = useRef(); const refExpUsd  = useRef();
+  const refExpDate = useRef(); const refExpCat  = useRef();
+  const refExpItem = useRef(); const refExpPhp  = useRef(); const refExpUsd = useRef();
 
   // Support/Gift form refs
   const refSupDate = useRef(); const refSupFrom = useRef();
@@ -173,7 +173,6 @@ const ExpenseLedger = () => {
 
   const ic = "border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100";
 
-  // Reusable Support/Gift form with auto-next
   const SupportFormFields = ({ form, setForm, onPhpChange, onUsdChange, onSubmit, isEditing, refs }) => (
     <div className="space-y-4 mt-4" data-form>
       <div>
@@ -271,7 +270,12 @@ const ExpenseLedger = () => {
         </Dialog>
 
         {/* Add Expense */}
-        <Dialog open={isAddDialogOpen} onOpenChange={o => { setIsAddDialogOpen(o); if (!o) resetForm(); }}>
+        <Dialog open={isAddDialogOpen} onOpenChange={o => {
+          setIsAddDialogOpen(o);
+          if (!o) resetForm();
+          // When opening, focus the category trigger after dialog animates in
+          if (o) setTimeout(() => refExpCat.current?.focus(), 120);
+        }}>
           <DialogTrigger asChild>
             <button title="Add New Expense"
               className="w-14 h-14 rounded-full bg-forest-500 hover:bg-forest-600 active:scale-95 text-white shadow-lg shadow-forest-900/30 flex items-center justify-center transition-all">
@@ -293,10 +297,9 @@ const ExpenseLedger = () => {
                 <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Category *</Label>
                 <Select value={formData.category} onValueChange={v => {
                   setFormData({ ...formData, category: v });
-                  // Auto-focus item field after category selection
                   setTimeout(() => refExpItem.current?.focus(), 100);
                 }}>
-                  <SelectTrigger className={ic}><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectTrigger ref={refExpCat} className={ic}><SelectValue placeholder="Select category" /></SelectTrigger>
                   <SelectContent>
                     {EXPENSE_CATEGORIES.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
                   </SelectContent>

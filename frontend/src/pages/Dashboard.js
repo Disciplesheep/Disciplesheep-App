@@ -31,7 +31,6 @@ const budgetColor = (rawPct) => {
 
 const ic = "border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100";
 
-/* ── Derive generation from age ─────────────────────────────────────────── */
 const getGenerationFromAge = (age) => {
   const a = parseInt(age);
   if (isNaN(a)) return '';
@@ -43,7 +42,6 @@ const getGenerationFromAge = (age) => {
   return 'Silent';
 };
 
-/* ── Calculate age from birthday ────────────────────────────────────────── */
 const getAgeFromBirthday = (birthday) => {
   if (!birthday) return '';
   const b = new Date(birthday + 'T00:00:00');
@@ -54,7 +52,6 @@ const getAgeFromBirthday = (birthday) => {
   return age > 0 ? String(age) : '';
 };
 
-/* ── Auto-focus next field ───────────────────────────────────────────────── */
 const focusNext = (ref) => {
   const form = ref?.closest('[data-form]');
   if (!form) return;
@@ -75,11 +72,11 @@ const Dashboard = () => {
   const [isExpenseOpen, setIsExpenseOpen] = useState(false);
   const [expenseForm, setExpenseForm]     = useState(emptyExpense);
 
-  // Expense refs
-  const refExpDate     = useRef();
-  const refExpItem     = useRef();
-  const refExpPhp      = useRef();
-  const refExpUsd      = useRef();
+  const refExpDate = useRef();
+  const refExpCat  = useRef(); // ← category trigger ref
+  const refExpItem = useRef();
+  const refExpPhp  = useRef();
+  const refExpUsd  = useRef();
 
   const handleExpensePhp = (v) => setExpenseForm(f => ({ ...f, php: v, usd: v ? (parseFloat(v) / USD_TO_PHP).toFixed(2) : '' }));
   const handleExpenseUsd = (v) => setExpenseForm(f => ({ ...f, usd: v, php: v ? (parseFloat(v) * USD_TO_PHP).toFixed(2) : '' }));
@@ -108,33 +105,24 @@ const Dashboard = () => {
   const [isPersonOpen, setIsPersonOpen] = useState(false);
   const [personForm, setPersonForm]     = useState(emptyPerson);
 
-  // Person refs
-  const refPDate       = useRef();
-  const refPName       = useRef();
-  const refPAge        = useRef();
-  const refPBirthday   = useRef();
-  const refPPhone      = useRef();
-  const refPAddress    = useRef();
-  const refPFacebook   = useRef();
-  const refPConnection = useRef();
-  const refPTopic      = useRef();
-  const refPNextStep   = useRef();
+  const refPDate       = useRef(); const refPName       = useRef();
+  const refPAge        = useRef(); const refPBirthday   = useRef();
+  const refPPhone      = useRef(); const refPAddress    = useRef();
+  const refPFacebook   = useRef(); const refPConnection = useRef();
+  const refPTopic      = useRef(); const refPNextStep   = useRef();
   const refPFrequency  = useRef();
 
   const onPersonEnter = (ref) => (e) => {
     if (e.key === 'Enter') { e.preventDefault(); focusNext(ref.current); }
   };
 
-  /* Birthday change → auto-fill age + generation */
   const handleBirthdayChange = (val) => {
     const age = getAgeFromBirthday(val);
     const generation = age ? getGenerationFromAge(age) : personForm.generation;
     setPersonForm(f => ({ ...f, birthday: val, age, generation }));
-    // Move focus to phone after birthday is set
     setTimeout(() => refPPhone.current?.focus(), 100);
   };
 
-  /* Age change → auto-fill generation */
   const handleAgeChange = (val) => {
     const generation = getGenerationFromAge(val);
     setPersonForm(f => ({ ...f, age: val, generation }));
@@ -185,7 +173,6 @@ const Dashboard = () => {
     }));
   };
 
-  // ── Tasks state ─────────────────────────────────────────────────────────────
   const todayEntry = dailyEntries[todayKey] || { tasks: [], customTasks: [] };
   const allTasks = [...DAILY_TASKS, ...(todayEntry.customTasks || [])];
   const completedTasks = todayEntry.tasks?.length || 0;
@@ -381,7 +368,12 @@ const Dashboard = () => {
   return (
     <>
       {/* ── Add Expense Dialog ── */}
-      <Dialog open={isExpenseOpen} onOpenChange={o => { setIsExpenseOpen(o); if (!o) setExpenseForm(emptyExpense); }}>
+      <Dialog open={isExpenseOpen} onOpenChange={o => {
+        setIsExpenseOpen(o);
+        if (!o) setExpenseForm(emptyExpense);
+        // Focus category when dialog opens
+        if (o) setTimeout(() => refExpCat.current?.focus(), 120);
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl">Add New Expense</DialogTitle>
@@ -397,7 +389,7 @@ const Dashboard = () => {
                 setExpenseForm(f => ({ ...f, category: v }));
                 setTimeout(() => refExpItem.current?.focus(), 100);
               }}>
-                <SelectTrigger className={ic}><SelectValue placeholder="Select category" /></SelectTrigger>
+                <SelectTrigger ref={refExpCat} className={ic}><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent>
                   {EXPENSE_CATEGORIES.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
                 </SelectContent>
@@ -429,7 +421,7 @@ const Dashboard = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ── Add Person Dialog (matches PeopleTracker) ── */}
+      {/* ── Add Person Dialog ── */}
       <Dialog open={isPersonOpen} onOpenChange={o => { setIsPersonOpen(o); if (!o) setPersonForm(emptyPerson); }}>
         <DialogContent className={isTablet ? 'max-w-2xl' : 'max-w-md'}>
           <DialogHeader>
