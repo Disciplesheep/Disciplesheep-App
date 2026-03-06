@@ -10,6 +10,22 @@ import { format, addDays, subDays, addYears } from 'date-fns';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { CHURCH_PLANT_START_DATE } from '@/data/dailyDevotionals';
 
+
+/* ── Safe wrapper — prevents calendar crash from blanking the whole page ── */
+class CalendarErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: false }; }
+  static getDerivedStateFromError() { return { error: true }; }
+  render() {
+    if (this.state.error) return (
+      <div className="p-4 text-center text-sm text-stone-500 dark:text-stone-400">
+        Unable to load calendar. Please refresh.
+      </div>
+    );
+    return this.props.children;
+  }
+}
+
+
 const navItems = [
   { to: '/',             icon: LayoutGrid,   label: 'Dashboard' },
   { to: '/stewardship',  icon: TrendingUp,   label: 'Stewardship' },
@@ -205,15 +221,14 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
             </div>
 
             <div className="w-full">
+              <CalendarErrorBoundary>
               <CalendarComponent
                 mode="single"
                 selected={journalDate}
                 onSelect={(d) => { if (d) { setJournalDate(d); setPickerOpen(false); } }}
-                fromDate={startDate}
-                toDate={ministryEndDate}
                 defaultMonth={journalDate}
-                initialFocus
               />
+              </CalendarErrorBoundary>
             </div>
 
             <div className="px-4 py-2 border-t border-stone-100 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/60 rounded-b-2xl">
