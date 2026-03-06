@@ -364,7 +364,7 @@ const PeopleTracker = () => {
   const refNextStep   = useRef();
   const refFrequency  = useRef();
 
-  const emptyAddress = { street: '', barangay: '', city: '', province: '' };
+  const emptyAddress = { street: '', barangay: '', city: 'Puerto Princesa City', province: 'Palawan' };
   const emptyForm = {
     date: formatDate(new Date()),
     name: '', age: '', birthday: '', contactNumber: '',
