@@ -139,36 +139,62 @@ const ProfileMenu = () => {
   );
 };
 
-/* ── Journal Date Navigation Bar (with inline full-width calendar popup) ── */
-const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen }) => {
-  const isToday = format(journalDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
-  const startDate = CHURCH_PLANT_START_DATE instanceof Date ? CHURCH_PLANT_START_DATE : new Date(CHURCH_PLANT_START_DATE);
+/* ── Journal Date Bar — auto-hides on scroll, sits just above bottom nav ── */
+const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen, navHeight }) => {
+  const [visible, setVisible] = useState(true);
+  const lastScrollY = useRef(0);
+  const ticking = useRef(false);
+
+  const startDate = CHURCH_PLANT_START_DATE instanceof Date
+    ? CHURCH_PLANT_START_DATE
+    : new Date(CHURCH_PLANT_START_DATE);
   const ministryEndDate = addYears(startDate, 6);
+  const isToday = format(journalDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (ticking.current) return;
+      ticking.current = true;
+      window.requestAnimationFrame(() => {
+        const currentY = window.scrollY;
+        if (currentY < lastScrollY.current || currentY <= 10) {
+          setVisible(true);
+        } else if (currentY > lastScrollY.current && currentY > 60) {
+          setVisible(false);
+        }
+        lastScrollY.current = currentY;
+        ticking.current = false;
+      });
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Always show when picker opens
+  useEffect(() => { if (pickerOpen) setVisible(true); }, [pickerOpen]);
+
+  // DATE_BAR_H = ~42px; sits directly above the fixed bottom nav
+  const DATE_BAR_H = 42;
 
   return (
-    <div className="relative">
-
-      {/* ── Full-width calendar popup — floats above the bar ── */}
+    <>
+      {/* ── Calendar popup — rendered in a portal-like fixed overlay ── */}
       {pickerOpen && (
         <>
-          {/* Tap-outside backdrop */}
           <div
-            className="fixed inset-0 z-40 bg-black/20"
+            className="fixed inset-0 z-[60] bg-black/30"
             onClick={() => setPickerOpen(false)}
           />
-          {/* Calendar panel — pinned to full viewport width with small margin */}
           <div
-            className="fixed z-50 bg-white dark:bg-stone-800 rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-700 overflow-hidden"
+            className="fixed z-[70] bg-white dark:bg-stone-800 rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-700 overflow-hidden"
             style={{
               left: '0.5rem',
               right: '0.5rem',
-              bottom: 'calc(4rem + 42px + env(safe-area-inset-bottom, 0px) + 0.5rem)',
+              bottom: `calc(${navHeight}px + ${DATE_BAR_H}px + env(safe-area-inset-bottom, 0px) + 0.5rem)`,
             }}
           >
             <div className="flex items-center justify-between px-4 pt-3 pb-1">
-              <p className="font-serif font-semibold text-stone-800 dark:text-stone-100 text-sm">
-                Select a Date
-              </p>
+              <p className="font-serif font-semibold text-stone-800 dark:text-stone-100 text-sm">Select a Date</p>
               <button
                 onClick={() => setPickerOpen(false)}
                 className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-400 hover:text-stone-600 transition-colors"
@@ -177,8 +203,7 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
               </button>
             </div>
 
-            {/* Calendar fills the full width of the panel */}
-            <div className="w-full [&_.rdp]:w-full [&_.rdp-months]:w-full [&_.rdp-month]:w-full [&_.rdp-table]:w-full [&_.rdp-head_row]:w-full [&_.rdp-row]:w-full">
+            <div className="w-full">
               <CalendarComponent
                 mode="single"
                 selected={journalDate}
@@ -199,36 +224,44 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
         </>
       )}
 
-      {/* ── Date navigation row ── */}
-      <div className="flex items-center justify-between px-4 py-2 bg-forest-500 text-white">
-        <button
-          onClick={() => setJournalDate(d => subDays(d, 1))}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
-          style={{ minHeight: 0 }}
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
+      {/* ── Date bar strip — auto-hides on scroll ── */}
+      <div
+        className="fixed left-0 right-0 z-50 transition-transform duration-300"
+        style={{
+          bottom: `calc(${navHeight}px + env(safe-area-inset-bottom, 0px))`,
+          transform: visible ? 'translateY(0)' : `translateY(${DATE_BAR_H}px)`,
+        }}
+      >
+        <div className="flex items-center justify-between px-4 py-2 bg-forest-500 text-white">
+          <button
+            onClick={() => setJournalDate(d => subDays(d, 1))}
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+            style={{ minHeight: 0 }}
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
 
-        <button
-          onClick={() => setPickerOpen(v => !v)}
-          className="flex items-center gap-2 px-3 py-1 rounded-full hover:bg-white/20 transition-colors"
-          style={{ minHeight: 0 }}
-        >
-          <CalendarDays className="w-4 h-4" />
-          <span className="text-sm font-semibold">
-            {isToday ? 'Today · ' : ''}{format(journalDate, 'MMM d, yyyy')}
-          </span>
-        </button>
+          <button
+            onClick={() => setPickerOpen(v => !v)}
+            className="flex items-center gap-2 px-3 py-1 rounded-full hover:bg-white/20 transition-colors"
+            style={{ minHeight: 0 }}
+          >
+            <CalendarDays className="w-4 h-4" />
+            <span className="text-sm font-semibold">
+              {isToday ? 'Today · ' : ''}{format(journalDate, 'MMM d, yyyy')}
+            </span>
+          </button>
 
-        <button
-          onClick={() => setJournalDate(d => addDays(d, 1))}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
-          style={{ minHeight: 0 }}
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
+          <button
+            onClick={() => setJournalDate(d => addDays(d, 1))}
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+            style={{ minHeight: 0 }}
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -275,85 +308,39 @@ const SideNav = () => (
   </aside>
 );
 
-/* ── Bottom Nav + Journal Date Bar stacked above it ─────────────────────── */
-const BottomNav = ({ isJournalPage, journalDate, setJournalDate, pickerOpen, setPickerOpen }) => {
-  const [visible, setVisible] = useState(true);
-  const lastScrollY = useRef(0);
-  const ticking = useRef(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!ticking.current) {
-        window.requestAnimationFrame(() => {
-          const currentY = window.scrollY;
-          if (currentY < lastScrollY.current || currentY <= 10) {
-            setVisible(true);
-          } else if (currentY > lastScrollY.current && currentY > 60) {
-            setVisible(false);
+/* ── Bottom Nav — always visible, never hides ────────────────────────────── */
+const BottomNav = () => (
+  <nav
+    className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-t border-stone-200 dark:border-stone-700"
+    data-testid="bottom-navigation"
+  >
+    <div className="h-16 sm:h-[70px] flex items-center justify-around px-1 max-w-2xl mx-auto">
+      {navItems.map(({ to, icon: Icon, label }) => (
+        <NavLink
+          key={to}
+          to={to}
+          end={to === '/'}
+          className={({ isActive }) =>
+            `flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-xl transition-colors flex-1 max-w-[60px] sm:max-w-[80px] ${
+              isActive
+                ? 'text-forest-500 dark:text-forest-400'
+                : 'text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300'
+            }`
           }
-          lastScrollY.current = currentY;
-          ticking.current = false;
-        });
-        ticking.current = true;
-      }
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Always reveal when arriving on journal page or calendar is open
-  useEffect(() => { if (isJournalPage) setVisible(true); }, [isJournalPage]);
-  useEffect(() => { if (pickerOpen) setVisible(true); }, [pickerOpen]);
-
-  return (
-    <div
-      className="fixed left-0 right-0 z-50 transition-transform duration-300"
-      style={{ bottom: 0, transform: visible ? 'translateY(0)' : 'translateY(100%)' }}
-      data-testid="bottom-nav-container"
-    >
-      {/* Journal date bar (calendar pops out of here) */}
-      {isJournalPage && (
-        <JournalDateBar
-          journalDate={journalDate}
-          setJournalDate={setJournalDate}
-          pickerOpen={pickerOpen}
-          setPickerOpen={setPickerOpen}
-        />
-      )}
-
-      <nav
-        className="bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-t border-stone-200 dark:border-stone-700"
-        data-testid="bottom-navigation"
-      >
-        <div className="h-16 sm:h-[70px] flex items-center justify-around px-1 max-w-2xl mx-auto">
-          {navItems.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) =>
-                `flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-xl transition-colors flex-1 max-w-[60px] sm:max-w-[80px] ${
-                  isActive
-                    ? 'text-forest-500 dark:text-forest-400'
-                    : 'text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300'
-                }`
-              }
-              data-testid={`nav-${label.toLowerCase()}`}
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={isActive ? 2 : 1.5} />
-                  <span className="text-[9px] sm:text-[10px] font-medium leading-tight">{label}</span>
-                </>
-              )}
-            </NavLink>
-          ))}
-        </div>
-        <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
-      </nav>
+          data-testid={`nav-${label.toLowerCase()}`}
+        >
+          {({ isActive }) => (
+            <>
+              <Icon className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={isActive ? 2 : 1.5} />
+              <span className="text-[9px] sm:text-[10px] font-medium leading-tight">{label}</span>
+            </>
+          )}
+        </NavLink>
+      ))}
     </div>
-  );
-};
+    <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
+  </nav>
+);
 
 const Layout = () => {
   const { isTablet } = useScreenSize();
@@ -365,8 +352,10 @@ const Layout = () => {
 
   const outletContext = { journalDate, setJournalDate, pickerOpen, setPickerOpen };
 
-  const journalDateBarHeight = isJournalPage ? 42 : 0;
-  const navHeight = 64;
+  // Bottom nav height: h-16 = 64px (sm: 70px — use 64 as safe default)
+  const NAV_H = 64;
+  // Date bar height ~42px — only add to padding when on journal page
+  const DATE_BAR_H = 42;
 
   return (
     <div className="min-h-screen bg-paper dark:bg-stone-900 transition-colors">
@@ -381,6 +370,7 @@ const Layout = () => {
                   setJournalDate={setJournalDate}
                   pickerOpen={pickerOpen}
                   setPickerOpen={setPickerOpen}
+                  navHeight={0}
                 />
               </div>
             )}
@@ -404,20 +394,26 @@ const Layout = () => {
 
           <main style={{
             paddingTop: '3rem',
-            paddingBottom: `calc(${navHeight + journalDateBarHeight}px + env(safe-area-inset-bottom, 0px) + 1rem)`
+            paddingBottom: `calc(${NAV_H + (isJournalPage ? DATE_BAR_H : 0)}px + env(safe-area-inset-bottom, 0px) + 1rem)`,
           }}>
             <div className="max-w-xl mx-auto px-4 sm:px-6 py-5 sm:py-7">
               <Outlet context={outletContext} />
             </div>
           </main>
 
-          <BottomNav
-            isJournalPage={isJournalPage}
-            journalDate={journalDate}
-            setJournalDate={setJournalDate}
-            pickerOpen={pickerOpen}
-            setPickerOpen={setPickerOpen}
-          />
+          {/* Bottom nav — always fixed, never hides */}
+          <BottomNav />
+
+          {/* Date bar — only on journal, auto-hides on scroll */}
+          {isJournalPage && (
+            <JournalDateBar
+              journalDate={journalDate}
+              setJournalDate={setJournalDate}
+              pickerOpen={pickerOpen}
+              setPickerOpen={setPickerOpen}
+              navHeight={NAV_H}
+            />
+          )}
         </>
       )}
     </div>
