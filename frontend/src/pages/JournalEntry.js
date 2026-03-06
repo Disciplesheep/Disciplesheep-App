@@ -135,7 +135,7 @@ const JournalEntry = () => {
   const [activeFile, setActiveFile]       = useState(null); // { name, dataUrl, fileType, temp? }
   const [isFullscreen, setIsFullscreen]   = useState(false);
   const [tempObjectUrl, setTempObjectUrl] = useState(null);
-  const [docFontSize, setDocFontSize]     = useState(16);
+  const [docFontSize, setDocFontSize]     = useState(32);
   const fileInputRef  = useRef();
   const tempFileRef   = useRef();
   const fullscreenRef = useRef();
