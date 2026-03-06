@@ -253,7 +253,7 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
           <button onClick={() => setPickerOpen(v => !v)} className="flex items-center gap-2 px-3 py-1 rounded-full hover:bg-white/20 transition-colors" style={{ minHeight: 0 }}>
             <CalendarDays className="w-4 h-4" />
             <span className="text-sm font-semibold">
-              {isToday ? 'Today · ' : ''}{format(journalDate, 'MMM d, yyyy')}
+              {isToday ? 'Today · ' : ''}{format(journalDate, 'MMM d, yyyy')} ({format(journalDate, 'EEE')})
             </span>
           </button>
 
