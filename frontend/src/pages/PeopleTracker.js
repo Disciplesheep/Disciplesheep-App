@@ -203,8 +203,6 @@ const AddressFields = ({ value, onChange, ic }) => {
 
   return (
     <div className="space-y-3 p-3 bg-stone-50 dark:bg-stone-700/40 rounded-xl border border-stone-200 dark:border-stone-600">
-
-      {/* Street */}
       <div>
         <span className={sub}>Street / Purok / Sitio</span>
         <Input type="text" value={value.street || ''}
@@ -212,8 +210,6 @@ const AddressFields = ({ value, onChange, ic }) => {
           placeholder="e.g. 123 Rizal St., Purok 4"
           className={ic} />
       </div>
-
-      {/* Province */}
       <div>
         <span className={sub}>Province</span>
         {manualProvince ? (
@@ -239,8 +235,6 @@ const AddressFields = ({ value, onChange, ic }) => {
           </Select>
         )}
       </div>
-
-      {/* City / Municipality */}
       <div>
         <span className={sub}>City / Municipality</span>
         {(manualCity || availableCities.length === 0) ? (
@@ -268,8 +262,6 @@ const AddressFields = ({ value, onChange, ic }) => {
           </Select>
         )}
       </div>
-
-      {/* Barangay */}
       <div>
         <span className={sub}>Barangay</span>
         {(manualBrgy || availableBrgys.length === 0) ? (
@@ -301,18 +293,15 @@ const AddressFields = ({ value, onChange, ic }) => {
   );
 };
 
-/* ── Compose flat address string for display / search ────────────────────── */
 const composeAddress = ({ street, barangay, city, province } = {}) =>
   [street, barangay ? `Brgy. ${barangay}` : '', city, province]
     .filter(Boolean).join(', ');
 
-/* ── Parse legacy flat string into address object ────────────────────────── */
 const parseAddress = (addr) => {
   if (!addr || typeof addr === 'object') return addr || {};
   return { street: addr, barangay: '', city: '', province: '' };
 };
 
-/* ── Helpers ─────────────────────────────────────────────────────────────── */
 const focusNext = (currentRef) => {
   const form = currentRef?.closest('[data-form]');
   if (!form) return;
@@ -342,7 +331,6 @@ const getAgeFromBirthday = (birthday) => {
   return age > 0 ? String(age) : '';
 };
 
-/* ── Main component ──────────────────────────────────────────────────────── */
 const PeopleTracker = () => {
   const { peopleContacts, setPeopleContacts } = useJournalData();
   const { isTablet } = useScreenSize();
@@ -403,7 +391,6 @@ const PeopleTracker = () => {
     }
     const addressStr = composeAddress(formData.address);
     const record = { ...formData, addressData: formData.address, address: addressStr };
-
     if (editingId) {
       setPeopleContacts(prev => prev.map(p => p.id === editingId ? { ...record, id: editingId } : p));
       toast.success('Contact updated!');
@@ -416,10 +403,7 @@ const PeopleTracker = () => {
   };
 
   const handleEdit = (c) => {
-    setFormData({
-      ...emptyForm, ...c,
-      address: c.addressData ? c.addressData : parseAddress(c.address),
-    });
+    setFormData({ ...emptyForm, ...c, address: c.addressData ? c.addressData : parseAddress(c.address) });
     setEditingId(c.id);
     setIsAddDialogOpen(true);
   };
@@ -447,7 +431,7 @@ const PeopleTracker = () => {
     c.contactNumber?.includes(searchTerm)
   );
 
-  const ic = "border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100";
+  const ic = "text-xs border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100";
 
   const field = (label, children) => (
     <div>
@@ -470,7 +454,6 @@ const PeopleTracker = () => {
         label={pending?.label || 'this contact'}
       />
 
-      {/* Header */}
       <div className="relative overflow-hidden rounded-2xl p-8 text-white"
         style={{ backgroundImage: 'linear-gradient(rgba(15,81,50,0.85),rgba(15,81,50,0.65)),url(https://images.unsplash.com/photo-1606445095898-16c730da5732?crop=entropy&cs=srgb&fm=jpg&q=85)', backgroundSize: 'cover', backgroundPosition: 'center' }}
         data-testid="people-tracker-header">
@@ -480,7 +463,6 @@ const PeopleTracker = () => {
         </div>
       </div>
 
-      {/* Search + Add */}
       <div className="flex gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
@@ -499,7 +481,6 @@ const PeopleTracker = () => {
             <DialogHeader>
               <DialogTitle className="font-serif text-2xl">{editingId ? 'Edit Contact' : 'Add New Contact'}</DialogTitle>
             </DialogHeader>
-
             <div className="space-y-4 mt-4 max-h-[70vh] overflow-y-auto pr-1" data-form>
 
               {field('Date contacted',
@@ -595,7 +576,6 @@ const PeopleTracker = () => {
         </Dialog>
       </div>
 
-      {/* Stats */}
       <div className={`grid gap-4 ${isTablet ? 'grid-cols-4' : 'grid-cols-2'}`}>
         <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-5">
           <Users className="w-5 h-5 text-forest-500 dark:text-forest-400 mb-2" />
@@ -611,7 +591,6 @@ const PeopleTracker = () => {
         </Card>
       </div>
 
-      {/* Contacts List */}
       <div className="space-y-3">
         {filteredContacts.length === 0 ? (
           <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-12 text-center">

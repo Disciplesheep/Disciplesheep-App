@@ -76,11 +76,9 @@ const ExpenseLedger = () => {
   const [supportForm, setSupportForm] = useState(emptySupport);
   const [giftForm,    setGiftForm]    = useState(emptyGift);
 
-  // Expense form refs
   const refExpDate = useRef(); const refExpCat  = useRef();
   const refExpItem = useRef(); const refExpPhp  = useRef(); const refExpUsd = useRef();
 
-  // Support/Gift form refs
   const refSupDate = useRef(); const refSupFrom = useRef();
   const refSupPhp  = useRef(); const refSupUsd  = useRef(); const refSupNote = useRef();
   const refGiftDate = useRef(); const refGiftFrom = useRef();
@@ -171,7 +169,8 @@ const ExpenseLedger = () => {
     return acc;
   }, {});
 
-  const ic = "border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100";
+  // ── ONLY CHANGE: text-xs added to ic ──────────────────────────────────────
+  const ic = "text-xs border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100";
 
   const SupportFormFields = ({ form, setForm, onPhpChange, onUsdChange, onSubmit, isEditing, refs }) => (
     <div className="space-y-4 mt-4" data-form>
@@ -231,7 +230,6 @@ const ExpenseLedger = () => {
       {/* ── Floating Action Buttons ── */}
       <div className={`fixed right-16 top-[62%] z-40 flex flex-col gap-6 items-center transition-all duration-150 ${fabVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-16 pointer-events-none'}`}>
 
-        {/* Support */}
         <Dialog open={isSupportDialogOpen} onOpenChange={o => { setIsSupportDialogOpen(o); if (!o) resetSupport(); }}>
           <DialogTrigger asChild>
             <button title="Record Monthly Support"
@@ -250,7 +248,6 @@ const ExpenseLedger = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Gift */}
         <Dialog open={isGiftDialogOpen} onOpenChange={o => { setIsGiftDialogOpen(o); if (!o) resetGift(); }}>
           <DialogTrigger asChild>
             <button title="Record One-Time Gift"
@@ -269,11 +266,9 @@ const ExpenseLedger = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Add Expense */}
         <Dialog open={isAddDialogOpen} onOpenChange={o => {
           setIsAddDialogOpen(o);
           if (!o) resetForm();
-          // When opening, focus the category trigger after dialog animates in
           if (o) setTimeout(() => refExpCat.current?.focus(), 120);
         }}>
           <DialogTrigger asChild>
@@ -370,13 +365,11 @@ const ExpenseLedger = () => {
         </div>
       </Card>
 
-      {/* Month Selector */}
       <div className="flex gap-2 flex-wrap">
         <Input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
           className={`${ic} rounded-xl flex-1 min-w-[130px]`} />
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-4">
         <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-5">
           <TrendingDown className="w-5 h-5 text-red-500 mb-2" />
@@ -394,7 +387,6 @@ const ExpenseLedger = () => {
         </Card>
       </div>
 
-      {/* Budget Alert */}
       {totalSupportPhp > 0 && spentPercentage > 75 && (
         <Card className={`rounded-xl p-4 border ${spentPercentage > 90 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'}`}>
           <div className="flex items-start gap-3">
@@ -409,7 +401,6 @@ const ExpenseLedger = () => {
         </Card>
       )}
 
-      {/* Category Breakdown */}
       {Object.keys(categoryTotals).length > 0 && (
         <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6">
           <h3 className="font-serif text-lg font-semibold text-stone-900 dark:text-stone-100 mb-4">Category Breakdown</h3>
@@ -430,7 +421,6 @@ const ExpenseLedger = () => {
         </Card>
       )}
 
-      {/* Monthly Support List */}
       {monthSupport.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -462,7 +452,6 @@ const ExpenseLedger = () => {
         </div>
       )}
 
-      {/* One-Time Gifts List */}
       {monthGifts.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -497,7 +486,6 @@ const ExpenseLedger = () => {
         </div>
       )}
 
-      {/* Expenses List */}
       <div className="space-y-3">
         <h3 className="font-serif text-lg font-semibold text-stone-900 dark:text-stone-100">Recent Expenses</h3>
         {monthExpenses.length === 0 ? (

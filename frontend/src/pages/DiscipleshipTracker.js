@@ -32,9 +32,8 @@ const DiscipleshipTracker = () => {
     salvation: false
   });
 
-  // Field refs for auto-next
   const refName        = useRef();
-  const refDiscipledBy = useRef(); // used as a marker; Select uses onValueChange
+  const refDiscipledBy = useRef();
   const refNotes       = useRef();
   const refCustomFreq  = useRef();
 
@@ -77,7 +76,6 @@ const DiscipleshipTracker = () => {
   return (
     <div className="space-y-6 pb-6">
 
-      {/* Header */}
       <div className="relative overflow-hidden rounded-2xl p-8 text-white"
         style={{ backgroundImage: 'linear-gradient(rgba(15, 81, 50, 0.9), rgba(15, 81, 50, 0.7)), url(https://images.unsplash.com/photo-1606445095898-16c730da5732?crop=entropy&cs=srgb&fm=jpg&q=85)', backgroundSize: 'cover', backgroundPosition: 'center' }}
         data-testid="discipleship-tracker-header">
@@ -88,7 +86,6 @@ const DiscipleshipTracker = () => {
         </div>
       </div>
 
-      {/* Year Progress */}
       <Card className="bg-gradient-to-br from-forest-50 to-green-50 rounded-xl shadow-sm border border-forest-100 p-6" data-testid="year-progress-card">
         <div className="flex items-center gap-2 mb-4">
           <Target className="w-5 h-5 text-forest-700" />
@@ -107,7 +104,6 @@ const DiscipleshipTracker = () => {
         </div>
       </Card>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-white rounded-xl shadow-sm border border-stone-100 p-5" data-testid="timothys-stat">
           <div className="flex items-center justify-between mb-2"><Users className="w-5 h-5 text-forest-500" /><Badge className="bg-forest-100 text-forest-900 text-xs">Gen 2</Badge></div>
@@ -131,7 +127,6 @@ const DiscipleshipTracker = () => {
         </Card>
       </div>
 
-      {/* Add Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={(open) => { setIsAddDialogOpen(open); if (!open) resetForm(); }}>
         <DialogTrigger asChild>
           <Button className="w-full bg-forest-500 hover:bg-forest-900 text-white rounded-full h-12 font-serif shadow-lg" data-testid="add-disciple-btn">
@@ -144,33 +139,28 @@ const DiscipleshipTracker = () => {
           </DialogHeader>
           <div className="space-y-4 mt-4" data-form>
 
-            {/* Name */}
             <div>
               <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Name *</Label>
+              {/* ── text-xs added to all inputs/selects below ── */}
               <Input ref={refName} type="text" value={formData.name} autoFocus
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
-                onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); /* level is next, it's a Select */ }}
-                placeholder="Full name" className="border-stone-200"
+                onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
+                placeholder="Full name" className="text-xs border-stone-200"
                 data-testid="disciple-name-input" />
             </div>
 
-            {/* Generation Level — auto-next on select */}
             <div>
               <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Generation Level *</Label>
               <Select value={formData.level} onValueChange={v => {
                 setFormData(prev => ({ ...prev, level: v, discipledBy: '' }));
-                // if non-timothy, go to discipledBy select; else go to contactFrequency select
                 if (v !== DISCIPLESHIP_LEVELS.TIMOTHY) {
-                  // discipledBy is the next visible select — it renders after this, so small delay
                   setTimeout(() => {
                     const next = document.querySelector('[data-testid="discipled-by-select"]');
                     next?.querySelector('button')?.focus() || next?.focus();
                   }, 120);
                 }
-                // contactFrequency select is always present; focus it after level if timothy
-                // notes field is last text input — skip to it after frequency select
               }}>
-                <SelectTrigger className="border-stone-200" data-testid="disciple-level-select"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="text-xs border-stone-200" data-testid="disciple-level-select"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value={DISCIPLESHIP_LEVELS.TIMOTHY}>Timothy (Your direct disciple)</SelectItem>
                   <SelectItem value={DISCIPLESHIP_LEVELS.FAITHFUL_MEN}>Faithful Men (Discipled by Timothy)</SelectItem>
@@ -179,21 +169,19 @@ const DiscipleshipTracker = () => {
               </Select>
             </div>
 
-            {/* Discipled By — only shown for non-Timothy, auto-next to contactFrequency */}
             {formData.level !== DISCIPLESHIP_LEVELS.TIMOTHY && (
               <div>
                 <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Discipled By</Label>
                 <Select value={formData.discipledBy}
                   onValueChange={v => {
                     setFormData(prev => ({ ...prev, discipledBy: v }));
-                    // auto-next: focus the Contact Frequency select trigger
                     setTimeout(() => {
                       const next = document.querySelector('[data-testid="contact-frequency-select"]');
                       next?.focus();
                     }, 120);
                   }}
                   data-testid="discipled-by-select">
-                  <SelectTrigger className="border-stone-200" data-testid="discipled-by-select"><SelectValue placeholder="Select mentor" /></SelectTrigger>
+                  <SelectTrigger className="text-xs border-stone-200" data-testid="discipled-by-select"><SelectValue placeholder="Select mentor" /></SelectTrigger>
                   <SelectContent>
                     {formData.level === DISCIPLESHIP_LEVELS.FAITHFUL_MEN && timothys.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                     {formData.level === DISCIPLESHIP_LEVELS.OTHERS && faithfulMen.map(fm => <SelectItem key={fm.id} value={fm.id}>{fm.name}</SelectItem>)}
@@ -202,19 +190,14 @@ const DiscipleshipTracker = () => {
               </div>
             )}
 
-            {/* Contact Frequency — auto-next to customFrequency or notes */}
             <div>
               <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Contact Frequency</Label>
               <Select value={formData.contactFrequency}
                 onValueChange={v => {
                   setFormData(prev => ({ ...prev, contactFrequency: v }));
-                  if (v === 'custom') {
-                    focusRef(refCustomFreq);
-                  } else {
-                    focusRef(refNotes);
-                  }
+                  if (v === 'custom') { focusRef(refCustomFreq); } else { focusRef(refNotes); }
                 }}>
-                <SelectTrigger className="border-stone-200" data-testid="contact-frequency-select"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="text-xs border-stone-200" data-testid="contact-frequency-select"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="weekly">Weekly</SelectItem>
                   <SelectItem value="biweekly">Bi-weekly</SelectItem>
@@ -224,7 +207,6 @@ const DiscipleshipTracker = () => {
               </Select>
             </div>
 
-            {/* Custom frequency — only shown when custom, auto-next to notes */}
             {formData.contactFrequency === 'custom' && (
               <div>
                 <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Custom Frequency</Label>
@@ -232,18 +214,17 @@ const DiscipleshipTracker = () => {
                   onChange={e => setFormData({ ...formData, customFrequency: e.target.value })}
                   onKeyDown={onEnter(refNotes)}
                   placeholder="e.g. Every 2 weeks, Monthly, As needed"
-                  className="border-stone-200" data-testid="custom-frequency-input" />
+                  className="text-xs border-stone-200" data-testid="custom-frequency-input" />
               </div>
             )}
 
-            {/* Notes — last field, Enter submits */}
             <div>
               <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Notes</Label>
               <Input ref={refNotes} type="text" value={formData.notes}
                 onChange={e => setFormData({ ...formData, notes: e.target.value })}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit(); } }}
                 placeholder="Spiritual growth, prayer needs, etc. · Press Enter to save"
-                className="border-stone-200" data-testid="disciple-notes-input" />
+                className="text-xs border-stone-200" data-testid="disciple-notes-input" />
             </div>
 
             <Button onClick={handleSubmit} className="w-full bg-forest-500 hover:bg-forest-900 text-white rounded-full h-11" data-testid="submit-disciple-btn">
@@ -253,7 +234,6 @@ const DiscipleshipTracker = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Timothys */}
       {timothys.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -288,7 +268,6 @@ const DiscipleshipTracker = () => {
         </div>
       )}
 
-      {/* Faithful Men */}
       {faithfulMen.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -320,7 +299,6 @@ const DiscipleshipTracker = () => {
         </div>
       )}
 
-      {/* Others */}
       {others.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -348,7 +326,6 @@ const DiscipleshipTracker = () => {
         </div>
       )}
 
-      {/* Empty State */}
       {disciples.length === 0 && (
         <Card className="bg-white rounded-xl shadow-sm border border-stone-100 p-12 text-center" data-testid="empty-discipleship">
           <Users className="w-12 h-12 text-stone-300 mx-auto mb-3" />
@@ -357,7 +334,6 @@ const DiscipleshipTracker = () => {
         </Card>
       )}
 
-      {/* Quote */}
       <Card className="bg-forest-50 rounded-xl border border-forest-100 p-6">
         <p className="font-serif text-base text-forest-900 italic text-center leading-relaxed">
           "And the things which you have heard from me in the presence of many witnesses, these entrust to faithful men who will be able to teach others also."
