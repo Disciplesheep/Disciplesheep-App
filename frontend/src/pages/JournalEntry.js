@@ -78,7 +78,7 @@ const DocxViewer = ({ dataUrl, fontSize = 16 }) => {
   return (
     <div
       className="prose prose-stone dark:prose-invert max-w-none p-6 overflow-y-auto"
-      style={{ fontFamily: 'Georgia, serif', lineHeight: 1.7, fontSize: `${fontSize}px` }}
+      style={{ fontFamily: 'Georgia, serif', lineHeight: Math.max(1.3, 1.9 - (fontSize - 12) * 0.03), fontSize: `${fontSize}px` }}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
