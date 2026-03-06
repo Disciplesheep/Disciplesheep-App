@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { formatDate, formatDisplayDate, formatDayOfWeek, getWeekNumber, DAILY_TASKS } from '@/utils/dateUtils';
 import { useScreenSize } from '@/hooks/useScreenSize';
 
-// Progress color: 0%=red(0) → 100%=green(120) → 100%+=gold(45)
+// Task progress color: 0%=red(0) → 100%=green(120) → 100%+=gold(45)
 const progressColor = (pct) => {
   if (pct <= 100) {
     const hue = Math.round((pct / 100) * 120); // 0→120
@@ -18,6 +18,13 @@ const progressColor = (pct) => {
   const over = Math.min(pct - 100, 50);
   const hue = Math.round(120 - (over / 50) * 75); // 120→45
   return `hsl(${hue}, 80%, 42%)`;
+};
+
+// Budget progress color: 0–100% → red(0) to green(120), >100% → red(0)
+const budgetColor = (rawPct) => {
+  if (rawPct > 100) return 'hsl(0, 72%, 42%)';
+  const hue = Math.round((rawPct / 100) * 120); // 0→120
+  return `hsl(${hue}, 72%, 42%)`;
 };
 
 const Dashboard = () => {
@@ -52,7 +59,10 @@ const Dashboard = () => {
     .filter(e => e.date?.startsWith(currentMonth))
     .reduce((sum, e) => sum + parseFloat(e.php || 0), 0);
   const monthlyBudget = 11400;
-  const budgetPercentage = Math.min(Math.round((monthExpenses / monthlyBudget) * 100), 100);
+  // rawBudgetPercentage is uncapped — used for color logic
+  const rawBudgetPercentage = Math.round((monthExpenses / monthlyBudget) * 100);
+  // budgetPercentage is capped at 100 — used for bar width only
+  const budgetPercentage = Math.min(rawBudgetPercentage, 100);
 
   const headerContent = (
     <div
@@ -196,11 +206,11 @@ const Dashboard = () => {
       <div className="w-full bg-stone-100 dark:bg-stone-700 rounded-full h-2 overflow-hidden">
         <div
           className="h-full rounded-full transition-all"
-          style={{ width: `${budgetPercentage}%`, backgroundColor: progressColor(budgetPercentage) }}
+          style={{ width: `${budgetPercentage}%`, backgroundColor: budgetColor(rawBudgetPercentage) }}
         />
       </div>
-      <p className="text-xs mt-1" style={{ color: progressColor(budgetPercentage) }}>
-        {budgetPercentage}% used &bull; ₱{(monthlyBudget - monthExpenses).toFixed(0)} remaining
+      <p className="text-xs mt-1" style={{ color: budgetColor(rawBudgetPercentage) }}>
+        {rawBudgetPercentage}% used &bull; ₱{(monthlyBudget - monthExpenses).toFixed(0)} remaining
       </p>
     </Card>
   );
