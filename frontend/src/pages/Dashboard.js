@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { formatDate, formatDisplayDate, formatDayOfWeek, getWeekNumber, DAILY_TASKS, EXPENSE_CATEGORIES, GENERATIONS, USD_TO_PHP } from '@/utils/dateUtils';
@@ -354,6 +354,7 @@ const Dashboard = () => {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl">Add New Expense</DialogTitle>
+            <DialogDescription className="sr-only">Record a new expense entry.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             {field('Date',
@@ -394,6 +395,7 @@ const Dashboard = () => {
         <DialogContent className={isTablet ? 'max-w-2xl' : 'max-w-md'}>
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl">Add New Contact</DialogTitle>
+            <DialogDescription className="sr-only">Add a new person to your contacts.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4 max-h-[70vh] overflow-y-auto pr-1" data-form>
 
