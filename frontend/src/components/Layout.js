@@ -142,7 +142,8 @@ const ProfileMenu = () => {
 /* ── Journal Date Navigation Bar (with inline full-width calendar popup) ── */
 const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen }) => {
   const isToday = format(journalDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
-  const ministryEndDate = addYears(CHURCH_PLANT_START_DATE, 6);
+  const startDate = CHURCH_PLANT_START_DATE instanceof Date ? CHURCH_PLANT_START_DATE : new Date(CHURCH_PLANT_START_DATE);
+  const ministryEndDate = addYears(startDate, 6);
 
   return (
     <div className="relative">
@@ -161,7 +162,7 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
             style={{
               left: '0.5rem',
               right: '0.5rem',
-              bottom: 'calc(var(--bottom-nav-height, 106px) + 0.5rem)',
+              bottom: 'calc(4rem + 42px + env(safe-area-inset-bottom, 0px) + 0.5rem)',
             }}
           >
             <div className="flex items-center justify-between px-4 pt-3 pb-1">
@@ -182,7 +183,7 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
                 mode="single"
                 selected={journalDate}
                 onSelect={(d) => { if (d) { setJournalDate(d); setPickerOpen(false); } }}
-                fromDate={CHURCH_PLANT_START_DATE}
+                fromDate={startDate}
                 toDate={ministryEndDate}
                 defaultMonth={journalDate}
                 initialFocus
@@ -191,7 +192,7 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
 
             <div className="px-4 py-2 border-t border-stone-100 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/60">
               <p className="text-[11px] text-stone-400 dark:text-stone-500 text-center">
-                6-Year Journal · {format(CHURCH_PLANT_START_DATE, 'MMM yyyy')} – {format(ministryEndDate, 'MMM yyyy')}
+                6-Year Journal · {format(startDate, 'MMM yyyy')} – {format(ministryEndDate, 'MMM yyyy')}
               </p>
             </div>
           </div>

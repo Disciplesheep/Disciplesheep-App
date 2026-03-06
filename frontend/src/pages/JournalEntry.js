@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { format, addYears } from 'date-fns';
+import { format } from 'date-fns';
 import { useOutletContext } from 'react-router-dom';
 import { useJournalData } from '@/hooks/useLocalStorage';
 import { useDiscipleshipTracking } from '@/hooks/useDiscipleshipTracking';
@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { formatDate, formatDisplayDate, DAILY_TASKS } from '@/utils/dateUtils';
-import { getDevotionalForDate, getCurrentMinistryYear, getYearTargets, CHURCH_PLANT_START_DATE } from '@/data/dailyDevotionals';
+import { getDevotionalForDate, getCurrentMinistryYear, getYearTargets } from '@/data/dailyDevotionals';
 
 const JournalEntry = () => {
   // Receive shared date state from Layout
