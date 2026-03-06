@@ -1,6 +1,6 @@
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker } from "react-day-picker"
+import { DayPicker, useDayPicker } from "react-day-picker"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 
@@ -14,7 +14,6 @@ const YearPicker = ({ displayMonth, fromDate, toDate, onSelect }) => {
   for (let y = startYear; y <= endYear; y++) years.push(y);
 
   const ref = React.useRef(null);
-
   React.useEffect(() => {
     const el = ref.current?.querySelector('[data-selected="true"]');
     if (el) el.scrollIntoView({ block: 'center', behavior: 'instant' });
@@ -137,21 +136,49 @@ const Caption = ({ displayMonth, fromDate, toDate, onMonthChange }) => {
   );
 };
 
-/* ── Head Row — "Su" in red ─────────────────────────────────────────────── */
-const HeadRow = ({ weekdays }) => (
-  <tr className="grid grid-cols-7 w-full">
-    {weekdays.map((weekday, i) => (
-      <th
-        key={i}
-        scope="col"
-        className="font-normal text-[0.8rem] text-center py-2"
-        style={{ color: i === 0 ? '#ef4444' : 'hsl(var(--muted-foreground))' }}
-      >
-        {weekday.label.slice(0, 2)}
-      </th>
-    ))}
-  </tr>
-);
+/* ── Head Row — works with both rdp v8 and v9 ───────────────────────────── */
+const HeadRow = (props) => {
+  // v9: weekdays comes from useDayPicker context
+  // v8: weekdays passed directly as prop
+  let weekdays = props.weekdays;
+  if (!weekdays) {
+    try {
+      // eslint-disable-next-line react-hooks/rules-of-hooks
+      const ctx = useDayPicker();
+      weekdays = ctx.weekdays;
+    } catch (_) {
+      weekdays = [];
+    }
+  }
+  if (!weekdays || weekdays.length === 0) {
+    // Fallback: render static day headers
+    const days = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+    return (
+      <tr className="grid grid-cols-7 w-full">
+        {days.map((d, i) => (
+          <th key={i} scope="col" className="font-normal text-[0.8rem] text-center py-2"
+            style={{ color: i === 0 ? '#ef4444' : 'hsl(var(--muted-foreground))' }}>
+            {d}
+          </th>
+        ))}
+      </tr>
+    );
+  }
+  return (
+    <tr className="grid grid-cols-7 w-full">
+      {weekdays.map((weekday, i) => (
+        <th
+          key={i}
+          scope="col"
+          className="font-normal text-[0.8rem] text-center py-2"
+          style={{ color: i === 0 ? '#ef4444' : 'hsl(var(--muted-foreground))' }}
+        >
+          {typeof weekday === 'string' ? weekday.slice(0, 2) : weekday?.label?.slice(0, 2) ?? ''}
+        </th>
+      ))}
+    </tr>
+  );
+};
 
 /* ── Calendar ───────────────────────────────────────────────────────────── */
 function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
@@ -206,11 +233,11 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
             onMonthChange={setMonth}
           />
         ),
-        HeadRow: ({ weekdays }) => <HeadRow weekdays={weekdays} />,
+        HeadRow: (rowProps) => <HeadRow {...rowProps} />,
         DayContent: ({ date, activeModifiers }) => {
-          const isSunday = date.getDay() === 0;
+          const isSunday  = date.getDay() === 0;
           const isSelected = activeModifiers?.selected;
-          const isOutside = activeModifiers?.outside;
+          const isOutside  = activeModifiers?.outside;
           return (
             <span style={{
               color: isSunday && !isSelected
@@ -221,7 +248,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }) {
             </span>
           );
         },
-        IconLeft: ({ className: cls, ...p }) => <ChevronLeft className={cn("h-4 w-4", cls)} {...p} />,
+        IconLeft:  ({ className: cls, ...p }) => <ChevronLeft  className={cn("h-4 w-4", cls)} {...p} />,
         IconRight: ({ className: cls, ...p }) => <ChevronRight className={cn("h-4 w-4", cls)} {...p} />,
       }}
       {...props}
