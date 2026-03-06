@@ -95,7 +95,7 @@ const Stewardship = () => {
           <p className="text-white/90 text-lg font-medium mb-1">Manage Your Ministry Resources</p>
           <p className="text-white/70 text-sm mb-4">People, Budget, and Progress Tracking</p>
 
-          {/* Verse moved inside header */}
+          {/* Verse inside header */}
           <div className="border-t border-white/20 pt-4">
             <p className="font-serif text-sm text-white/90 italic leading-relaxed">
               "Give an account of your management, for you can no longer be manager."
@@ -105,36 +105,36 @@ const Stewardship = () => {
         </div>
       </div>
 
-      {/* Goals & Progress */}
-      <Card className="bg-gradient-to-br from-mango-50 to-orange-50 dark:from-stone-800 dark:to-stone-700 rounded-xl shadow-sm border border-mango-100 dark:border-stone-600 p-4">
+      {/* Goals & Progress — bigger content */}
+      <Card className="bg-gradient-to-br from-mango-50 to-orange-50 dark:from-stone-800 dark:to-stone-700 rounded-xl shadow-sm border border-mango-100 dark:border-stone-600 p-5">
         <div className="flex items-center gap-2 mb-2">
-          <Target className="w-4 h-4 text-mango-700 dark:text-yellow-400" />
-          <h2 className="font-serif text-base font-semibold text-stone-900 dark:text-yellow-50">
+          <Target className="w-5 h-5 text-mango-700 dark:text-yellow-400" />
+          <h2 className="font-serif text-lg font-semibold text-stone-900 dark:text-yellow-50">
             Year {currentYear}: {yearTargets.phase}
           </h2>
         </div>
-        <p className="text-xs text-stone-600 dark:text-yellow-100 mb-3 italic">"{yearTargets.motto}"</p>
+        <p className="text-sm text-stone-600 dark:text-yellow-100 mb-4 italic">"{yearTargets.motto}"</p>
 
-        <div className="space-y-2">
+        <div className="space-y-4">
           {[
-            { label: 'People (Monthly)', value: monthPeople,                    target: yearTargets.monthly.peopleContacted, progress: peopleProgress,   note: `${peopleProgress}% of monthly target` },
-            { label: 'Disciples (Yearly)', value: disciples.length,             target: yearTargets.yearly.disciples,        progress: discipleProgress, note: `${discipleProgress}% of year ${currentYear} target` },
-            { label: 'Budget (Monthly)',  value: `₱${monthExpenses.toFixed(0)}`, target: `₱${yearTargets.monthly.budgetLimit}`, progress: budgetProgress, note: `${budgetProgress}% · ₱${(yearTargets.monthly.budgetLimit - monthExpenses).toFixed(0)} left` },
+            { label: 'People (Monthly)',   value: monthPeople,                     target: yearTargets.monthly.peopleContacted, progress: peopleProgress,   note: `${peopleProgress}% of monthly target` },
+            { label: 'Disciples (Yearly)', value: disciples.length,                target: yearTargets.yearly.disciples,        progress: discipleProgress, note: `${discipleProgress}% of year ${currentYear} target` },
+            { label: 'Budget (Monthly)',   value: `₱${monthExpenses.toFixed(0)}`,  target: `₱${yearTargets.monthly.budgetLimit}`, progress: budgetProgress, note: `${budgetProgress}% · ₱${(yearTargets.monthly.budgetLimit - monthExpenses).toFixed(0)} left` },
           ].map((item, i) => (
             <div key={i}>
-              <div className="flex justify-between text-xs mb-1">
+              <div className="flex justify-between text-sm mb-1.5">
                 <span className="text-stone-700 dark:text-gray-100 font-medium">{item.label}</span>
                 <span className="font-mono font-bold text-stone-900 dark:text-yellow-50">{item.value} / {item.target}</span>
               </div>
-              <div className="w-full bg-white/60 dark:bg-stone-600 rounded-full h-1.5">
-                <div className="h-1.5 rounded-full transition-all" style={{ width: `${Math.min(item.progress, 100)}%`, backgroundColor: progressColor(item.progress) }} />
+              <div className="w-full bg-white/60 dark:bg-stone-600 rounded-full h-2.5">
+                <div className="h-2.5 rounded-full transition-all" style={{ width: `${Math.min(item.progress, 100)}%`, backgroundColor: progressColor(item.progress) }} />
               </div>
-              <p className="text-xs text-stone-500 dark:text-gray-300 mt-0.5">{item.note}</p>
+              <p className="text-sm text-stone-500 dark:text-gray-300 mt-1">{item.note}</p>
             </div>
           ))}
-          <div className="pt-2 border-t border-mango-200 dark:border-stone-500">
-            <p className="text-xs text-stone-700 dark:text-gray-100">
-              <TrendingUp className="w-3 h-3 inline mr-1" />
+          <div className="pt-3 border-t border-mango-200 dark:border-stone-500">
+            <p className="text-sm text-stone-700 dark:text-gray-100">
+              <TrendingUp className="w-3.5 h-3.5 inline mr-1" />
               <strong className="text-stone-900 dark:text-yellow-50">Year {currentYear} Goal:</strong>{' '}
               {yearTargets.yearly.attendanceGoal} attendance, {yearTargets.yearly.totalPeopleReached} total reached
             </p>
