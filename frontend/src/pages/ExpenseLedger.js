@@ -259,8 +259,8 @@ const ExpenseLedger = () => {
         {/* Support button */}
         <Dialog open={isSupportDialogOpen} onOpenChange={o => { setIsSupportDialogOpen(o); if (!o) resetSupport(); }}>
           <DialogTrigger asChild>
-            <Button className="bg-green-600 hover:bg-green-700 text-white rounded-full px-3">
-              <HandCoins className="w-4 h-4 mr-1" /> Support
+            <Button className="bg-green-600 hover:bg-green-700 text-white rounded-full w-10 h-10 p-0" title="Record Monthly Support">
+              <HandCoins className="w-4 h-4" />
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
@@ -276,8 +276,8 @@ const ExpenseLedger = () => {
         {/* Gift button */}
         <Dialog open={isGiftDialogOpen} onOpenChange={o => { setIsGiftDialogOpen(o); if (!o) resetGift(); }}>
           <DialogTrigger asChild>
-            <Button className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-3">
-              <Gift className="w-4 h-4 mr-1" /> Gift
+            <Button className="bg-purple-600 hover:bg-purple-700 text-white rounded-full w-10 h-10 p-0" title="Record One-Time Gift">
+              <Gift className="w-4 h-4" />
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
@@ -293,8 +293,8 @@ const ExpenseLedger = () => {
         {/* Add Expense button */}
         <Dialog open={isAddDialogOpen} onOpenChange={o => { setIsAddDialogOpen(o); if (!o) resetForm(); }}>
           <DialogTrigger asChild>
-            <Button className="bg-forest-500 hover:bg-forest-900 text-white rounded-full px-3">
-              <Plus className="w-4 h-4 mr-1" /> Expense
+            <Button className="bg-forest-500 hover:bg-forest-900 text-white rounded-full w-10 h-10 p-0" title="Add New Expense">
+              <Plus className="w-4 h-4" />
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
