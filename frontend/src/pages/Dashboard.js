@@ -1,7 +1,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { useJournalData } from '@/hooks/useLocalStorage';
-import { CheckCircle2, BookOpen, Users, Wallet, Plus, Calendar } from 'lucide-react';
+import { BookOpen, Users, Wallet, Plus, Calendar } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -115,13 +115,6 @@ const Dashboard = () => {
             }`}>{task}</span>
           </div>
         ))}
-      </div>
-
-      <div className="pt-3 border-t border-stone-100 dark:border-stone-700 mb-4">
-        <p className="text-sm text-stone-600 dark:text-stone-200">
-          <CheckCircle2 className="w-4 h-4 inline mr-1 text-forest-500 dark:text-forest-400" />
-          {completedTasks} of {totalTasks} completed
-        </p>
       </div>
 
       <Button
