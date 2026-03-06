@@ -17,6 +17,19 @@ const ExpenseLedger = () => {
   const { expenses, setExpenses } = useJournalData();
   const location = useLocation();
 
+  // Auto-hide FABs while scrolling
+  const [fabVisible, setFabVisible] = useState(true);
+  const scrollTimer = useRef(null);
+  useEffect(() => {
+    const handleScroll = () => {
+      setFabVisible(false);
+      clearTimeout(scrollTimer.current);
+      scrollTimer.current = setTimeout(() => setFabVisible(true), 800);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => { window.removeEventListener('scroll', handleScroll); clearTimeout(scrollTimer.current); };
+  }, []);
+
   // Auto-open the Add Expense dialog when navigated here from Dashboard
   useEffect(() => {
     if (location.state?.openForm) {
@@ -206,7 +219,7 @@ const ExpenseLedger = () => {
       />
 
       {/* ── Floating Action Buttons ── */}
-      <div className="fixed right-16 bottom-1/3 z-40 flex flex-col gap-3 items-center">
+      <div className={`fixed right-16 top-[62%] z-40 flex flex-col gap-3 items-center transition-all duration-300 ${fabVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-16 pointer-events-none'}`}>
 
         {/* Support */}
         <Dialog open={isSupportDialogOpen} onOpenChange={o => { setIsSupportDialogOpen(o); if (!o) resetSupport(); }}>
