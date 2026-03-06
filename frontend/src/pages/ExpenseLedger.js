@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { formatDate, EXPENSE_CATEGORIES, MONTHLY_BUDGET_PHP, MONTHLY_BUDGET_USD, USD_TO_PHP } from '@/utils/dateUtils';
+import DeleteGuardDialog from '@/components/DeleteGuardDialog';
 
 const ExpenseLedger = () => {
   const { expenses, setExpenses } = useJournalData();
@@ -39,6 +40,10 @@ const ExpenseLedger = () => {
   const [editingSupportId,    setEditingSupportId]    = useState(null);
   const [editingGiftId,       setEditingGiftId]       = useState(null);
   const [selectedMonth,       setSelectedMonth]       = useState(format(new Date(), 'yyyy-MM'));
+
+  // ── Delete guard state ──────────────────────────────────────────────────────
+  // pending: { type: 'expense' | 'support' | 'gift', id: string, label: string }
+  const [pending, setPending] = useState(null);
 
   const emptyExpense = { date: formatDate(new Date()), category: '', item: '', php: '', usd: '' };
   const emptySupport = { date: formatDate(new Date()), from: '', php: '', usd: '', note: '' };
@@ -95,12 +100,30 @@ const ExpenseLedger = () => {
     resetGift(); setIsGiftDialogOpen(false);
   };
 
-  const handleEdit          = (e) => { setFormData(e);    setEditingId(e.id);           setIsAddDialogOpen(true); };
-  const handleEditSupport   = (s) => { setSupportForm(s); setEditingSupportId(s.id);    setIsSupportDialogOpen(true); };
-  const handleEditGift      = (g) => { setGiftForm(g);    setEditingGiftId(g.id);       setIsGiftDialogOpen(true); };
-  const handleDelete        = (id) => { setExpenses(prev => prev.filter(e => e.id !== id)); toast.success('Expense removed'); };
-  const handleDeleteSupport = (id) => { saveSupport(supportList.filter(s => s.id !== id)); toast.success('Support entry removed'); };
-  const handleDeleteGift    = (id) => { saveGifts(giftList.filter(g => g.id !== id));       toast.success('Gift entry removed'); };
+  const handleEdit        = (e) => { setFormData(e);    setEditingId(e.id);        setIsAddDialogOpen(true); };
+  const handleEditSupport = (s) => { setSupportForm(s); setEditingSupportId(s.id); setIsSupportDialogOpen(true); };
+  const handleEditGift    = (g) => { setGiftForm(g);    setEditingGiftId(g.id);    setIsGiftDialogOpen(true); };
+
+  // ── Delete: open guard dialog instead of deleting immediately ───────────────
+  const handleDelete        = (expense) => setPending({ type: 'expense', id: expense.id, label: `"${expense.item}"` });
+  const handleDeleteSupport = (s)       => setPending({ type: 'support', id: s.id,       label: `support from ${s.from}` });
+  const handleDeleteGift    = (g)       => setPending({ type: 'gift',    id: g.id,       label: `gift from ${g.from}` });
+
+  // ── Called by DeleteGuardDialog after password passes ───────────────────────
+  const confirmDelete = () => {
+    if (!pending) return;
+    if (pending.type === 'expense') {
+      setExpenses(prev => prev.filter(e => e.id !== pending.id));
+      toast.success('Expense removed');
+    } else if (pending.type === 'support') {
+      saveSupport(supportList.filter(s => s.id !== pending.id));
+      toast.success('Support entry removed');
+    } else if (pending.type === 'gift') {
+      saveGifts(giftList.filter(g => g.id !== pending.id));
+      toast.success('Gift entry removed');
+    }
+    setPending(null);
+  };
 
   /* ── Calculations ── */
   const monthExpenses   = expenses.filter(e => e.date?.startsWith(selectedMonth));
@@ -114,7 +137,6 @@ const ExpenseLedger = () => {
   const totalGiftsPhp   = monthGifts.reduce((sum, g)    => sum + parseFloat(g.php || 0), 0);
   const totalGiftsUsd   = monthGifts.reduce((sum, g)    => sum + parseFloat(g.usd || 0), 0);
 
-  // Budget = only monthly support received (gifts excluded)
   const remainingPhp    = totalSupportPhp - totalSpentPhp;
   const remainingUsd    = totalSupportUsd - totalSpentUsd;
   const spentPercentage = totalSupportPhp > 0 ? Math.min((totalSpentPhp / totalSupportPhp) * 100, 100) : 0;
@@ -163,6 +185,14 @@ const ExpenseLedger = () => {
 
   return (
     <div className="space-y-6 pb-6">
+
+      {/* Delete Guard Dialog */}
+      <DeleteGuardDialog
+        open={!!pending}
+        onClose={() => setPending(null)}
+        onConfirm={confirmDelete}
+        label={pending?.label || 'this record'}
+      />
 
       {/* Header */}
       <Card className="bg-gradient-to-br from-mango-500 to-mango-900 rounded-2xl p-8 text-white shadow-lg">
@@ -389,7 +419,7 @@ const ExpenseLedger = () => {
                 <div className="flex gap-1 ml-2">
                   <Button variant="ghost" size="sm" onClick={() => handleEditSupport(s)}
                     className="text-stone-600 dark:text-stone-400 hover:text-forest-600"><Edit2 className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDeleteSupport(s.id)}
+                  <Button variant="ghost" size="sm" onClick={() => handleDeleteSupport(s)}
                     className="text-stone-600 dark:text-stone-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
                 </div>
               </div>
@@ -432,7 +462,7 @@ const ExpenseLedger = () => {
                 <div className="flex gap-1 ml-2">
                   <Button variant="ghost" size="sm" onClick={() => handleEditGift(g)}
                     className="text-stone-600 dark:text-stone-400 hover:text-forest-600"><Edit2 className="w-4 h-4" /></Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDeleteGift(g.id)}
+                  <Button variant="ghost" size="sm" onClick={() => handleDeleteGift(g)}
                     className="text-stone-600 dark:text-stone-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
                 </div>
               </div>
@@ -471,7 +501,7 @@ const ExpenseLedger = () => {
                     className="text-stone-600 dark:text-stone-400 hover:text-forest-600 dark:hover:text-forest-400">
                     <Edit2 className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(expense.id)}
+                  <Button variant="ghost" size="sm" onClick={() => handleDelete(expense)}
                     className="text-stone-600 dark:text-stone-400 hover:text-red-600 dark:hover:text-red-400">
                     <Trash2 className="w-4 h-4" />
                   </Button>
