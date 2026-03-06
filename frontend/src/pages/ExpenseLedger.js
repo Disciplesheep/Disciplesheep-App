@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useJournalData } from '@/hooks/useLocalStorage';
 import { Wallet, Plus, TrendingDown, TrendingUp, AlertCircle, Edit2, Trash2, HandCoins, Target, Gift } from 'lucide-react';
@@ -14,6 +15,16 @@ import DeleteGuardDialog from '@/components/DeleteGuardDialog';
 
 const ExpenseLedger = () => {
   const { expenses, setExpenses } = useJournalData();
+  const location = useLocation();
+
+  // Auto-open the Add Expense dialog when navigated here from Dashboard
+  useEffect(() => {
+    if (location.state?.openForm) {
+      setIsAddDialogOpen(true);
+      // Clear the state so back-navigation doesn't re-trigger it
+      window.history.replaceState({}, '');
+    }
+  }, [location.state]);
 
   const [supportList, setSupportList] = useState(() => {
     try { return JSON.parse(localStorage.getItem('supportReceived') || '[]'); }

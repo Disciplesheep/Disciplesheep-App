@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useJournalData } from '@/hooks/useLocalStorage';
 import { Users, Plus, Search, Edit2, Trash2, Phone, MapPin, User, Cake, MessageCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -10,14 +11,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from 'sonner';
 import { formatDate, formatDisplayDate, GENERATIONS } from '@/utils/dateUtils';
 import { useScreenSize } from '@/hooks/useScreenSize';
-import { format, isSameDay } from 'date-fns';
+import { format } from 'date-fns';
+import DeleteGuardDialog from '@/components/DeleteGuardDialog';
 
 const PeopleTracker = () => {
   const { peopleContacts, setPeopleContacts } = useJournalData();
   const { isTablet } = useScreenSize();
-  const [searchTerm, setSearchTerm] = useState('');
+  const location = useLocation();
+
+  const [searchTerm, setSearchTerm]       = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState(null);
+  const [editingId, setEditingId]         = useState(null);
+  const [pending, setPending]             = useState(null); // delete guard
 
   const emptyForm = {
     date: formatDate(new Date()),
@@ -35,6 +40,14 @@ const PeopleTracker = () => {
   };
 
   const [formData, setFormData] = useState(emptyForm);
+
+  // Auto-open Add Contact dialog when navigated from Dashboard
+  useEffect(() => {
+    if (location.state?.openForm) {
+      setIsAddDialogOpen(true);
+      window.history.replaceState({}, '');
+    }
+  }, [location.state]);
 
   const resetForm = () => { setFormData(emptyForm); setEditingId(null); };
 
@@ -55,9 +68,14 @@ const PeopleTracker = () => {
   };
 
   const handleEdit   = (c) => { setFormData({ ...emptyForm, ...c }); setEditingId(c.id); setIsAddDialogOpen(true); };
-  const handleDelete = (id) => { setPeopleContacts(prev => prev.filter(p => p.id !== id)); toast.success('Contact removed'); };
+  const handleDelete = (c)  => setPending({ id: c.id, label: c.name });
 
-  /* Birthday helpers */
+  const confirmDelete = () => {
+    setPeopleContacts(prev => prev.filter(p => p.id !== pending.id));
+    toast.success('Contact removed');
+    setPending(null);
+  };
+
   const isBirthdayToday = (birthday) => {
     if (!birthday) return false;
     const b = new Date(birthday + 'T00:00:00');
@@ -84,6 +102,15 @@ const PeopleTracker = () => {
 
   return (
     <div className="space-y-6 pb-6">
+
+      {/* Delete Guard Dialog */}
+      <DeleteGuardDialog
+        open={!!pending}
+        onClose={() => setPending(null)}
+        onConfirm={confirmDelete}
+        label={pending?.label || 'this contact'}
+      />
+
       {/* Header */}
       <div className="relative overflow-hidden rounded-2xl p-8 text-white"
         style={{ backgroundImage: 'linear-gradient(rgba(15,81,50,0.85),rgba(15,81,50,0.65)),url(https://images.unsplash.com/photo-1606445095898-16c730da5732?crop=entropy&cs=srgb&fm=jpg&q=85)', backgroundSize: 'cover', backgroundPosition: 'center' }}
@@ -123,7 +150,6 @@ const PeopleTracker = () => {
                   onChange={e => setFormData({ ...formData, name: e.target.value })} className={ic} />
               )}
 
-              {/* Age + Birthday */}
               <div className="grid grid-cols-2 gap-4">
                 {field('Age',
                   <Input type="number" min="1" max="120" value={formData.age} placeholder="e.g. 24"
@@ -213,7 +239,6 @@ const PeopleTracker = () => {
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
 
-                {/* Name + badges */}
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <h3 className="font-serif text-lg font-semibold text-stone-900 dark:text-stone-100">{contact.name}</h3>
                   <span className="text-xs px-2 py-0.5 rounded-full bg-forest-50 dark:bg-forest-900/30 text-forest-900 dark:text-forest-300 font-medium">
@@ -228,7 +253,6 @@ const PeopleTracker = () => {
 
                 <p className="text-xs text-stone-500 dark:text-stone-400 mb-2">{formatDisplayDate(new Date(contact.date))}</p>
 
-                {/* Age + Birthday + Contact + Address */}
                 <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2">
                   {contact.age && (
                     <span className="flex items-center gap-1 text-xs text-stone-500 dark:text-stone-400">
@@ -268,14 +292,14 @@ const PeopleTracker = () => {
                   </a>
                 )}
                 {contact.facebookUrl && (
-                  <a href={contact.facebookUrl.startsWith('http') ? `${contact.facebookUrl}` : `https://facebook.com/${contact.facebookUrl}`} target="_blank" rel="noopener noreferrer">
+                  <a href={contact.facebookUrl.startsWith('http') ? contact.facebookUrl : `https://facebook.com/${contact.facebookUrl}`} target="_blank" rel="noopener noreferrer">
                     <Button variant="ghost" size="sm" title="Message on Messenger"
                       className="text-stone-600 dark:text-stone-400 hover:text-blue-600"><MessageCircle className="w-4 h-4" /></Button>
                   </a>
                 )}
                 <Button variant="ghost" size="sm" onClick={() => handleEdit(contact)}
                   className="text-stone-600 dark:text-stone-400 hover:text-forest-600"><Edit2 className="w-4 h-4" /></Button>
-                <Button variant="ghost" size="sm" onClick={() => handleDelete(contact.id)}
+                <Button variant="ghost" size="sm" onClick={() => handleDelete(contact)}
                   className="text-stone-600 dark:text-stone-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></Button>
               </div>
             </div>
