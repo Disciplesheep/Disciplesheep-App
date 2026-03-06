@@ -76,7 +76,7 @@ const DocxViewer = ({ dataUrl }) => {
   return (
     <div
       className="prose prose-stone dark:prose-invert max-w-none p-6 overflow-y-auto"
-      style={{ maxHeight: '70vh', fontFamily: 'Georgia, serif', lineHeight: 1.7 }}
+      style={{ fontFamily: 'Georgia, serif', lineHeight: 1.7 }}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -360,13 +360,11 @@ const JournalEntry = () => {
                   {activeFile.temp && <span className="ml-2 text-xs text-stone-400 shrink-0">(not saved)</span>}
                 </p>
                 <div className="flex items-center gap-1 shrink-0">
-                  {activeFile.fileType === 'pdf' && (
-                    <button onClick={toggleFullscreen}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400 transition-colors"
-                      title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} style={{ minHeight: 0 }}>
-                      {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                    </button>
-                  )}
+                  <button onClick={toggleFullscreen}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400 transition-colors"
+                    title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} style={{ minHeight: 0 }}>
+                    {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  </button>
                   <button onClick={closePdf}
                     className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-500 hover:text-red-500 transition-colors"
                     title="Close" style={{ minHeight: 0 }}>
@@ -380,7 +378,9 @@ const JournalEntry = () => {
                 <iframe src={activeFile.dataUrl} title={activeFile.name} className="w-full"
                   style={{ height: isFullscreen ? 'calc(100vh - 48px)' : '70vh', border: 'none', display: 'block' }} />
               ) : (
-                <DocxViewer dataUrl={activeFile.dataUrl} />
+                <div style={{ height: isFullscreen ? 'calc(100vh - 48px)' : '70vh', overflowY: 'auto' }}>
+                  <DocxViewer dataUrl={activeFile.dataUrl} />
+                </div>
               )}
             </Card>
           )}
