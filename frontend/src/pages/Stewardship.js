@@ -5,7 +5,6 @@ import { Card } from '@/components/ui/card';
 import { useJournalData } from '@/hooks/useLocalStorage';
 import { useDiscipleshipTracking } from '@/hooks/useDiscipleshipTracking';
 import { format } from 'date-fns';
-import { useScreenSize } from '@/hooks/useScreenSize';
 import { getCurrentMinistryYear, getYearTargets } from '@/data/dailyDevotionals';
 
 const progressColor = (pct) => {
@@ -20,7 +19,6 @@ const progressColor = (pct) => {
 
 const Stewardship = () => {
   const navigate = useNavigate();
-  const { isTablet } = useScreenSize();
   const { peopleContacts, expenses } = useJournalData();
   const { disciples } = useDiscipleshipTracking();
 
@@ -97,33 +95,33 @@ const Stewardship = () => {
       </div>
 
       {/* Goals & Progress */}
-      <Card className="bg-gradient-to-br from-mango-50 to-orange-50 dark:from-stone-800 dark:to-stone-700 rounded-xl shadow-sm border border-mango-100 dark:border-stone-600 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Target className="w-5 h-5 text-mango-700 dark:text-yellow-400" />
-          <h2 className="font-serif text-xl font-semibold text-stone-900 dark:text-yellow-50">
+      <Card className="bg-gradient-to-br from-mango-50 to-orange-50 dark:from-stone-800 dark:to-stone-700 rounded-xl shadow-sm border border-mango-100 dark:border-stone-600 p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Target className="w-4 h-4 text-mango-700 dark:text-yellow-400" />
+          <h2 className="font-serif text-base font-semibold text-stone-900 dark:text-yellow-50">
             Year {currentYear}: {yearTargets.phase}
           </h2>
         </div>
-        <p className="text-xs text-stone-600 dark:text-yellow-100 mb-4 italic">"{yearTargets.motto}"</p>
+        <p className="text-xs text-stone-600 dark:text-yellow-100 mb-3 italic">"{yearTargets.motto}"</p>
 
-        <div className="space-y-4">
+        <div className="space-y-2">
           {[
-            { label: 'People Contacted (Monthly)', value: monthPeople,                    target: yearTargets.monthly.peopleContacted, progress: peopleProgress,   note: `${peopleProgress}% of monthly target` },
-            { label: 'Disciples (Yearly)',          value: disciples.length,               target: yearTargets.yearly.disciples,        progress: discipleProgress, note: `${discipleProgress}% of year ${currentYear} target` },
-            { label: 'Budget Used (Monthly)',       value: `₱${monthExpenses.toFixed(0)}`, target: `₱${yearTargets.monthly.budgetLimit}`, progress: budgetProgress, note: `${budgetProgress}% used · ₱${(yearTargets.monthly.budgetLimit - monthExpenses).toFixed(0)} remaining` },
+            { label: 'People (Monthly)', value: monthPeople,                    target: yearTargets.monthly.peopleContacted, progress: peopleProgress,   note: `${peopleProgress}% of monthly target` },
+            { label: 'Disciples (Yearly)', value: disciples.length,             target: yearTargets.yearly.disciples,        progress: discipleProgress, note: `${discipleProgress}% of year ${currentYear} target` },
+            { label: 'Budget (Monthly)',  value: `₱${monthExpenses.toFixed(0)}`, target: `₱${yearTargets.monthly.budgetLimit}`, progress: budgetProgress, note: `${budgetProgress}% · ₱${(yearTargets.monthly.budgetLimit - monthExpenses).toFixed(0)} left` },
           ].map((item, i) => (
             <div key={i}>
-              <div className="flex justify-between text-sm mb-2">
+              <div className="flex justify-between text-xs mb-1">
                 <span className="text-stone-700 dark:text-gray-100 font-medium">{item.label}</span>
                 <span className="font-mono font-bold text-stone-900 dark:text-yellow-50">{item.value} / {item.target}</span>
               </div>
-              <div className="w-full bg-white/60 dark:bg-stone-600 rounded-full h-2.5">
-                <div className="h-2.5 rounded-full transition-all" style={{ width: `${Math.min(item.progress, 100)}%`, backgroundColor: progressColor(item.progress) }} />
+              <div className="w-full bg-white/60 dark:bg-stone-600 rounded-full h-1.5">
+                <div className="h-1.5 rounded-full transition-all" style={{ width: `${Math.min(item.progress, 100)}%`, backgroundColor: progressColor(item.progress) }} />
               </div>
-              <p className="text-xs text-stone-600 dark:text-gray-200 mt-1">{item.note}</p>
+              <p className="text-xs text-stone-500 dark:text-gray-300 mt-0.5">{item.note}</p>
             </div>
           ))}
-          <div className="pt-3 border-t border-mango-200 dark:border-stone-500">
+          <div className="pt-2 border-t border-mango-200 dark:border-stone-500">
             <p className="text-xs text-stone-700 dark:text-gray-100">
               <TrendingUp className="w-3 h-3 inline mr-1" />
               <strong className="text-stone-900 dark:text-yellow-50">Year {currentYear} Goal:</strong>{' '}
@@ -133,42 +131,26 @@ const Stewardship = () => {
         </div>
       </Card>
 
-      {/* Menu Cards */}
-      <div className={`grid gap-4 ${isTablet ? 'grid-cols-3' : 'grid-cols-1'}`}>
+      {/* Menu Cards — always 3 columns */}
+      <div className="grid gap-4 grid-cols-3">
         {menuItems.map((item) => (
           <Card
             key={item.path}
             onClick={() => navigate(item.path)}
-            className={`${item.bgColor} rounded-xl shadow-sm border border-stone-200 dark:border-stone-700 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] ${isTablet ? 'p-6 flex flex-col' : 'p-6'}`}
+            className={`${item.bgColor} rounded-xl shadow-sm border border-stone-200 dark:border-stone-700 cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] p-4 flex flex-col`}
             data-testid={item.testId}
           >
-            {isTablet ? (
-              <div className="flex flex-col items-start gap-4">
-                <div className={`w-14 h-14 rounded-xl ${item.bgColor} flex items-center justify-center`}>
-                  <item.icon className={`w-7 h-7 ${item.iconColor}`} />
-                </div>
-                <div>
-                  <h3 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-1">{item.title}</h3>
-                  <p className="text-sm text-stone-600 dark:text-stone-400 mb-3">{item.description}</p>
-                  <p className="text-2xl font-bold font-mono text-stone-900 dark:text-stone-100">{item.stat}</p>
-                  <p className="text-xs text-stone-500 uppercase tracking-wide mt-1">Current</p>
-                </div>
+            <div className="flex flex-col items-start gap-3">
+              <div className={`w-10 h-10 rounded-xl ${item.bgColor} flex items-center justify-center`}>
+                <item.icon className={`w-5 h-5 ${item.iconColor}`} />
               </div>
-            ) : (
-              <div className="flex items-center gap-4">
-                <div className={`w-14 h-14 rounded-xl ${item.bgColor} flex items-center justify-center`}>
-                  <item.icon className={`w-7 h-7 ${item.iconColor}`} />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-1">{item.title}</h3>
-                  <p className="text-sm text-stone-600 dark:text-stone-400">{item.description}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold font-mono text-stone-900 dark:text-stone-100">{item.stat}</p>
-                  <p className="text-xs text-stone-500 dark:text-stone-500 uppercase tracking-wide">Current</p>
-                </div>
+              <div>
+                <h3 className="font-serif text-sm font-semibold text-stone-900 dark:text-stone-100 mb-0.5">{item.title}</h3>
+                <p className="text-xs text-stone-600 dark:text-stone-400 mb-2">{item.description}</p>
+                <p className="text-lg font-bold font-mono text-stone-900 dark:text-stone-100">{item.stat}</p>
+                <p className="text-xs text-stone-500 uppercase tracking-wide mt-0.5">Current</p>
               </div>
-            )}
+            </div>
           </Card>
         ))}
       </div>
