@@ -177,7 +177,7 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
             </div>
 
             {/* Calendar fills the full width of the panel */}
-            <div className="w-full px-2 pb-2">
+            <div className="w-full [&_.rdp]:w-full [&_.rdp-months]:w-full [&_.rdp-month]:w-full [&_.rdp-table]:w-full [&_.rdp-head_row]:w-full [&_.rdp-row]:w-full">
               <CalendarComponent
                 mode="single"
                 selected={journalDate}
@@ -186,22 +186,6 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
                 toDate={ministryEndDate}
                 defaultMonth={journalDate}
                 initialFocus
-                classNames={{
-                  months: 'w-full',
-                  month: 'w-full',
-                  table: 'w-full',
-                  head_row: 'w-full flex',
-                  head_cell: 'flex-1 text-center text-xs font-medium text-stone-500 dark:text-stone-400 py-1',
-                  row: 'w-full flex',
-                  cell: 'flex-1 text-center',
-                  day: 'w-full h-9 text-sm rounded-lg hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors',
-                  day_selected: 'bg-forest-500 text-white hover:bg-forest-600',
-                  day_today: 'font-bold text-forest-600 dark:text-forest-400',
-                  day_outside: 'opacity-30',
-                  caption: 'flex items-center justify-between px-2 py-2',
-                  caption_label: 'font-serif font-semibold text-stone-800 dark:text-stone-100',
-                  nav_button: 'w-8 h-8 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors',
-                }}
               />
             </div>
 
