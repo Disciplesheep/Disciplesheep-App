@@ -190,7 +190,7 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
             style={{
               left: '0.5rem',
               right: '0.5rem',
-              bottom: `calc(${navHeight}px + ${DATE_BAR_H}px + env(safe-area-inset-bottom, 0px) + 0.5rem)`,
+              top: 'calc(3rem + 42px + 0.5rem)',
             }}
           >
             <div className="flex items-center justify-between px-4 pt-3 pb-1">
@@ -226,10 +226,10 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
 
       {/* ── Date bar strip — auto-hides on scroll ── */}
       <div
-        className="fixed left-0 right-0 z-50 transition-transform duration-300"
+        className="fixed left-0 right-0 z-40 transition-transform duration-300"
         style={{
-          bottom: `calc(${navHeight}px + env(safe-area-inset-bottom, 0px))`,
-          transform: visible ? 'translateY(0)' : `translateY(${DATE_BAR_H}px)`,
+          top: '3rem',
+          transform: visible ? 'translateY(0)' : 'translateY(-100%)',
         }}
       >
         <div className="flex items-center justify-between px-4 py-2 bg-forest-500 text-white">
@@ -393,8 +393,8 @@ const Layout = () => {
           </div>
 
           <main style={{
-            paddingTop: '3rem',
-            paddingBottom: `calc(${NAV_H + (isJournalPage ? DATE_BAR_H : 0)}px + env(safe-area-inset-bottom, 0px) + 1rem)`,
+            paddingTop: isJournalPage ? 'calc(3rem + 42px)' : '3rem',
+            paddingBottom: `calc(${NAV_H}px + env(safe-area-inset-bottom, 0px) + 1rem)`,
           }}>
             <div className="max-w-xl mx-auto px-4 sm:px-6 py-5 sm:py-7">
               <Outlet context={outletContext} />
