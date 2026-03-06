@@ -24,7 +24,7 @@ const ExpenseLedger = () => {
     const handleScroll = () => {
       setFabVisible(false);
       clearTimeout(scrollTimer.current);
-      scrollTimer.current = setTimeout(() => setFabVisible(true), 800);
+      scrollTimer.current = setTimeout(() => setFabVisible(true), 400);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => { window.removeEventListener('scroll', handleScroll); clearTimeout(scrollTimer.current); };
@@ -219,7 +219,7 @@ const ExpenseLedger = () => {
       />
 
       {/* ── Floating Action Buttons ── */}
-      <div className={`fixed right-16 top-[62%] z-40 flex flex-col gap-6 items-center transition-all duration-300 ${fabVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-16 pointer-events-none'}`}>
+      <div className={`fixed right-16 top-[62%] z-40 flex flex-col gap-6 items-center transition-all duration-150 ${fabVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-16 pointer-events-none'}`}>
 
         {/* Support */}
         <Dialog open={isSupportDialogOpen} onOpenChange={o => { setIsSupportDialogOpen(o); if (!o) resetSupport(); }}>
