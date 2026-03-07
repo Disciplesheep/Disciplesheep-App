@@ -121,6 +121,11 @@ html {
 [data-font-size="large"] .text-sm   { font-size: 17px !important; line-height: 1.40; }
 [data-font-size="large"] .text-base { font-size: 19px !important; line-height: 1.45; }
 
+/* X-Large — maximum size, tightest line-height */
+[data-font-size="xlarge"] .text-xs   { font-size: 16px !important; line-height: 1.25; }
+[data-font-size="xlarge"] .text-sm   { font-size: 19px !important; line-height: 1.30; }
+[data-font-size="xlarge"] .text-base { font-size: 21px !important; line-height: 1.35; }
+
 /* ── Lined paper ──────────────────────────────────────────────────────────── */
 .lined-paper {
     background-image: linear-gradient(transparent 27px, #E5E7EB 28px);

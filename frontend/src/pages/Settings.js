@@ -32,6 +32,7 @@ const FontPreview = ({ fontSize }) => {
     small:  { labelSize:'13px', bodySize:'15px', note:'Easy reading — ideal for longer sessions' },
     medium: { labelSize:'14px', bodySize:'17px', note:'Comfortable large — great for daily use' },
     large:  { labelSize:'15px', bodySize:'19px', note:'Maximum size — easiest on the eyes' },
+    xlarge: { labelSize:'16px', bodySize:'21px', note:'Extra large — for maximum comfort' },
   };
   const c = config[fontSize] || config.small;
   return (
@@ -266,9 +267,10 @@ const Settings = () => {
   ];
 
   const fontSizeOptions = [
-    { value: 'small',  label: 'Small'  },
-    { value: 'medium', label: 'Medium' },
-    { value: 'large',  label: 'Large'  },
+    { value: 'small',  label: 'Small'   },
+    { value: 'medium', label: 'Medium'  },
+    { value: 'large',  label: 'Large'   },
+    { value: 'xlarge', label: 'X-Large' },
   ];
 
   const getFontSizeDescription = () => {
@@ -276,6 +278,7 @@ const Settings = () => {
       small:  'Easy reading — ideal for longer sessions',
       medium: 'Comfortable large — great for daily use',
       large:  'Maximum size — easiest on the eyes',
+      xlarge: 'Extra large — for maximum comfort',
     };
     return descriptions[fontSize] || descriptions.small;
   };

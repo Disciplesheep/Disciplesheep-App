@@ -19,7 +19,7 @@ export const ThemeProvider = ({ children }) => {
   const [fontSize, setFontSize] = useState(() => {
     const saved = localStorage.getItem('fontSize');
     // Migrate old values that no longer exist to the new default
-    const validSizes = ['small', 'medium', 'large'];
+    const validSizes = ['small', 'medium', 'large', 'xlarge'];
     return validSizes.includes(saved) ? saved : 'small';
   });
 
