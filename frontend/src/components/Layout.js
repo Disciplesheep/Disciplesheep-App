@@ -11,7 +11,6 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { CHURCH_PLANT_START_DATE } from '@/data/dailyDevotionals';
 
 
-/* ── Safe wrapper — prevents calendar crash from blanking the whole page ── */
 class CalendarErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { error: false }; }
   static getDerivedStateFromError() { return { error: true }; }
@@ -24,7 +23,6 @@ class CalendarErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
-
 
 const navItems = [
   { to: '/',             icon: LayoutGrid,   label: 'Dashboard' },
@@ -49,6 +47,22 @@ const ProfileModal = ({ open, onClose }) => {
   const fileRef = useRef();
   const { name, photo, saveName, savePhoto } = useProfile();
 
+  // ── Register with back-button system so exit flow is blocked while open ──
+  useEffect(() => {
+    if (!open) return;
+    window.__dialogOpenCount = (window.__dialogOpenCount || 0) + 1;
+    window.history.pushState({ profileModal: true }, '');
+    const onPop = () => {
+      if (document.activeElement) document.activeElement.blur();
+      setTimeout(onClose, 50);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      window.__dialogOpenCount = Math.max(0, (window.__dialogOpenCount || 1) - 1);
+    };
+  }, [open, onClose]);
+
   const handleNameSave = () => { saveName(nameInput.trim()); setEditingName(false); };
   const handlePhoto = (e) => {
     const file = e.target.files[0];
@@ -70,15 +84,12 @@ const ProfileModal = ({ open, onClose }) => {
     <div className="fixed inset-0 z-[80] flex items-start justify-center pt-16 px-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-sm bg-white dark:bg-stone-800 rounded-3xl shadow-2xl border border-stone-100 dark:border-stone-700 overflow-hidden">
-        {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-2">
           <p className="font-serif text-xl font-bold text-stone-900 dark:text-stone-100">My Profile</p>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-stone-100 dark:bg-stone-700 text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
-
-        {/* Avatar + Name */}
         <div className="flex flex-col items-center gap-4 px-6 py-6">
           <div className="relative">
             <Avatar size={96} />
@@ -91,7 +102,6 @@ const ProfileModal = ({ open, onClose }) => {
             </button>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
           </div>
-
           {editingName ? (
             <div className="flex items-center gap-2 w-full">
               <input
@@ -119,8 +129,6 @@ const ProfileModal = ({ open, onClose }) => {
             </button>
           )}
         </div>
-
-        {/* Settings link */}
         <div className="border-t border-stone-100 dark:border-stone-700">
           <button
             onClick={() => { navigate('/settings'); onClose(); }}
@@ -135,7 +143,7 @@ const ProfileModal = ({ open, onClose }) => {
   );
 };
 
-// Keep ProfileMenu for tablet SideNav (small dropdown style)
+// Tablet dropdown
 const ProfileMenu = () => {
   const [open, setOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
@@ -205,9 +213,6 @@ const ProfileMenu = () => {
   );
 };
 
-/* ─────────────────────────────────────────────────────────────────────────
-   BOTTOM NAV — always fixed, never hides
-───────────────────────────────────────────────────────────────────────── */
 const BottomNav = () => (
   <nav
     className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-t border-stone-200 dark:border-stone-700"
@@ -237,9 +242,6 @@ const BottomNav = () => (
   </nav>
 );
 
-/* ─────────────────────────────────────────────────────────────────────────
-   JOURNAL DATE BAR
-───────────────────────────────────────────────────────────────────────── */
 const NAV_H  = 64;
 const BAR_H  = 42;
 
@@ -343,9 +345,6 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
   );
 };
 
-/* ─────────────────────────────────────────────────────────────────────────
-   SIDE NAV (tablet)
-───────────────────────────────────────────────────────────────────────── */
 const SideNav = () => (
   <aside className="fixed top-0 left-0 h-full w-56 bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-r border-stone-200 dark:border-stone-700 flex flex-col z-50 shadow-lg">
     <div className="flex items-center justify-between px-5 py-6 border-b border-stone-100 dark:border-stone-800">
@@ -379,18 +378,10 @@ const SideNav = () => (
   </aside>
 );
 
-/* ─────────────────────────────────────────────────────────────────────────
-   GLOBAL DIALOG TRACKER
-   useBackButtonClose (in other files) calls window.__dialogOpen = true/false
-   so Layout's exit handler knows whether a dialog is currently open.
-───────────────────────────────────────────────────────────────────────── */
 if (typeof window.__dialogOpenCount === 'undefined') {
   window.__dialogOpenCount = 0;
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
-   LAYOUT
-───────────────────────────────────────────────────────────────────────── */
 const Layout = () => {
   const { isTablet } = useScreenSize();
   const location     = useLocation();
@@ -402,7 +393,6 @@ const Layout = () => {
 
   const outletContext = { journalDate, setJournalDate, pickerOpen, setPickerOpen };
 
-  // ── Auto-export backup helper ─────────────────────────────────────────────
   const triggerAutoExport = () => {
     const DATA_KEYS = ['dailyEntries','peopleContacts','expenses','weeklyReports','monthlyReports','calendarEvents'];
     const backup = { _version: 1, _exportedAt: new Date().toISOString() };
@@ -423,7 +413,6 @@ const Layout = () => {
     URL.revokeObjectURL(url);
   };
 
-  // ── Exit app on Back button (3 presses: warn → backup → exit) ────────────
   const [exitToastMsg, setExitToastMsg] = useState('');
   const exitStepRef  = useRef(0);
   const exitTimerRef = useRef(null);
@@ -435,6 +424,7 @@ const Layout = () => {
 
     const onPopState = (e) => {
       if (e.state?.pdfOpen) return;
+      // ── If any dialog/modal is open, let its own handler deal with back ──
       if (window.__dialogOpenCount > 0) return;
 
       window.history.pushState({ appEntry: true }, '');
