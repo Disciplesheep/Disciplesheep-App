@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { useJournalData, useLocalStorage } from '@/hooks/useLocalStorage';
 import {
   CheckCircle2, Clock, BookOpen, FileText, FolderOpen, Maximize2, Minimize2,
-  Trash2, X, FileType2, AlertCircle, Hands, Plus, CheckCheck,
+  Trash2, X, FileType2, AlertCircle, Hand, Plus, CheckCheck,
   RotateCcw, Calendar, Star, Flame, Heart, Home, Users, Globe, Filter,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -22,7 +22,7 @@ const MAX_FILE_BYTES = 15 * 1024 * 1024;
 /* Tab definitions — used for the right-side FABs */
 const TABS = [
   { id: 'devotional', Icon: BookOpen,  label: "5P's",   color: 'bg-forest-500 hover:bg-forest-700', shadow: 'shadow-forest-900/30' },
-  { id: 'prayer',     Icon: Hands,     label: 'Prayer', color: 'bg-rose-600 hover:bg-rose-700',     shadow: 'shadow-rose-900/30'   },
+  { id: 'prayer',     Icon: Hand,      label: 'Prayer', color: 'bg-rose-600 hover:bg-rose-700',     shadow: 'shadow-rose-900/30'   },
   { id: 'pdf',        Icon: FileText,  label: 'Files',  color: 'bg-stone-600 hover:bg-stone-700',   shadow: 'shadow-stone-900/30'  },
 ];
 
