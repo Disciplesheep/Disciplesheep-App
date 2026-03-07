@@ -205,8 +205,13 @@ const Dashboard = () => {
     </div>
   );
 
+  // ── FIX: Added onClick to navigate to /stewardship/expenses ──
   const budgetCard = (
-    <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 px-4 py-2" data-testid="budget-progress-card">
+    <Card
+      className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 px-4 py-2 cursor-pointer hover:shadow-md transition-shadow"
+      onClick={() => navigate('/stewardship/expenses')}
+      data-testid="budget-progress-card"
+    >
       <div className="flex items-center justify-between mb-1.5">
         <h3 className="font-serif font-semibold text-stone-900 dark:text-stone-100 text-base">Monthly Budget</h3>
         <span className="text-xs font-mono text-stone-600 dark:text-stone-400">₱{monthExpenses.toFixed(0)} / ₱{monthlyBudget}</span>
