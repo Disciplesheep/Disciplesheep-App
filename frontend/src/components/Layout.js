@@ -382,7 +382,13 @@ if (typeof window.__dialogOpenCount === 'undefined') window.__dialogOpenCount = 
 const Layout = () => {
   const { isTablet }  = useScreenSize();
   const location      = useLocation();
+  const navigate      = useNavigate();
   const isJournalPage = location.pathname === '/journal';
+
+  // Custom back destinations for specific pages
+  const CUSTOM_BACK = {
+    '/stewardship/people': '/stewardship/expenses',
+  };
 
   const [journalDate, setJournalDate] = useState(new Date());
   const [pickerOpen,  setPickerOpen]  = useState(false);
@@ -437,6 +443,10 @@ const Layout = () => {
     const onPopState = (e) => {
       if (e.state?.pdfOpen) return;
       if (window.__dialogOpenCount > 0) return;
+      // Custom back destinations for specific sub-pages
+      const customDest = CUSTOM_BACK[window.location.pathname];
+      if (customDest) { navigate(customDest); return; }
+      // On all other sub-pages, let browser handle back normally
       if (!ROOT_PAGES.includes(window.location.pathname)) return;
 
       // Re-push sentinel so next back is also intercepted
