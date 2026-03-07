@@ -287,6 +287,8 @@ const SideNav = () => (
 
 /* ─────────────────────────────────────────────────────────────────────────
    GLOBAL DIALOG TRACKER
+   useBackButtonClose (in other files) calls window.__dialogOpen = true/false
+   so Layout's exit handler knows whether a dialog is currently open.
 ───────────────────────────────────────────────────────────────────────── */
 if (typeof window.__dialogOpenCount === 'undefined') {
   window.__dialogOpenCount = 0;
@@ -305,6 +307,7 @@ const Layout = () => {
 
   const outletContext = { journalDate, setJournalDate, pickerOpen, setPickerOpen };
 
+  // ── Exit app on Back button ───────────────────────────────────────────────
   const [showExitToast, setShowExitToast] = useState(false);
   const exitTimerRef   = useRef(null);
   const showExitToastRef = useRef(false);
@@ -316,6 +319,8 @@ const Layout = () => {
 
     const onPopState = (e) => {
       if (e.state?.pdfOpen) return;
+
+      // ── Skip exit logic if any dialog/form card is currently open ──
       if (window.__dialogOpenCount > 0) return;
 
       window.history.pushState({ appEntry: true }, '');
@@ -380,12 +385,14 @@ const Layout = () => {
       ) : (
         <>
           <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-b border-stone-200 dark:border-stone-700">
-            <div className="flex items-center justify-between px-4 h-14">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🐑</span>
-                <div>
-                  <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100 leading-tight">Disciplesheep</p>
-                  <p className="text-[9px] text-stone-400 dark:text-stone-500 italic leading-tight">"The Lord is my Shepherd, that's all I want!"</p>
+            <div className="flex items-center justify-between px-4 h-12">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-lg shrink-0">🐑</span>
+                <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100 shrink-0">Disciplesheep</p>
+                <div className="w-px h-6 bg-stone-300 dark:bg-stone-600 shrink-0 mx-1" />
+                <div className="min-w-0">
+                  <p className="text-xs italic text-stone-700 dark:text-stone-300 leading-tight">"The Lord is my Shepherd,</p>
+                  <p className="text-xs italic text-stone-700 dark:text-stone-300 leading-tight">that's all I want!"</p>
                 </div>
               </div>
               <ProfileMenu />
@@ -393,7 +400,7 @@ const Layout = () => {
           </div>
 
           <main style={{
-            paddingTop: '3.5rem',
+            paddingTop: '3rem',
             paddingBottom: isJournalPage
               ? `calc(${NAV_H + BAR_H}px + env(safe-area-inset-bottom, 0px) + 1rem)`
               : `calc(${NAV_H}px + env(safe-area-inset-bottom, 0px) + 1rem)`,
