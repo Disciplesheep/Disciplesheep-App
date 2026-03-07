@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { useJournalData, useLocalStorage } from '@/hooks/useLocalStorage';
 import {
   CheckCircle2, Clock, BookOpen, FileText, FolderOpen, Maximize2, Minimize2,
-  Trash2, X, FileType2, AlertCircle, HandHeart, Plus, CheckCheck,
+  Trash2, X, FileType2, AlertCircle, Hands, Plus, CheckCheck,
   RotateCcw, Calendar, Star, Flame, Heart, Home, Users, Globe, Filter,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -22,7 +22,7 @@ const MAX_FILE_BYTES = 15 * 1024 * 1024;
 /* Tab definitions — used for the right-side FABs */
 const TABS = [
   { id: 'devotional', Icon: BookOpen,  label: "5P's",   color: 'bg-forest-500 hover:bg-forest-700', shadow: 'shadow-forest-900/30' },
-  { id: 'prayer',     Icon: HandHeart, label: 'Prayer', color: 'bg-rose-600 hover:bg-rose-700',     shadow: 'shadow-rose-900/30'   },
+  { id: 'prayer',     Icon: Hands,     label: 'Prayer', color: 'bg-rose-600 hover:bg-rose-700',     shadow: 'shadow-rose-900/30'   },
   { id: 'pdf',        Icon: FileText,  label: 'Files',  color: 'bg-stone-600 hover:bg-stone-700',   shadow: 'shadow-stone-900/30'  },
 ];
 
@@ -681,15 +681,15 @@ const JournalEntry = () => {
     <div className="space-y-4 pb-6">
 
       {/* ── Right-side FABs — matches ExpenseLedger positioning ── */}
-      <div className={`fixed right-16 top-[62%] z-40 flex flex-col gap-4 items-center transition-all duration-150 ${
+      <div className={`fixed right-16 top-[62%] z-40 flex flex-col gap-6 items-center transition-all duration-150 ${
         fabVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-16 pointer-events-none'
       }`}>
         {TABS.map(({ id, Icon, label, color, shadow }) => (
           <button key={id} onClick={() => handleTabClick(id)} title={label}
-            className={`w-12 h-12 rounded-full text-white flex items-center justify-center shadow-lg active:scale-95 transition-all ${color} shadow-${shadow} ${
+            className={`w-14 h-14 rounded-full text-white flex items-center justify-center shadow-lg active:scale-95 transition-all ${color} shadow-${shadow} ${
               activeTab === id ? 'ring-2 ring-white ring-offset-2 ring-offset-transparent scale-110' : ''
             }`}>
-            <Icon className="w-5 h-5" />
+            <Icon className="w-6 h-6" />
           </button>
         ))}
       </div>
