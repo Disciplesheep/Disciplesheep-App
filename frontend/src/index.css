@@ -126,6 +126,96 @@ html {
 [data-font-size="xlarge"] .text-sm   { font-size: 19px !important; line-height: 1.30; }
 [data-font-size="xlarge"] .text-base { font-size: 21px !important; line-height: 1.35; }
 
+/* ── Dialog / Modal overrides ───────────────────────────────────────────────
+   Goals:
+   - Position higher on screen (not centered — biased toward top-third)
+   - Same border-radius as page cards (rounded-xl = 0.75rem → var(--radius) = 1rem)
+   - Consistent horizontal margin on mobile (16px each side)
+   - Scrollable content area uses a right-offset scrollbar so it doesn't
+     overlap the dialog edge
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Overlay: keep the standard backdrop */
+[role="dialog"][data-state="open"],
+.fixed[data-radix-dialog-content] {
+  outline: none;
+}
+
+/* The actual dialog panel */
+[data-radix-dialog-content] {
+  /* Position: upper-third of screen instead of dead-center */
+  position: fixed !important;
+  top: 12% !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  /* Remove the default translate-y-(-50%) centering */
+  margin: 0 !important;
+
+  /* Match card roundness */
+  border-radius: var(--radius) !important; /* 1rem */
+
+  /* Consistent horizontal padding inside */
+  padding: 1.5rem !important;
+
+  /* Max-height so it never overflows off the bottom */
+  max-height: 80vh !important;
+  overflow: hidden !important;
+
+  /* Horizontal margins on small screens */
+  width: calc(100vw - 2rem) !important;
+  max-width: 28rem; /* overridden per-dialog by max-w-md / max-w-2xl */
+}
+
+/* Tablet / wider: restore sensible max-width cap */
+@media (min-width: 640px) {
+  [data-radix-dialog-content] {
+    width: auto !important;
+    min-width: 24rem;
+  }
+}
+
+/* Scrollable inner form — push scrollbar inward so it doesn't butt against
+   the rounded dialog edge. Using padding-right + scrollbar gutter. */
+[data-radix-dialog-content] .overflow-y-auto,
+[data-radix-dialog-content] [data-form] {
+  padding-right: 0.625rem !important; /* 10px — keeps scrollbar away from edge */
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 113, 108, 0.35) transparent;
+}
+
+[data-radix-dialog-content] .overflow-y-auto::-webkit-scrollbar,
+[data-radix-dialog-content] [data-form]::-webkit-scrollbar {
+  width: 5px;
+}
+[data-radix-dialog-content] .overflow-y-auto::-webkit-scrollbar-track,
+[data-radix-dialog-content] [data-form]::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-radix-dialog-content] .overflow-y-auto::-webkit-scrollbar-thumb,
+[data-radix-dialog-content] [data-form]::-webkit-scrollbar-thumb {
+  background: rgba(120, 113, 108, 0.35);
+  border-radius: 99px;
+}
+
+/* Dark mode scrollbar */
+.dark [data-radix-dialog-content] .overflow-y-auto::-webkit-scrollbar-thumb,
+.dark [data-radix-dialog-content] [data-form]::-webkit-scrollbar-thumb {
+  background: rgba(168, 162, 158, 0.3);
+}
+
+/* DialogHeader padding fix — remove double top padding */
+[data-radix-dialog-content] [data-radix-dialog-title] {
+  margin-bottom: 0.25rem;
+}
+
+/* Close button — keep it inside the rounded corner */
+[data-radix-dialog-content] > button[aria-label="Close"] {
+  top: 1rem !important;
+  right: 1rem !important;
+  border-radius: 0.5rem !important;
+}
+
 /* ── Lined paper ──────────────────────────────────────────────────────────── */
 .lined-paper {
     background-image: linear-gradient(transparent 27px, #E5E7EB 28px);
