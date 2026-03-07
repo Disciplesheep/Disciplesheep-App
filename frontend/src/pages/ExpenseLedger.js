@@ -198,14 +198,18 @@ const ExpenseLedger = () => {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">PHP *</Label>
-          <Input ref={refs.php} type="number" step="0.01" value={form.php}
+          {/* type="text" inputMode="decimal" — shows numeric keyboard but prevents
+              Android's native "Next" button from jumping to the next field */}
+          <Input ref={refs.php} type="text" inputMode="decimal" value={form.php}
             onChange={e => onPhpChange(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
             placeholder="0.00" className={`${ic} font-mono`} />
         </div>
         <div>
           <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">USD</Label>
-          <Input ref={refs.usd} type="number" step="0.01" value={form.usd}
+          <Input ref={refs.usd} type="text" inputMode="decimal" value={form.usd}
             onChange={e => onUsdChange(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
             placeholder="0.00" className={`${ic} font-mono`} />
         </div>
       </div>
@@ -213,6 +217,7 @@ const ExpenseLedger = () => {
         <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Note (optional)</Label>
         <Input ref={refs.note} type="text" value={form.note}
           onChange={e => setForm({ ...form, note: e.target.value })}
+          onKeyDown={e => e.key === 'Enter' && e.preventDefault()}
           placeholder="e.g. Birthday gift, Special offering" className={ic} />
       </div>
       <p className="text-xs text-stone-500 dark:text-stone-400">Exchange rate: ₱{USD_TO_PHP} = $1</p>
