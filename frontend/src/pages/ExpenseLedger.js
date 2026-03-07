@@ -213,8 +213,7 @@ const ExpenseLedger = () => {
         <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Note (optional)</Label>
         <Input ref={refs.note} type="text" value={form.note}
           onChange={e => setForm({ ...form, note: e.target.value })}
-          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onSubmit(); } }}
-          placeholder="e.g. Birthday gift, Special offering · Press Enter to save" className={ic} />
+          placeholder="e.g. Birthday gift, Special offering" className={ic} />
       </div>
       <p className="text-xs text-stone-500 dark:text-stone-400">Exchange rate: ₱{USD_TO_PHP} = $1</p>
       <Button onClick={onSubmit} className="w-full bg-forest-500 hover:bg-forest-900 text-white rounded-full h-11">
