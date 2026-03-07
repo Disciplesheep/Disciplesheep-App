@@ -23,13 +23,14 @@ const MAX_FILE_BYTES = 15 * 1024 * 1024;
 const TABS = [
   { id: 'devotional', Icon: BookOpen,  label: "5P's",   color: 'bg-forest-500 hover:bg-forest-700', shadow: 'shadow-forest-900/30' },
   { id: 'prayer',     Icon: () => (
-    <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      {/* Left hand */}
-      <path d="M6.5 14 L4 11 C3.2 10 3.5 8.7 4.5 8.1 C5.3 7.6 6.3 7.8 7 8.5 L9 11 L9 17 C9 18.7 7.7 20 6 20 L5 20 C4.4 20 4 19.6 4 19 L4 16 C4 15 5 14 6.5 14 Z" />
-      {/* Right hand */}
-      <path d="M17.5 14 L20 11 C20.8 10 20.5 8.7 19.5 8.1 C18.7 7.6 17.7 7.8 17 8.5 L15 11 L15 17 C15 18.7 16.3 20 18 20 L19 20 C19.6 20 20 19.6 20 19 L20 16 C20 15 19 14 17.5 14 Z" />
-      {/* Fingers meeting at top */}
-      <path d="M9 11 L9 6 C9 5 9.8 4 11 4 L13 4 C14.2 4 15 5 15 6 L15 11" />
+    <svg viewBox="0 0 36 36" className="w-6 h-6" fill="currentColor">
+      {/* Right hand fingers */}
+      <path fill="#F7DECE" d="M27.3 7.2c-.7-.7-1.8-.7-2.5 0l-5.6 5.6V9.5c0-1-.8-1.8-1.8-1.8s-1.8.8-1.8 1.8v8.3l-1.2-1.2c-.7-.7-1.8-.7-2.5 0s-.7 1.8 0 2.5l5.5 5.5c.7 2.2 2.7 3.7 5.1 3.7 3 0 5.4-2.4 5.4-5.4V9.7c0-1-.8-1.8-1.8-1.8-.4 0-.8.2-1.1.4.1-.3.2-.7.2-1.1 0-.5-.2-1-.9-1z"/>
+      {/* Left hand fingers */}
+      <path fill="#EEC2AD" d="M8.7 7.2c.7-.7 1.8-.7 2.5 0l5.6 5.6V9.5c0-1 .8-1.8 1.8-1.8s1.8.8 1.8 1.8v8.3l1.2-1.2c.7-.7 1.8-.7 2.5 0s.7 1.8 0 2.5l-5.5 5.5c-.7 2.2-2.7 3.7-5.1 3.7-3 0-5.4-2.4-5.4-5.4V9.7c0-1 .8-1.8 1.8-1.8.4 0 .8.2 1.1.4C10 8 9.9 7.6 9.9 7.2c0-.5.2-1 .9-1-.7 0-1.4.3-2.1 1z"/>
+      {/* Palms base */}
+      <path fill="#F7DECE" d="M18 13.5v10.8c.6.5 1.3.8 2 1V13.5H18z"/>
+      <path fill="#EEC2AD" d="M18 13.5v10.8c-.6.5-1.3.8-2 1V13.5H18z"/>
     </svg>
   ), label: 'Prayer', color: 'bg-rose-600 hover:bg-rose-700',     shadow: 'shadow-rose-900/30'   },
   { id: 'pdf',        Icon: FileText,  label: 'Files',  color: 'bg-stone-600 hover:bg-stone-700',   shadow: 'shadow-stone-900/30'  },
