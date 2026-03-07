@@ -22,7 +22,7 @@ const MAX_FILE_BYTES = 15 * 1024 * 1024;
 /* Tab definitions — used for the right-side FABs */
 const TABS = [
   { id: 'devotional', Icon: BookOpen,  label: "5P's",   color: 'bg-forest-500 hover:bg-forest-700', shadow: 'shadow-forest-900/30' },
-  { id: 'prayer',     Icon: () => <span style={{ fontSize: '24px', lineHeight: 1 }}>🙏</span>, label: 'Prayer', color: 'bg-rose-600 hover:bg-rose-700',     shadow: 'shadow-rose-900/30'   },
+  { id: 'prayer',     Icon: () => <span style={{ fontSize: '24px', lineHeight: 1 }}>🙏</span>, label: 'Prayer', color: 'bg-violet-700 hover:bg-violet-800',   shadow: 'shadow-violet-900/30' },
   { id: 'pdf',        Icon: FileText,  label: 'Files',  color: 'bg-stone-600 hover:bg-stone-700',   shadow: 'shadow-stone-900/30'  },
 ];
 
