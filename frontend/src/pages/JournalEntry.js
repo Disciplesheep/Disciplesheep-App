@@ -563,9 +563,12 @@ const JournalEntry = () => {
   const [saveStatus, setSaveStatus] = useState('saved');
   const [activeTab,  setActiveTab]  = useState('devotional');
 
-  /* ── FAB visibility (hide-on-scroll) ── */
+  /* ── FAB visibility (hide-on-scroll + hide-on-typing) ── */
   const [fabVisible,  setFabVisible]  = useState(true);
+  const [isTyping,    setIsTyping]    = useState(false);
   const scrollTimer = useRef(null);
+  const typingTimer = useRef(null);
+
   useEffect(() => {
     const onScroll = () => {
       setFabVisible(false);
@@ -575,6 +578,14 @@ const JournalEntry = () => {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => { window.removeEventListener('scroll', onScroll); clearTimeout(scrollTimer.current); };
   }, []);
+
+  const handleTypingStart = useCallback(() => {
+    setIsTyping(true);
+    clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(() => setIsTyping(false), 1500);
+  }, []);
+
+  useEffect(() => () => clearTimeout(typingTimer.current), []);
 
   // Rebuild when date changes
   useEffect(() => {
@@ -601,9 +612,9 @@ const JournalEntry = () => {
   }, [entry]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Stable setters
-  const setPracticeNotes = useCallback((e) => setEntry(prev => ({ ...prev, practiceNotes: e.target.value })), []);
-  const setPraises       = useCallback((e) => setEntry(prev => ({ ...prev, praises: e.target.value })), []);
-  const setPrayer        = useCallback((e) => setEntry(prev => ({ ...prev, prayer:  e.target.value })), []);
+  const setPracticeNotes = useCallback((e) => { handleTypingStart(); setEntry(prev => ({ ...prev, practiceNotes: e.target.value })); }, [handleTypingStart]);
+  const setPraises       = useCallback((e) => { handleTypingStart(); setEntry(prev => ({ ...prev, praises: e.target.value })); }, [handleTypingStart]);
+  const setPrayer        = useCallback((e) => { handleTypingStart(); setEntry(prev => ({ ...prev, prayer:  e.target.value })); }, [handleTypingStart]);
 
   // File state
   const [savedFiles,   setSavedFiles]   = useLocalStorage('savedPdfs', []);
@@ -682,7 +693,7 @@ const JournalEntry = () => {
 
       {/* ── Right-side FABs — matches ExpenseLedger positioning ── */}
       <div className={`fixed right-16 top-[74%] z-40 flex flex-col gap-6 items-center transition-all duration-150 ${
-        fabVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-16 pointer-events-none'
+        fabVisible && !isTyping ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-16 pointer-events-none'
       }`}>
         {TABS.filter(({ id }) => id !== activeTab).map(({ id, Icon, label, color, shadow }) => (
           <button key={id} onClick={() => handleTabClick(id)} title={label}
