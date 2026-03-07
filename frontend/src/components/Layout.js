@@ -467,13 +467,13 @@ const Layout = () => {
 
       if (step === 0) {
         exitStepRef.current = 1;
-        setExitToastMsg('Press back again to save backup');
-        exitTimerRef.current = setTimeout(resetExitStep, 3000);
+        triggerAutoExport();
+        setExitToastMsg('✅ Backup saved! Press back again to exit');
+        exitTimerRef.current = setTimeout(resetExitStep, 4000);
       } else if (step === 1) {
         exitStepRef.current = 2;
-        triggerAutoExport();
-        setExitToastMsg('✅ Backup saved! Press back once more to exit');
-        exitTimerRef.current = setTimeout(resetExitStep, 4000);
+        setExitToastMsg('Press back once more to exit');
+        exitTimerRef.current = setTimeout(resetExitStep, 3000);
       } else {
         resetExitStep();
         if (window.navigator.app) window.navigator.app.exitApp();
