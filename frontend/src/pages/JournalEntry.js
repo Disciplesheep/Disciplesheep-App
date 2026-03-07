@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { useJournalData } from '@/hooks/useLocalStorage';
+import { useJournalData, useLocalStorage } from '@/hooks/useLocalStorage';
 import {
   CheckCircle2, Clock, BookOpen, FileText, Upload, Maximize2, Minimize2,
   Trash2, FolderOpen, X, FileType2, AlertCircle
@@ -10,42 +10,84 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { formatDate } from '@/utils/dateUtils';
 import { getDevotionalForDate } from '@/data/dailyDevotionals';
-import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { toast } from 'sonner';
 
-/* ── Saved file record shape: { id, name, size, fileType, dataUrl, savedAt } ── */
+/* ── Constants — module-level, never re-allocated ────────────────────────── */
+const ACCEPT = '.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const FONT_SIZE_MIN = 12;
+const FONT_SIZE_MAX = 32;
+const MAX_FILE_BYTES = 15 * 1024 * 1024;
 
-/* ── Load mammoth.js from CDN ──────────────────────────────────────────── */
-const loadMammoth = () =>
-  new Promise((resolve, reject) => {
-    if (window.mammoth) { resolve(window.mammoth); return; }
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
-    s.onload  = () => resolve(window.mammoth);
-    s.onerror = () => reject(new Error('Failed to load mammoth.js'));
-    document.head.appendChild(s);
-  });
+const TABS = [
+  { id: 'devotional', icon: BookOpen, label: "5P's" },
+  { id: 'pdf',        icon: FileText, label: 'Files' },
+];
 
+const WRITING_STYLE = {
+  minHeight: '128px',
+  height: 'auto',
+  overflow: 'hidden',
+  resize: 'none',
+};
+
+/* ── Pure helpers — module-level ─────────────────────────────────────────── */
 const isPdf  = (name) => name?.toLowerCase().endsWith('.pdf');
 const isDocx = (name) => !!name?.toLowerCase().match(/\.docx?$/);
 
-const fmtSize = (bytes) => {
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
+const fmtSize = (bytes) =>
+  bytes < 1024 * 1024
+    ? `${(bytes / 1024).toFixed(0)} KB`
+    : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 
-/* ── Auto-grow helper ────────────────────────────────────────────────────── */
 const autoGrow = (e) => {
   e.target.style.height = 'auto';
   e.target.style.height = e.target.scrollHeight + 'px';
 };
 
-/* ── DOCX Viewer ─────────────────────────────────────────────────────────── */
-const FONT_SIZES = [12, 14, 16, 18, 20, 24];
+const buildEntry = (dev, saved = {}) => ({
+  passage:       dev.passage,
+  keyVerse:      dev.keyVerse,
+  keyVerseText:  dev.keyVerseText,
+  principle:     dev.principle,
+  practice:      dev.practice,
+  practiceNotes: saved.practiceNotes || '',
+  praises:       saved.praises || '',
+  prayer:        saved.prayer  || '',
+  tasks:         saved.tasks   || [],
+});
 
+const dataUrlToBlob = (dataUrl) => {
+  const [header, base64] = dataUrl.split(',');
+  const mime   = header.match(/:(.*?);/)[1];
+  const binary = atob(base64);
+  const bytes  = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+};
+
+/* ── Lazy mammoth loader — called at most once ───────────────────────────── */
+let mammothPromise = null;
+const loadMammoth = () => {
+  if (mammothPromise) return mammothPromise;
+  mammothPromise = new Promise((resolve, reject) => {
+    if (window.mammoth) { resolve(window.mammoth); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
+    s.onload  = () => resolve(window.mammoth);
+    s.onerror = () => { mammothPromise = null; reject(new Error('Failed to load mammoth.js')); };
+    document.head.appendChild(s);
+  });
+  return mammothPromise;
+};
+
+/* ── FileIcon — pure, no state ───────────────────────────────────────────── */
+const FileIcon = ({ name, className = 'w-4 h-4' }) =>
+  isDocx(name) ? <FileType2 className={className} /> : <FileText className={className} />;
+
+/* ── DocxViewer ──────────────────────────────────────────────────────────── */
 const DocxViewer = ({ dataUrl, fontSize = 16 }) => {
-  const [html, setHtml]       = useState('');
-  const [error, setError]     = useState('');
+  const [html,    setHtml]    = useState('');
+  const [error,   setError]   = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -58,7 +100,7 @@ const DocxViewer = ({ dataUrl, fontSize = 16 }) => {
         const binary  = atob(base64);
         const bytes   = new Uint8Array(binary.length);
         for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        const result = await mammoth.convertToHtml({ arrayBuffer: bytes.buffer });
+        const result  = await mammoth.convertToHtml({ arrayBuffer: bytes.buffer });
         if (!cancelled) setHtml(result.value);
       } catch (e) {
         if (!cancelled) setError(e.message || 'Could not convert document.');
@@ -74,13 +116,11 @@ const DocxViewer = ({ dataUrl, fontSize = 16 }) => {
       <Clock className="w-5 h-5 animate-spin mr-2" /> Converting document…
     </div>
   );
-
   if (error) return (
     <div className="flex items-center justify-center h-40 gap-2 text-red-400 text-sm p-4">
       <AlertCircle className="w-5 h-5 shrink-0" /><span>{error}</span>
     </div>
   );
-
   return (
     <div
       className="prose prose-stone dark:prose-invert max-w-none p-6 overflow-y-auto"
@@ -90,36 +130,43 @@ const DocxViewer = ({ dataUrl, fontSize = 16 }) => {
   );
 };
 
+/* ── WritingField — prevents parent re-render from re-mounting textareas ─── */
+const WritingField = React.memo(({ label, value, onChange, placeholder, testId }) => (
+  <div>
+    <Label className="text-xs uppercase tracking-widest text-mango-500 dark:text-mango-400 font-bold mb-2 block">
+      {label}
+    </Label>
+    <Textarea
+      value={value}
+      onChange={onChange}
+      onInput={autoGrow}
+      placeholder={placeholder}
+      className="lined-paper bg-transparent border-none focus:ring-0 text-base font-serif text-stone-800 dark:text-stone-200 placeholder:text-stone-400 dark:placeholder:text-stone-500 leading-[2rem] pt-1 pb-0"
+      style={WRITING_STYLE}
+      data-testid={testId}
+    />
+  </div>
+));
+WritingField.displayName = 'WritingField';
+
 /* ── Main Component ──────────────────────────────────────────────────────── */
 const JournalEntry = () => {
   const { journalDate: selectedDate } = useOutletContext();
   const dateKey    = formatDate(selectedDate);
   const { dailyEntries, setDailyEntries } = useJournalData();
-  const devotional = getDevotionalForDate(dateKey);
+  const devotional = useMemo(() => getDevotionalForDate(dateKey), [dateKey]);
 
-  const buildEntry = (dev, saved = {}) => ({
-    passage:        dev.passage,
-    keyVerse:       dev.keyVerse,
-    keyVerseText:   dev.keyVerseText,
-    principle:      dev.principle,
-    practice:       dev.practice,
-    practiceNotes:  saved.practiceNotes || '',
-    praises:        saved.praises || '',
-    prayer:         saved.prayer  || '',
-    tasks:          saved.tasks   || [],
-  });
-
-  const [entry, setEntry]           = useState(buildEntry(devotional, dailyEntries[dateKey]));
+  const [entry,      setEntry]      = useState(() => buildEntry(devotional, dailyEntries[dateKey]));
   const [saveStatus, setSaveStatus] = useState('saved');
-  const [activeTab, setActiveTab]   = useState('devotional');
+  const [activeTab,  setActiveTab]  = useState('devotional');
 
+  // Rebuild entry when date changes
   useEffect(() => {
-    const dev = getDevotionalForDate(dateKey);
-    setEntry(buildEntry(dev, dailyEntries[dateKey]));
+    setEntry(buildEntry(getDevotionalForDate(dateKey), dailyEntries[dateKey]));
     setSaveStatus('saved');
-  }, [dateKey, dailyEntries]);
+  }, [dateKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Auto-save devotional ──────────────────────────────────────────────────
+  // ── Auto-save ─────────────────────────────────────────────────────────────
   const saveTimer     = useRef(null);
   const isFirstRender = useRef(true);
 
@@ -137,101 +184,104 @@ const JournalEntry = () => {
     return () => clearTimeout(saveTimer.current);
   }, [entry]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── File viewer state ─────────────────────────────────────────────────────
-  const [savedFiles, setSavedFiles]       = useLocalStorage('savedPdfs', []);
-  const [activeFile, setActiveFile]       = useState(null);
-  const [isFullscreen, setIsFullscreen]   = useState(false);
+  // ── Stable field setters — no anonymous arrow fns in render ──────────────
+  const setPracticeNotes = useCallback((e) => setEntry(prev => ({ ...prev, practiceNotes: e.target.value })), []);
+  const setPraises       = useCallback((e) => setEntry(prev => ({ ...prev, praises: e.target.value })), []);
+  const setPrayer        = useCallback((e) => setEntry(prev => ({ ...prev, prayer:  e.target.value })), []);
+
+  // ── File state ────────────────────────────────────────────────────────────
+  const [savedFiles,    setSavedFiles]    = useLocalStorage('savedPdfs', []);
+  const [activeFile,    setActiveFile]    = useState(null);
+  const [isFullscreen,  setIsFullscreen]  = useState(false);
   const [tempObjectUrl, setTempObjectUrl] = useState(null);
-  const [docFontSize, setDocFontSize]     = useState(32);
+  const [docFontSize,   setDocFontSize]   = useState(32);
+
   const fileInputRef  = useRef();
   const tempFileRef   = useRef();
   const fullscreenRef = useRef();
 
-  const openSaved = (file) => {
+  // Stable font size adjusters
+  const decFontSize = useCallback(() => setDocFontSize(s => Math.max(FONT_SIZE_MIN, s - 2)), []);
+  const incFontSize = useCallback(() => setDocFontSize(s => Math.min(FONT_SIZE_MAX, s + 2)), []);
+
+  const revokeTempUrl = useCallback(() => {
+    setTempObjectUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+  }, []);
+
+  const closePdf = useCallback(() => {
+    setActiveFile(null);
+    setIsFullscreen(false);
+    revokeTempUrl();
+  }, [revokeTempUrl]);
+
+  const openSaved = useCallback((file) => {
     setActiveFile({
       name: file.name,
       dataUrl: file.dataUrl,
       fileType: file.fileType || (isPdf(file.name) ? 'pdf' : 'docx'),
     });
-    if (tempObjectUrl) { URL.revokeObjectURL(tempObjectUrl); setTempObjectUrl(null); }
-  };
+    revokeTempUrl();
+  }, [revokeTempUrl]);
 
-  const closePdf = useCallback(() => {
-    setActiveFile(null);
-    setIsFullscreen(false);
-    setTempObjectUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
-  }, []);
-
-  const ACCEPT = '.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-
-  const readFile = (file, onReady) => {
+  // Shared file reader
+  const readFile = useCallback((file, onReady) => {
     if (!file) return;
     const valid = file.type.includes('pdf') || file.type.includes('word') || isPdf(file.name) || isDocx(file.name);
     if (!valid) { toast.error('Please select a PDF or Word (.docx) file'); return; }
-    if (file.size > 15 * 1024 * 1024) { toast.error('File too large (max 15 MB)'); return; }
-    const fileType = isPdf(file.name) ? 'pdf' : 'docx';
-    const reader   = new FileReader();
-    reader.onload  = (ev) => onReady(ev.target.result, fileType);
+    if (file.size > MAX_FILE_BYTES) { toast.error('File too large (max 15 MB)'); return; }
+    const reader  = new FileReader();
+    reader.onload = (ev) => onReady(ev.target.result, isPdf(file.name) ? 'pdf' : 'docx');
     reader.readAsDataURL(file);
-  };
+  }, []);
 
-  const handleSaveFile = (e) => {
+  const handleSaveFile = useCallback((e) => {
     const file = e.target.files[0];
     readFile(file, (dataUrl, fileType) => {
       const newFile = { id: Date.now().toString(), name: file.name, size: file.size, fileType, dataUrl, savedAt: new Date().toISOString() };
       setSavedFiles(prev => [newFile, ...prev]);
       setActiveFile({ name: file.name, dataUrl, fileType });
-      if (tempObjectUrl) { URL.revokeObjectURL(tempObjectUrl); setTempObjectUrl(null); }
+      revokeTempUrl();
       toast.success(`"${file.name}" saved!`);
     });
     e.target.value = '';
-  };
+  }, [readFile, setSavedFiles, revokeTempUrl]);
 
-  const handleTempView = (e) => {
+  const handleTempView = useCallback((e) => {
     const file = e.target.files[0];
     readFile(file, (dataUrl, fileType) => {
       if (fileType === 'pdf') {
-        const blob = dataUrlToBlob(dataUrl);
-        const url  = URL.createObjectURL(blob);
-        if (tempObjectUrl) URL.revokeObjectURL(tempObjectUrl);
-        setTempObjectUrl(url);
+        const url = URL.createObjectURL(dataUrlToBlob(dataUrl));
+        setTempObjectUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
         setActiveFile({ name: file.name, dataUrl: url, fileType: 'pdf', temp: true });
       } else {
         setActiveFile({ name: file.name, dataUrl, fileType: 'docx', temp: true });
       }
     });
     e.target.value = '';
-  };
+  }, [readFile]);
 
-  const dataUrlToBlob = (dataUrl) => {
-    const [header, base64] = dataUrl.split(',');
-    const mime   = header.match(/:(.*?);/)[1];
-    const binary = atob(base64);
-    const bytes  = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return new Blob([bytes], { type: mime });
-  };
-
-  const handleDeleteFile = (id, e) => {
+  const handleDeleteFile = useCallback((id, e) => {
     e.stopPropagation();
     const file = savedFiles.find(f => f.id === id);
     setSavedFiles(prev => prev.filter(f => f.id !== id));
     if (activeFile?.dataUrl === file?.dataUrl) closePdf();
     toast.success('File removed');
-  };
+  }, [savedFiles, activeFile, setSavedFiles, closePdf]);
 
-  const toggleFullscreen = () => {
-    if (!isFullscreen) { fullscreenRef.current?.requestFullscreen?.().catch(() => {}); }
-    else { document.exitFullscreen?.().catch(() => {}); }
+  const toggleFullscreen = useCallback(() => {
+    if (!isFullscreen) fullscreenRef.current?.requestFullscreen?.().catch(() => {});
+    else document.exitFullscreen?.().catch(() => {});
     setIsFullscreen(v => !v);
-  };
+  }, [isFullscreen]);
 
+  // Fullscreen escape listener
   useEffect(() => {
     const onFsChange = () => { if (!document.fullscreenElement) setIsFullscreen(false); };
     document.addEventListener('fullscreenchange', onFsChange);
     return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, []);
 
+  // Back-button integration
   useEffect(() => {
     if (activeFile) window.history.pushState({ fileOpen: true }, '');
   }, [activeFile]);
@@ -242,31 +292,13 @@ const JournalEntry = () => {
     return () => window.removeEventListener('popstate', onPopState);
   }, [activeFile, closePdf]);
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  const FileIcon = ({ name, className = 'w-4 h-4' }) =>
-    isDocx(name)
-      ? <FileType2 className={className} />
-      : <FileText  className={className} />;
-
-  const tabs = [
-    { id: 'devotional', icon: BookOpen, label: "5P's" },
-    { id: 'pdf',        icon: FileText, label: 'Files' },
-  ];
-
-  // Shared textarea style for writing spaces
-  const writingStyle = {
-    minHeight: '128px', // 4 lines at 2rem line-height (32px × 4)
-    height: 'auto',
-    overflow: 'hidden',
-    resize: 'none',
-  };
-
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4 pb-6">
 
       {/* Tab bar */}
       <div className="flex gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1">
-        {tabs.map(({ id, icon: Icon, label }) => (
+        {TABS.map(({ id, icon: Icon, label }) => (
           <button key={id} onClick={() => setActiveTab(id)}
             className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
               activeTab === id
@@ -294,18 +326,23 @@ const JournalEntry = () => {
           </p>
 
           <div className="space-y-6">
+            {/* Passage */}
             <div>
               <Label className="text-xs uppercase tracking-widest text-forest-700 dark:text-forest-400 font-bold mb-2 block">📖 Passage (NASB)</Label>
               <div className="bg-forest-50/50 dark:bg-forest-900/30 border-l-4 border-forest-500 p-4 rounded-r-lg">
                 <p className="font-serif text-base text-stone-800 dark:text-stone-200 leading-relaxed italic">{entry.passage}</p>
               </div>
             </div>
+
+            {/* Key Verse */}
             <div>
               <Label className="text-xs uppercase tracking-widest text-amber-600 dark:text-amber-400 font-bold mb-2 block">🔑 Key Verse — {entry.keyVerse}</Label>
               <div className="bg-amber-50/50 dark:bg-amber-900/20 border-l-4 border-amber-500 p-4 rounded-r-lg">
                 <p className="text-sm text-stone-800 dark:text-stone-200 leading-relaxed italic">"{entry.keyVerseText}"</p>
               </div>
             </div>
+
+            {/* Principle */}
             <div>
               <Label className="text-xs uppercase tracking-widest text-forest-700 dark:text-forest-400 font-bold mb-2 block">💡 Principle — Timeless Truth for Church Planting</Label>
               <div className="bg-stone-50 dark:bg-stone-700 border-l-4 border-stone-400 dark:border-stone-500 p-4 rounded-r-lg">
@@ -313,7 +350,7 @@ const JournalEntry = () => {
               </div>
             </div>
 
-            {/* ── Practice: prefilled block + personal writing space ── */}
+            {/* Practice */}
             <div>
               <Label className="text-xs uppercase tracking-widest text-forest-700 dark:text-forest-400 font-bold mb-2 block">✓ Practice — Today's Action Step</Label>
               <div className="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 p-4 rounded-r-lg mb-3">
@@ -321,37 +358,31 @@ const JournalEntry = () => {
               </div>
               <Textarea
                 value={entry.practiceNotes}
-                onChange={(e) => setEntry({ ...entry, practiceNotes: e.target.value })}
+                onChange={setPracticeNotes}
                 onInput={autoGrow}
                 placeholder="Write how you will apply this today…"
                 className="lined-paper bg-transparent border-none focus:ring-0 text-base font-serif text-stone-800 dark:text-stone-200 placeholder:text-stone-400 dark:placeholder:text-stone-500 leading-[2rem] pt-1 pb-0"
-                style={writingStyle}
+                style={WRITING_STYLE}
               />
             </div>
 
-            {/* ── Praises ── */}
-            <div>
-              <Label className="text-xs uppercase tracking-widest text-mango-500 dark:text-mango-400 font-bold mb-2 block">🙌 Praises — What do I thank God for?</Label>
-              <Textarea value={entry.praises}
-                onChange={(e) => setEntry({ ...entry, praises: e.target.value })}
-                onInput={autoGrow}
-                placeholder="Express your gratitude based on today's passage..."
-                className="lined-paper bg-transparent border-none focus:ring-0 text-base font-serif text-stone-800 dark:text-stone-200 placeholder:text-stone-400 dark:placeholder:text-stone-500 leading-[2rem] pt-1 pb-0"
-                style={writingStyle}
-                data-testid="praises-input" />
-            </div>
+            {/* Praises */}
+            <WritingField
+              label="🙌 Praises — What do I thank God for?"
+              value={entry.praises}
+              onChange={setPraises}
+              placeholder="Express your gratitude based on today's passage..."
+              testId="praises-input"
+            />
 
-            {/* ── Prayer ── */}
-            <div>
-              <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">🙏 Prayer — My prayers for today</Label>
-              <Textarea value={entry.prayer}
-                onChange={(e) => setEntry({ ...entry, prayer: e.target.value })}
-                onInput={autoGrow}
-                placeholder="Pray the passage back to God, intercede for Timothys and Puerto Princesa..."
-                className="lined-paper bg-transparent border-none focus:ring-0 text-base font-serif text-stone-800 dark:text-stone-200 placeholder:text-stone-400 dark:placeholder:text-stone-500 leading-[2rem] pt-1 pb-0"
-                style={writingStyle}
-                data-testid="prayer-input" />
-            </div>
+            {/* Prayer */}
+            <WritingField
+              label="🙏 Prayer — My prayers for today"
+              value={entry.prayer}
+              onChange={setPrayer}
+              placeholder="Pray the passage back to God, intercede for Timothys and Puerto Princesa..."
+              testId="prayer-input"
+            />
           </div>
         </Card>
       )}
@@ -397,19 +428,13 @@ const JournalEntry = () => {
                 <div className="flex items-center gap-1 shrink-0">
                   {activeFile.fileType === 'docx' && (
                     <div className="flex items-center gap-0.5 mr-1 bg-stone-100 dark:bg-stone-700 rounded-lg p-0.5">
-                      <button
-                        onClick={() => setDocFontSize(s => Math.max(12, s - 2))}
+                      <button onClick={decFontSize}
                         className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white dark:hover:bg-stone-600 text-stone-600 dark:text-stone-300 font-bold transition-colors text-sm"
-                        title="Decrease font size" style={{ minHeight: 0 }}>
-                        A−
-                      </button>
+                        title="Decrease font size" style={{ minHeight: 0 }}>A−</button>
                       <span className="text-xs text-stone-500 dark:text-stone-400 font-mono w-6 text-center">{docFontSize}</span>
-                      <button
-                        onClick={() => setDocFontSize(s => Math.min(32, s + 2))}
+                      <button onClick={incFontSize}
                         className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white dark:hover:bg-stone-600 text-stone-600 dark:text-stone-300 font-bold transition-colors text-sm"
-                        title="Increase font size" style={{ minHeight: 0 }}>
-                        A+
-                      </button>
+                        title="Increase font size" style={{ minHeight: 0 }}>A+</button>
                     </div>
                   )}
                   <button onClick={toggleFullscreen}
@@ -425,7 +450,7 @@ const JournalEntry = () => {
                 </div>
               </div>
 
-              {/* Render PDF via iframe, DOCX via mammoth */}
+              {/* Viewer */}
               {activeFile.fileType === 'pdf' ? (
                 <iframe src={activeFile.dataUrl} title={activeFile.name} className="w-full"
                   style={{ height: isFullscreen ? 'calc(100vh - 48px)' : '70vh', border: 'none', display: 'block' }} />
