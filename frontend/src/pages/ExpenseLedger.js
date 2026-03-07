@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { formatDate, EXPENSE_CATEGORIES, MONTHLY_BUDGET_PHP, MONTHLY_BUDGET_USD, USD_TO_PHP } from '@/utils/dateUtils';
 import DeleteGuardDialog from '@/components/DeleteGuardDialog';
 
-/* ── Auto-focus next field helper ─────────────────────────────────────────── */
+/* ── Auto-focus next field helper (text fields only) ──────────────────────── */
 const focusNext = (currentRef) => {
   const form = currentRef?.closest('[data-form]');
   if (!form) return;
@@ -22,6 +22,8 @@ const focusNext = (currentRef) => {
   if (idx >= 0 && idx < fields.length - 1) fields[idx + 1]?.focus();
 };
 
+// Only use onEnter for text/date fields — NOT number inputs (mobile keyboards
+// fire Enter-like keydown events after each digit, causing unwanted advance)
 const onEnter = (ref) => (e) => {
   if (e.key === 'Enter') { e.preventDefault(); focusNext(ref.current); }
 };
@@ -173,7 +175,7 @@ const ExpenseLedger = () => {
 
   const ic = "border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100";
 
-  // Reusable Support/Gift form with auto-next
+  // Support/Gift form — onEnter only on text/date fields, NOT number inputs
   const SupportFormFields = ({ form, setForm, onPhpChange, onUsdChange, onSubmit, isEditing, refs }) => (
     <div className="space-y-4 mt-4" data-form>
       <div>
@@ -192,16 +194,16 @@ const ExpenseLedger = () => {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">PHP *</Label>
+          {/* No onKeyDown here — number inputs on mobile fire Enter after each digit */}
           <Input ref={refs.php} type="number" step="0.01" value={form.php}
             onChange={e => onPhpChange(e.target.value)}
-            onKeyDown={onEnter(refs.php)}
             placeholder="0.00" className={`${ic} font-mono`} />
         </div>
         <div>
           <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">USD</Label>
+          {/* No onKeyDown here — number inputs on mobile fire Enter after each digit */}
           <Input ref={refs.usd} type="number" step="0.01" value={form.usd}
             onChange={e => onUsdChange(e.target.value)}
-            onKeyDown={onEnter(refs.usd)}
             placeholder="0.00" className={`${ic} font-mono`} />
         </div>
       </div>
@@ -293,7 +295,6 @@ const ExpenseLedger = () => {
                 <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Category *</Label>
                 <Select value={formData.category} onValueChange={v => {
                   setFormData({ ...formData, category: v });
-                  // Auto-focus item field after category selection
                   setTimeout(() => refExpItem.current?.focus(), 100);
                 }}>
                   <SelectTrigger className={ic}><SelectValue placeholder="Select category" /></SelectTrigger>
@@ -312,16 +313,16 @@ const ExpenseLedger = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">PHP *</Label>
+                  {/* No onKeyDown — number inputs fire Enter-like events on mobile after each digit */}
                   <Input ref={refExpPhp} type="number" step="0.01" value={formData.php}
                     onChange={e => handlePhpChange(e.target.value)}
-                    onKeyDown={onEnter(refExpPhp)}
                     placeholder="0.00" className={`${ic} font-mono`} />
                 </div>
                 <div>
                   <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">USD</Label>
+                  {/* No onKeyDown — number inputs fire Enter-like events on mobile after each digit */}
                   <Input ref={refExpUsd} type="number" step="0.01" value={formData.usd}
                     onChange={e => handleUsdChange(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit(); } }}
                     placeholder="0.00 · Press Enter to save" className={`${ic} font-mono`} />
                 </div>
               </div>
