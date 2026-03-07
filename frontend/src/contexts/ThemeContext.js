@@ -1,90 +1,66 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const ThemeContext = createContext();
+// ── Outside component — never recreated ─────────────────────────────────────
+const VALID_SIZES   = ['small', 'medium', 'large', 'xlarge'];
+const getSystemTheme = () => (new Date().getHours() >= 6 && new Date().getHours() < 18) ? 'light' : 'dark';
+
+const ThemeContext = createContext(null);
 
 export const useTheme = () => {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within ThemeProvider');
-  }
-  return context;
+  const ctx = useContext(ThemeContext);
+  if (!ctx) throw new Error('useTheme must be used within ThemeProvider');
+  return ctx;
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [themeMode, setThemeMode] = useState(() => {
-    const saved = localStorage.getItem('themeMode');
-    return saved || 'light'; // light, dark, auto
-  });
+  const [themeMode, setThemeMode] = useState(
+    () => localStorage.getItem('themeMode') || 'light'
+  );
 
   const [fontSize, setFontSize] = useState(() => {
     const saved = localStorage.getItem('fontSize');
-    // Migrate old values that no longer exist to the new default
-    const validSizes = ['small', 'medium', 'large', 'xlarge'];
-    return validSizes.includes(saved) ? saved : 'small';
+    return VALID_SIZES.includes(saved) ? saved : 'small';
   });
 
-  const getSystemTheme = () => {
-    const hour = new Date().getHours();
-    // Daytime: 6am - 6pm, Night: 6pm - 6am
-    return (hour >= 6 && hour < 18) ? 'light' : 'dark';
-  };
+  // Derived — no separate state needed; computed from themeMode on demand
+  const [actualTheme, setActualTheme] = useState(
+    () => themeMode === 'auto' ? getSystemTheme() : themeMode
+  );
 
-  const [actualTheme, setActualTheme] = useState(() => {
-    if (themeMode === 'auto') {
-      return getSystemTheme();
-    }
-    return themeMode;
-  });
-
+  // Persist themeMode + keep actualTheme in sync; interval only when auto
   useEffect(() => {
     localStorage.setItem('themeMode', themeMode);
-    
-    if (themeMode === 'auto') {
-      const theme = getSystemTheme();
-      setActualTheme(theme);
-      
-      // Check every minute if time changed enough to switch themes
-      const interval = setInterval(() => {
-        const newTheme = getSystemTheme();
-        if (newTheme !== actualTheme) {
-          setActualTheme(newTheme);
-        }
-      }, 60000); // Check every minute
-      
-      return () => clearInterval(interval);
-    } else {
-      setActualTheme(themeMode);
-    }
-  }, [themeMode, actualTheme]);
 
-  useEffect(() => {
-    if (actualTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    if (themeMode !== 'auto') {
+      setActualTheme(themeMode);
+      return;
     }
+
+    setActualTheme(getSystemTheme());
+
+    // No stale-closure bug: always calls getSystemTheme() fresh each tick
+    const id = setInterval(() => setActualTheme(getSystemTheme()), 60_000);
+    return () => clearInterval(id);
+  }, [themeMode]); // ← removed actualTheme dep so interval isn't reset on every theme change
+
+  // Apply dark class
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', actualTheme === 'dark');
   }, [actualTheme]);
 
+  // Persist + apply font size
   useEffect(() => {
     localStorage.setItem('fontSize', fontSize);
     document.documentElement.setAttribute('data-font-size', fontSize);
   }, [fontSize]);
 
-  const changeThemeMode = (mode) => {
-    setThemeMode(mode);
-  };
-
-  const changeFontSize = (size) => {
-    setFontSize(size);
-  };
-
   return (
-    <ThemeContext.Provider value={{ 
-      themeMode, 
-      actualTheme, 
-      changeThemeMode, 
-      fontSize, 
-      changeFontSize 
+    <ThemeContext.Provider value={{
+      themeMode,
+      actualTheme,
+      changeThemeMode: setThemeMode,   // setter is stable — no wrapper needed
+      fontSize,
+      changeFontSize:  setFontSize,
     }}>
       {children}
     </ThemeContext.Provider>
