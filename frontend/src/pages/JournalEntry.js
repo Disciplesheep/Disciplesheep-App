@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom';
 import { useJournalData, useLocalStorage } from '@/hooks/useLocalStorage';
 import {
-  CheckCircle2, Clock, BookOpen, FileText, Upload, Maximize2, Minimize2,
-  Trash2, FolderOpen, X, FileType2, AlertCircle
+  CheckCircle2, Clock, BookOpen, FileText, Save, Maximize2, Minimize2,
+  Trash2, X, FileType2, AlertCircle
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -191,29 +191,22 @@ const JournalEntry = () => {
   const setPrayer        = useCallback((e) => setEntry(prev => ({ ...prev, prayer:  e.target.value })), []);
 
   // ── File state ────────────────────────────────────────────────────────────
-  const [savedFiles,    setSavedFiles]    = useLocalStorage('savedPdfs', []);
-  const [activeFile,    setActiveFile]    = useState(null);
-  const [isFullscreen,  setIsFullscreen]  = useState(false);
-  const [tempObjectUrl, setTempObjectUrl] = useState(null);
-  const [docFontSize,   setDocFontSize]   = useState(32);
+  const [savedFiles,   setSavedFiles]   = useLocalStorage('savedPdfs', []);
+  const [activeFile,   setActiveFile]   = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [docFontSize,  setDocFontSize]  = useState(32);
 
   const fileInputRef  = useRef();
-  const tempFileRef   = useRef();
   const fullscreenRef = useRef();
 
   // Stable font size adjusters
   const decFontSize = useCallback(() => setDocFontSize(s => Math.max(FONT_SIZE_MIN, s - 2)), []);
   const incFontSize = useCallback(() => setDocFontSize(s => Math.min(FONT_SIZE_MAX, s + 2)), []);
 
-  const revokeTempUrl = useCallback(() => {
-    setTempObjectUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
-  }, []);
-
   const closePdf = useCallback(() => {
     setActiveFile(null);
     setIsFullscreen(false);
-    revokeTempUrl();
-  }, [revokeTempUrl]);
+  }, []);
 
   const openSaved = useCallback((file) => {
     setActiveFile({
@@ -221,8 +214,7 @@ const JournalEntry = () => {
       dataUrl: file.dataUrl,
       fileType: file.fileType || (isPdf(file.name) ? 'pdf' : 'docx'),
     });
-    revokeTempUrl();
-  }, [revokeTempUrl]);
+  }, []);
 
   // Shared file reader
   const readFile = useCallback((file, onReady) => {
@@ -241,25 +233,10 @@ const JournalEntry = () => {
       const newFile = { id: Date.now().toString(), name: file.name, size: file.size, fileType, dataUrl, savedAt: new Date().toISOString() };
       setSavedFiles(prev => [newFile, ...prev]);
       setActiveFile({ name: file.name, dataUrl, fileType });
-      revokeTempUrl();
       toast.success(`"${file.name}" saved!`);
     });
     e.target.value = '';
-  }, [readFile, setSavedFiles, revokeTempUrl]);
-
-  const handleTempView = useCallback((e) => {
-    const file = e.target.files[0];
-    readFile(file, (dataUrl, fileType) => {
-      if (fileType === 'pdf') {
-        const url = URL.createObjectURL(dataUrlToBlob(dataUrl));
-        setTempObjectUrl(prev => { if (prev) URL.revokeObjectURL(prev); return url; });
-        setActiveFile({ name: file.name, dataUrl: url, fileType: 'pdf', temp: true });
-      } else {
-        setActiveFile({ name: file.name, dataUrl, fileType: 'docx', temp: true });
-      }
-    });
-    e.target.value = '';
-  }, [readFile]);
+  }, [readFile, setSavedFiles]);
 
   const handleDeleteFile = useCallback((id, e) => {
     e.stopPropagation();
@@ -395,22 +372,13 @@ const JournalEntry = () => {
       {activeTab === 'pdf' && (
         <div className="space-y-4">
 
-          {/* Action buttons */}
-          <div className="grid grid-cols-2 gap-3">
-            <button onClick={() => fileInputRef.current?.click()}
-              className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-forest-300 dark:border-forest-700 text-forest-600 dark:text-forest-400 hover:bg-forest-50 dark:hover:bg-forest-900/20 transition-colors text-sm font-medium"
-              style={{ minHeight: 0 }}>
-              <Upload className="w-4 h-4" /> Save File
-            </button>
-            <input ref={fileInputRef} type="file" accept={ACCEPT} className="hidden" onChange={handleSaveFile} />
-
-            <button onClick={() => tempFileRef.current?.click()}
-              className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-stone-300 dark:border-stone-600 text-stone-500 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors text-sm font-medium"
-              style={{ minHeight: 0 }}>
-              <FolderOpen className="w-4 h-4" /> Open Once
-            </button>
-            <input ref={tempFileRef} type="file" accept={ACCEPT} className="hidden" onChange={handleTempView} />
-          </div>
+          {/* Action button — full width, single action */}
+          <button onClick={() => fileInputRef.current?.click()}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-forest-300 dark:border-forest-700 text-forest-600 dark:text-forest-400 hover:bg-forest-50 dark:hover:bg-forest-900/20 transition-colors text-sm font-medium"
+            style={{ minHeight: 0 }}>
+            <Save className="w-4 h-4" /> Save File
+          </button>
+          <input ref={fileInputRef} type="file" accept={ACCEPT} className="hidden" onChange={handleSaveFile} />
 
           <p className="text-xs text-stone-400 dark:text-stone-500 text-center -mt-1">
             Supports PDF and Word (.doc, .docx) · Max 15 MB
@@ -427,7 +395,6 @@ const JournalEntry = () => {
                 <p className="text-sm font-medium text-stone-700 dark:text-stone-300 truncate max-w-[60%] flex items-center gap-1.5">
                   <FileIcon name={activeFile.name} className="w-3.5 h-3.5 text-stone-400 shrink-0" />
                   {activeFile.name}
-                  {activeFile.temp && <span className="ml-2 text-xs text-stone-400 shrink-0">(not saved)</span>}
                 </p>
                 <div className="flex items-center gap-1 shrink-0">
                   {activeFile.fileType === 'docx' && (
@@ -514,7 +481,7 @@ const JournalEntry = () => {
             <div className="text-center py-12 text-stone-400 dark:text-stone-500">
               <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p className="text-sm font-medium">No files saved yet</p>
-              <p className="text-xs mt-1">Save a PDF or Word doc, or open once to view without saving</p>
+              <p className="text-xs mt-1">Save a PDF or Word doc to access it anytime</p>
             </div>
           )}
         </div>
