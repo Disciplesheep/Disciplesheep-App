@@ -22,10 +22,14 @@ const focusNext = (currentRef) => {
   if (idx >= 0 && idx < fields.length - 1) fields[idx + 1]?.focus();
 };
 
-// Only use onEnter for text/date fields — NOT number inputs (mobile keyboards
-// fire Enter-like keydown events after each digit, causing unwanted advance)
+// Only use onEnter for text/date fields — NOT number inputs
 const onEnter = (ref) => (e) => {
   if (e.key === 'Enter') { e.preventDefault(); focusNext(ref.current); }
+};
+
+// Prevent dialog closing when interacting with Select dropdowns on mobile
+const preventSelectClose = (e) => {
+  if (e.target.closest('[data-radix-popper-content-wrapper]')) e.preventDefault();
 };
 
 const ExpenseLedger = () => {
@@ -194,14 +198,12 @@ const ExpenseLedger = () => {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">PHP *</Label>
-          {/* No onKeyDown here — number inputs on mobile fire Enter after each digit */}
           <Input ref={refs.php} type="number" step="0.01" value={form.php}
             onChange={e => onPhpChange(e.target.value)}
             placeholder="0.00" className={`${ic} font-mono`} />
         </div>
         <div>
           <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">USD</Label>
-          {/* No onKeyDown here — number inputs on mobile fire Enter after each digit */}
           <Input ref={refs.usd} type="number" step="0.01" value={form.usd}
             onChange={e => onUsdChange(e.target.value)}
             placeholder="0.00" className={`${ic} font-mono`} />
@@ -242,7 +244,7 @@ const ExpenseLedger = () => {
               <HandCoins className="w-6 h-6" />
             </button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md" onPointerDownOutside={preventSelectClose}>
             <DialogHeader>
               <DialogTitle className="font-serif text-2xl">{editingSupportId ? 'Edit Support' : 'Record Monthly Support'}</DialogTitle>
             </DialogHeader>
@@ -261,7 +263,7 @@ const ExpenseLedger = () => {
               <Gift className="w-6 h-6" />
             </button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md" onPointerDownOutside={preventSelectClose}>
             <DialogHeader>
               <DialogTitle className="font-serif text-2xl">{editingGiftId ? 'Edit Gift' : 'Record One-Time Gift'}</DialogTitle>
             </DialogHeader>
@@ -280,7 +282,7 @@ const ExpenseLedger = () => {
               <Plus className="w-6 h-6" />
             </button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md" onPointerDownOutside={preventSelectClose}>
             <DialogHeader>
               <DialogTitle className="font-serif text-2xl">{editingId ? 'Edit Expense' : 'Add New Expense'}</DialogTitle>
             </DialogHeader>
@@ -313,14 +315,12 @@ const ExpenseLedger = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">PHP *</Label>
-                  {/* No onKeyDown — number inputs fire Enter-like events on mobile after each digit */}
                   <Input ref={refExpPhp} type="number" step="0.01" value={formData.php}
                     onChange={e => handlePhpChange(e.target.value)}
                     placeholder="0.00" className={`${ic} font-mono`} />
                 </div>
                 <div>
                   <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">USD</Label>
-                  {/* No onKeyDown — number inputs fire Enter-like events on mobile after each digit */}
                   <Input ref={refExpUsd} type="number" step="0.01" value={formData.usd}
                     onChange={e => handleUsdChange(e.target.value)}
                     placeholder="0.00 · Press Enter to save" className={`${ic} font-mono`} />
