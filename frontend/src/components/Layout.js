@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutGrid, BookOpen, GitBranch, TrendingUp,
@@ -10,7 +10,41 @@ import { format, addDays, subDays, addYears } from 'date-fns';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { CHURCH_PLANT_START_DATE } from '@/data/dailyDevotionals';
 
+/* ── Constants outside component — no re-creation on render ─────────────── */
+const NAV_H     = 64;
+const BAR_H     = 42;
+const ROOT_PAGES = ['/', '/stewardship', '/journal', '/calendar', '/discipleship'];
 
+/* ── Auto-export — pure function, no closure deps ───────────────────────── */
+const triggerAutoExport = () => {
+  const DATA_KEYS = ['dailyEntries','peopleContacts','expenses','weeklyReports','monthlyReports','calendarEvents'];
+  const backup = { _version: 1, _exportedAt: new Date().toISOString() };
+  DATA_KEYS.forEach(key => {
+    try { const r = localStorage.getItem(key); backup[key] = r ? JSON.parse(r) : null; }
+    catch { backup[key] = null; }
+  });
+  backup._profile = {
+    name:  localStorage.getItem('profile_name')  || '',
+    photo: localStorage.getItem('profile_photo') || '',
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `disciplesheep-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+/* ── Shared Avatar ───────────────────────────────────────────────────────── */
+const Avatar = ({ size = 36 }) => {
+  const photo = localStorage.getItem('profile_photo') || '';
+  return photo
+    ? <img src={photo} alt="profile" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />
+    : <div style={{ width: size, height: size, borderRadius: '50%', background: '#4d7c0f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.45 }}>🐑</div>;
+};
+
+/* ── Calendar error boundary ─────────────────────────────────────────────── */
 class CalendarErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { error: false }; }
   static getDerivedStateFromError() { return { error: true }; }
@@ -24,6 +58,7 @@ class CalendarErrorBoundary extends React.Component {
   }
 }
 
+/* ── Nav items ───────────────────────────────────────────────────────────── */
 const navItems = [
   { to: '/',             icon: LayoutGrid,   label: 'Dashboard' },
   { to: '/stewardship',  icon: TrendingUp,   label: 'Stewardship' },
@@ -32,29 +67,44 @@ const navItems = [
   { to: '/discipleship', icon: GitBranch,    label: 'Disciples' },
 ];
 
+/* ── Profile hook ────────────────────────────────────────────────────────── */
 const useProfile = () => {
-  const [name, setName] = useState(() => localStorage.getItem('profile_name') || '');
+  const [name,  setName]  = useState(() => localStorage.getItem('profile_name')  || '');
   const [photo, setPhoto] = useState(() => localStorage.getItem('profile_photo') || '');
-  const saveName = (n) => { setName(n); localStorage.setItem('profile_name', n); };
+  const saveName  = (n) => { setName(n);  localStorage.setItem('profile_name',  n); };
   const savePhoto = (p) => { setPhoto(p); localStorage.setItem('profile_photo', p); };
   return { name, photo, saveName, savePhoto };
 };
 
+/* ── Shared avatar editor (used by both ProfileModal and ProfileMenu) ────── */
+const AvatarEditor = ({ size, fileRef, onPhotoChange }) => (
+  <div className="relative" style={{ width: size, height: size }}>
+    <Avatar size={size} />
+    <button
+      onClick={() => fileRef.current.click()}
+      className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-forest-500 flex items-center justify-center shadow-lg hover:bg-forest-700 transition-colors"
+      title="Change photo"
+    >
+      <Camera className="w-4 h-4 text-white" />
+    </button>
+    <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onPhotoChange} />
+  </div>
+);
+
+/* ── Profile Modal (mobile) ──────────────────────────────────────────────── */
 const ProfileModal = ({ open, onClose }) => {
   const [editingName, setEditingName] = useState(false);
-  const [nameInput, setNameInput] = useState('');
+  const [nameInput,   setNameInput]   = useState('');
   const navigate = useNavigate();
-  const fileRef = useRef();
-  const { name, photo, saveName, savePhoto } = useProfile();
+  const fileRef  = useRef();
+  const { name, saveName, savePhoto } = useProfile();
 
+  // Register with back-button system
   useEffect(() => {
     if (!open) return;
     window.__dialogOpenCount = (window.__dialogOpenCount || 0) + 1;
     window.history.pushState({ profileModal: true }, '');
-    const onPop = () => {
-      if (document.activeElement) document.activeElement.blur();
-      setTimeout(onClose, 50);
-    };
+    const onPop = () => { if (document.activeElement) document.activeElement.blur(); setTimeout(onClose, 50); };
     window.addEventListener('popstate', onPop);
     return () => {
       window.removeEventListener('popstate', onPop);
@@ -63,19 +113,12 @@ const ProfileModal = ({ open, onClose }) => {
   }, [open, onClose]);
 
   const handleNameSave = () => { saveName(nameInput.trim()); setEditingName(false); };
-  const handlePhoto = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handlePhoto    = (e) => {
+    const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => savePhoto(ev.target.result);
     reader.readAsDataURL(file);
   };
-
-  const Avatar = ({ size = 96 }) => (
-    photo
-      ? <img src={photo} alt="profile" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />
-      : <div style={{ width: size, height: size, borderRadius: '50%', background: '#4d7c0f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.45 }}>🐑</div>
-  );
 
   if (!open) return null;
 
@@ -90,21 +133,10 @@ const ProfileModal = ({ open, onClose }) => {
           </button>
         </div>
         <div className="flex flex-col items-center gap-4 px-6 py-6">
-          <div className="relative">
-            <Avatar size={96} />
-            <button
-              onClick={() => fileRef.current.click()}
-              className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-forest-500 flex items-center justify-center shadow-lg hover:bg-forest-700 transition-colors"
-              title="Change photo"
-            >
-              <Camera className="w-4 h-4 text-white" />
-            </button>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-          </div>
+          <AvatarEditor size={96} fileRef={fileRef} onPhotoChange={handlePhoto} />
           {editingName ? (
             <div className="flex items-center gap-2 w-full">
-              <input
-                autoFocus value={nameInput}
+              <input autoFocus value={nameInput}
                 onChange={e => setNameInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleNameSave(); if (e.key === 'Escape') setEditingName(false); }}
                 placeholder="Your name..."
@@ -118,21 +150,15 @@ const ProfileModal = ({ open, onClose }) => {
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => { setNameInput(name); setEditingName(true); }}
-              className="text-center hover:opacity-70 transition-opacity"
-              title="Tap to edit name"
-            >
+            <button onClick={() => { setNameInput(name); setEditingName(true); }} className="text-center hover:opacity-70 transition-opacity" title="Tap to edit name">
               <p className="font-semibold text-stone-900 dark:text-stone-100 text-lg">{name || 'Tap to set your name'}</p>
               <p className="text-sm text-stone-400 dark:text-stone-500 mt-1">Church Planter · tap to edit</p>
             </button>
           )}
         </div>
         <div className="border-t border-stone-100 dark:border-stone-700">
-          <button
-            onClick={() => { navigate('/settings'); onClose(); }}
-            className="w-full flex items-center gap-3 px-6 py-4 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
-          >
+          <button onClick={() => { navigate('/settings'); onClose(); }}
+            className="w-full flex items-center gap-3 px-6 py-4 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">
             <SettingsIcon className="w-5 h-5 text-stone-400" />
             <span className="font-medium">Settings</span>
           </button>
@@ -142,30 +168,23 @@ const ProfileModal = ({ open, onClose }) => {
   );
 };
 
-// Tablet dropdown
+/* ── Profile Menu (tablet dropdown) ─────────────────────────────────────── */
 const ProfileMenu = () => {
-  const [open, setOpen] = useState(false);
+  const [open,        setOpen]        = useState(false);
   const [editingName, setEditingName] = useState(false);
-  const [nameInput, setNameInput] = useState('');
+  const [nameInput,   setNameInput]   = useState('');
   const navigate = useNavigate();
-  const fileRef = useRef();
-  const { name, photo, saveName, savePhoto } = useProfile();
+  const fileRef  = useRef();
+  const { name, saveName, savePhoto } = useProfile();
 
-  const openMenu = () => { setNameInput(name); setEditingName(false); setOpen(true); };
+  const openMenu       = () => { setNameInput(name); setEditingName(false); setOpen(true); };
   const handleNameSave = () => { saveName(nameInput.trim()); setEditingName(false); };
-  const handlePhoto = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handlePhoto    = (e) => {
+    const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => savePhoto(ev.target.result);
     reader.readAsDataURL(file);
   };
-
-  const Avatar = ({ size = 36 }) => (
-    photo
-      ? <img src={photo} alt="profile" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />
-      : <div style={{ width: size, height: size, borderRadius: '50%', background: '#4d7c0f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.5 }}>🐑</div>
-  );
 
   return (
     <div className="relative">
@@ -181,16 +200,13 @@ const ProfileMenu = () => {
               <button onClick={() => setOpen(false)} className="text-stone-400 hover:text-stone-600"><X className="w-4 h-4" /></button>
             </div>
             <div className="px-4 py-5 flex flex-col items-center gap-3 border-b border-stone-100 dark:border-stone-700">
-              <div className="relative">
-                <Avatar size={72} />
-                <button onClick={() => fileRef.current.click()} className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-forest-500 flex items-center justify-center shadow hover:bg-forest-700 transition-colors" title="Change photo">
-                  <Camera className="w-3 h-3 text-white" />
-                </button>
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-              </div>
+              <AvatarEditor size={72} fileRef={fileRef} onPhotoChange={handlePhoto} />
               {editingName ? (
                 <div className="flex items-center gap-2 w-full">
-                  <input autoFocus value={nameInput} onChange={e => setNameInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleNameSave(); if (e.key === 'Escape') setEditingName(false); }} placeholder="Your name..." className="flex-1 text-sm px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100 outline-none focus:border-forest-500" />
+                  <input autoFocus value={nameInput} onChange={e => setNameInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleNameSave(); if (e.key === 'Escape') setEditingName(false); }}
+                    placeholder="Your name..."
+                    className="flex-1 text-sm px-3 py-1.5 rounded-lg border border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100 outline-none focus:border-forest-500" />
                   <button onClick={handleNameSave} className="w-7 h-7 rounded-full bg-forest-500 flex items-center justify-center hover:bg-forest-700"><Check className="w-3.5 h-3.5 text-white" /></button>
                   <button onClick={() => setEditingName(false)} className="w-7 h-7 rounded-full bg-stone-200 dark:bg-stone-600 flex items-center justify-center hover:bg-stone-300"><X className="w-3.5 h-3.5 text-stone-600 dark:text-stone-300" /></button>
                 </div>
@@ -201,7 +217,8 @@ const ProfileMenu = () => {
                 </button>
               )}
             </div>
-            <button onClick={() => { navigate('/settings'); setOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">
+            <button onClick={() => { navigate('/settings'); setOpen(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">
               <SettingsIcon className="w-4 h-4 text-stone-400" />
               Settings
             </button>
@@ -212,15 +229,12 @@ const ProfileMenu = () => {
   );
 };
 
+/* ── Bottom Nav ──────────────────────────────────────────────────────────── */
 const BottomNav = () => (
-  <nav
-    className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-t border-stone-200 dark:border-stone-700"
-    data-testid="bottom-navigation"
-  >
+  <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-t border-stone-200 dark:border-stone-700" data-testid="bottom-navigation">
     <div className="h-16 flex items-center justify-around px-1 max-w-2xl mx-auto">
       {navItems.map(({ to, icon: Icon, label }) => (
-        <NavLink
-          key={to} to={to} end={to === '/'}
+        <NavLink key={to} to={to} end={to === '/'}
           className={({ isActive }) =>
             `flex flex-col items-center justify-center gap-1 px-2 py-2 rounded-xl transition-colors flex-1 max-w-[60px] sm:max-w-[80px] ${
               isActive ? 'text-forest-500 dark:text-forest-400' : 'text-stone-400 dark:text-stone-500 hover:text-stone-600 dark:hover:text-stone-300'
@@ -241,13 +255,11 @@ const BottomNav = () => (
   </nav>
 );
 
-const NAV_H  = 64;
-const BAR_H  = 42;
-
+/* ── Journal Date Bar ────────────────────────────────────────────────────── */
 const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen }) => {
   const [barVisible, setBarVisible] = useState(true);
   const lastScrollY = useRef(0);
-  const ticking    = useRef(false);
+  const ticking     = useRef(false);
 
   const startDate       = CHURCH_PLANT_START_DATE instanceof Date ? CHURCH_PLANT_START_DATE : new Date(CHURCH_PLANT_START_DATE);
   const ministryEndDate = addYears(startDate, 6);
@@ -281,7 +293,6 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
   const barBottom = barVisible
     ? `calc(${NAV_H}px + env(safe-area-inset-bottom, 0px))`
     : `calc(${NAV_H - BAR_H}px + env(safe-area-inset-bottom, 0px))`;
-
   const calBottom = `calc(${NAV_H + BAR_H}px + env(safe-area-inset-bottom, 0px) + 0.25rem)`;
 
   return (
@@ -289,27 +300,18 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
       {pickerOpen && (
         <>
           <div className="fixed inset-0 z-[55]" onClick={() => setPickerOpen(false)} />
-          <div
-            className="fixed z-[60] left-2 right-2 bg-white dark:bg-stone-800 rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-700"
-            style={{ bottom: calBottom }}
-          >
+          <div className="fixed z-[60] left-2 right-2 bg-white dark:bg-stone-800 rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-700" style={{ bottom: calBottom }}>
             <div className="flex items-center justify-between px-4 pt-3 pb-1">
               <p className="font-serif font-semibold text-stone-800 dark:text-stone-100 text-sm">Select a Date</p>
-              <button
-                onClick={() => setPickerOpen(false)}
-                className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-400 hover:text-stone-600 transition-colors"
-              >
+              <button onClick={() => setPickerOpen(false)} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-400 hover:text-stone-600 transition-colors">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="w-full">
               <CalendarErrorBoundary>
-              <CalendarComponent
-                mode="single"
-                selected={journalDate}
-                onSelect={(d) => { if (d) { setJournalDate(d); setPickerOpen(false); } }}
-                defaultMonth={journalDate}
-              />
+                <CalendarComponent mode="single" selected={journalDate}
+                  onSelect={(d) => { if (d) { setJournalDate(d); setPickerOpen(false); } }}
+                  defaultMonth={journalDate} />
               </CalendarErrorBoundary>
             </div>
             <div className="px-4 py-2 border-t border-stone-100 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/60 rounded-b-2xl">
@@ -320,11 +322,7 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
           </div>
         </>
       )}
-
-      <div
-        className="fixed left-0 right-0 z-[45] transition-all duration-300"
-        style={{ bottom: barBottom }}
-      >
+      <div className="fixed left-0 right-0 z-[45] transition-all duration-300" style={{ bottom: barBottom }}>
         <div className="flex items-center justify-between px-4 py-2 bg-forest-500 text-white">
           <button onClick={() => setJournalDate(d => subDays(d, 1))} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors" style={{ minHeight: 0 }}>
             <ChevronLeft className="w-5 h-5" />
@@ -344,6 +342,7 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
   );
 };
 
+/* ── Side Nav (tablet) ───────────────────────────────────────────────────── */
 const SideNav = () => (
   <aside className="fixed top-0 left-0 h-full w-56 bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-r border-stone-200 dark:border-stone-700 flex flex-col z-50 shadow-lg">
     <div className="flex items-center justify-between px-5 py-6 border-b border-stone-100 dark:border-stone-800">
@@ -377,66 +376,40 @@ const SideNav = () => (
   </aside>
 );
 
-if (typeof window.__dialogOpenCount === 'undefined') {
-  window.__dialogOpenCount = 0;
-}
+if (typeof window.__dialogOpenCount === 'undefined') window.__dialogOpenCount = 0;
 
+/* ── Layout ──────────────────────────────────────────────────────────────── */
 const Layout = () => {
-  const { isTablet } = useScreenSize();
-  const location     = useLocation();
+  const { isTablet }  = useScreenSize();
+  const location      = useLocation();
   const isJournalPage = location.pathname === '/journal';
 
   const [journalDate, setJournalDate] = useState(new Date());
   const [pickerOpen,  setPickerOpen]  = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-
-  const outletContext = { journalDate, setJournalDate, pickerOpen, setPickerOpen };
-
-  const triggerAutoExport = () => {
-    const DATA_KEYS = ['dailyEntries','peopleContacts','expenses','weeklyReports','monthlyReports','calendarEvents'];
-    const backup = { _version: 1, _exportedAt: new Date().toISOString() };
-    DATA_KEYS.forEach(key => {
-      try { const r = localStorage.getItem(key); backup[key] = r ? JSON.parse(r) : null; }
-      catch { backup[key] = null; }
-    });
-    backup._profile = {
-      name:  localStorage.getItem('profile_name')  || '',
-      photo: localStorage.getItem('profile_photo') || '',
-    };
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = `disciplesheep-backup-${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   const [exitToastMsg, setExitToastMsg] = useState('');
+
   const exitStepRef  = useRef(0);
   const exitTimerRef = useRef(null);
+
+  const outletContext = { journalDate, setJournalDate, pickerOpen, setPickerOpen };
 
   // ── Two-tap dismiss: tap 1 = blur keyboard, tap 2 = close dialog ─────────
   useEffect(() => {
     let justDismissedKeyboard = false;
-
     const onPointerDown = (e) => {
       const active = document.activeElement;
-      const hasKeyboard = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
-      if (!hasKeyboard) return;
-      const isInteractive = e.target.closest('button, input, textarea, select, a, label, [role="button"], [role="option"], [role="combobox"]');
-      if (isInteractive) return;
+      if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) return;
+      if (e.target.closest('button, input, textarea, select, a, label, [role="button"], [role="option"], [role="combobox"]')) return;
       active.blur();
       justDismissedKeyboard = true;
       setTimeout(() => { justDismissedKeyboard = false; }, 400);
     };
-
     const onClickCapture = (e) => {
       if (!justDismissedKeyboard) return;
       justDismissedKeyboard = false;
       e.stopImmediatePropagation();
     };
-
     document.addEventListener('pointerdown', onPointerDown, { capture: true });
     document.addEventListener('click', onClickCapture, { capture: true });
     return () => {
@@ -445,38 +418,32 @@ const Layout = () => {
     };
   }, []);
 
-  const resetExitStep = () => { exitStepRef.current = 0; setExitToastMsg(''); };
+  // ── 3-tap back exit: sentinel push + handler in one effect ───────────────
+  const resetExitStep = useCallback(() => {
+    exitStepRef.current = 0;
+    setExitToastMsg('');
+  }, []);
 
-  // Only these 5 root pages trigger the 3-tap exit rule
-  const ROOT_PAGES = ['/', '/stewardship', '/journal', '/calendar', '/discipleship'];
-
-  // Push a sentinel history entry every time we arrive at a root page.
-  // This ensures pressing back pops a same-URL state-only entry so React Router
-  // never navigates away — our popstate handler intercepts it instead.
   useEffect(() => {
+    // Push sentinel whenever we land on a root page
     if (ROOT_PAGES.includes(location.pathname)) {
       window.history.pushState({ appEntry: true }, '');
     } else {
-      // Reset exit step when leaving root pages
       resetExitStep();
     }
-  }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [location.pathname, resetExitStep]);
 
   useEffect(() => {
-
     const onPopState = (e) => {
       if (e.state?.pdfOpen) return;
-      // If any dialog/modal is open, let its own handler deal with back
       if (window.__dialogOpenCount > 0) return;
-      // On sub-pages, let the browser handle back navigation normally
       if (!ROOT_PAGES.includes(window.location.pathname)) return;
 
-      // Re-push sentinel so the NEXT back press is also intercepted
+      // Re-push sentinel so next back is also intercepted
       window.history.pushState({ appEntry: true }, '');
       clearTimeout(exitTimerRef.current);
 
       const step = exitStepRef.current;
-
       if (step === 0) {
         exitStepRef.current = 1;
         triggerAutoExport();
@@ -492,26 +459,21 @@ const Layout = () => {
         else window.close();
       }
     };
-
     window.addEventListener('popstate', onPopState);
-    return () => {
-      window.removeEventListener('popstate', onPopState);
-      clearTimeout(exitTimerRef.current);
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => { window.removeEventListener('popstate', onPopState); clearTimeout(exitTimerRef.current); };
+  }, [resetExitStep]);
+
+  // Exit toast clears above bottom nav; add BAR_H only on journal page
+  const toastBottom = isJournalPage
+    ? `calc(${NAV_H + BAR_H + 12}px + env(safe-area-inset-bottom, 0px))`
+    : `calc(${NAV_H + 12}px + env(safe-area-inset-bottom, 0px))`;
 
   return (
     <div className="min-h-screen bg-paper dark:bg-stone-900 transition-colors">
 
       {exitToastMsg && (
-        <div
-          className="fixed left-1/2 z-[200] px-5 py-2.5 rounded-full bg-stone-900/90 dark:bg-stone-100/90 text-white dark:text-stone-900 text-sm font-medium shadow-xl backdrop-blur-sm transition-all"
-          style={{
-            bottom: `calc(${NAV_H + BAR_H + 12}px + env(safe-area-inset-bottom, 0px))`,
-            transform: 'translateX(-50%)',
-            whiteSpace: 'nowrap',
-          }}
-        >
+        <div className="fixed left-1/2 z-[200] px-5 py-2.5 rounded-full bg-stone-900/90 dark:bg-stone-100/90 text-white dark:text-stone-900 text-sm font-medium shadow-xl backdrop-blur-sm"
+          style={{ bottom: toastBottom, transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}>
           {exitToastMsg}
         </div>
       )}
@@ -522,12 +484,7 @@ const Layout = () => {
           <main className="ml-56 min-h-screen">
             {isJournalPage && (
               <div className="sticky top-0 z-40">
-                <JournalDateBar
-                  journalDate={journalDate}
-                  setJournalDate={setJournalDate}
-                  pickerOpen={pickerOpen}
-                  setPickerOpen={setPickerOpen}
-                />
+                <JournalDateBar journalDate={journalDate} setJournalDate={setJournalDate} pickerOpen={pickerOpen} setPickerOpen={setPickerOpen} />
               </div>
             )}
             <div className="max-w-4xl mx-auto px-6 py-8 lg:px-10 lg:py-10">
@@ -539,11 +496,9 @@ const Layout = () => {
         <>
           <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-b border-stone-200 dark:border-stone-700">
             <div className="flex items-center px-4 h-12">
-              <button
-                onClick={() => setProfileOpen(true)}
+              <button onClick={() => setProfileOpen(true)}
                 className="flex items-center gap-2 min-w-0 hover:opacity-70 active:scale-95 transition-all"
-                title="My Profile"
-              >
+                title="My Profile">
                 <span className="text-lg shrink-0">🐑</span>
                 <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100 shrink-0">Disciplesheep</p>
                 <div className="w-px h-6 bg-stone-300 dark:bg-stone-600 shrink-0 mx-1" />
@@ -571,12 +526,7 @@ const Layout = () => {
           <BottomNav />
 
           {isJournalPage && (
-            <JournalDateBar
-              journalDate={journalDate}
-              setJournalDate={setJournalDate}
-              pickerOpen={pickerOpen}
-              setPickerOpen={setPickerOpen}
-            />
+            <JournalDateBar journalDate={journalDate} setJournalDate={setJournalDate} pickerOpen={pickerOpen} setPickerOpen={setPickerOpen} />
           )}
         </>
       )}
