@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom';
 import { useJournalData, useLocalStorage } from '@/hooks/useLocalStorage';
 import {
-  CheckCircle2, Clock, BookOpen, FileText, FileUp, Maximize2, Minimize2,
+  CheckCircle2, Clock, BookOpen, FileText, FolderOpen, Maximize2, Minimize2,
   Trash2, X, FileType2, AlertCircle
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -185,7 +185,7 @@ const JournalEntry = () => {
     return () => clearTimeout(saveTimer.current);
   }, [entry]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Stable field setters — no anonymous arrow fns in render ──────────────
+  // ── Stable field setters ──────────────────────────────────────────────────
   const setPracticeNotes = useCallback((e) => setEntry(prev => ({ ...prev, practiceNotes: e.target.value })), []);
   const setPraises       = useCallback((e) => setEntry(prev => ({ ...prev, praises: e.target.value })), []);
   const setPrayer        = useCallback((e) => setEntry(prev => ({ ...prev, prayer:  e.target.value })), []);
@@ -199,7 +199,6 @@ const JournalEntry = () => {
   const fileInputRef  = useRef();
   const fullscreenRef = useRef();
 
-  // Stable font size adjusters
   const decFontSize = useCallback(() => setDocFontSize(s => Math.max(FONT_SIZE_MIN, s - 2)), []);
   const incFontSize = useCallback(() => setDocFontSize(s => Math.min(FONT_SIZE_MAX, s + 2)), []);
 
@@ -216,7 +215,6 @@ const JournalEntry = () => {
     });
   }, []);
 
-  // Shared file reader
   const readFile = useCallback((file, onReady) => {
     if (!file) return;
     const valid = file.type.includes('pdf') || file.type.includes('word') || isPdf(file.name) || isDocx(file.name);
@@ -252,14 +250,12 @@ const JournalEntry = () => {
     setIsFullscreen(v => !v);
   }, [isFullscreen]);
 
-  // Fullscreen escape listener
   useEffect(() => {
     const onFsChange = () => { if (!document.fullscreenElement) setIsFullscreen(false); };
     document.addEventListener('fullscreenchange', onFsChange);
     return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, []);
 
-  // Back-button integration
   useEffect(() => {
     if (activeFile) window.history.pushState({ fileOpen: true }, '');
   }, [activeFile]);
@@ -372,11 +368,11 @@ const JournalEntry = () => {
       {activeTab === 'pdf' && (
         <div className="space-y-4">
 
-          {/* Action button — full width, single action */}
+          {/* Action button — renamed to "Open a File" with FolderOpen icon */}
           <button onClick={() => fileInputRef.current?.click()}
             className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-forest-300 dark:border-forest-700 text-forest-600 dark:text-forest-400 hover:bg-forest-50 dark:hover:bg-forest-900/20 transition-colors text-sm font-medium"
             style={{ minHeight: 0 }}>
-            <FileUp className="w-4 h-4" /> Save File
+            <FolderOpen className="w-4 h-4" /> Open a File
           </button>
           <input ref={fileInputRef} type="file" accept={ACCEPT} className="hidden" onChange={handleSaveFile} />
 
@@ -481,7 +477,7 @@ const JournalEntry = () => {
             <div className="text-center py-12 text-stone-400 dark:text-stone-500">
               <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p className="text-sm font-medium">No files saved yet</p>
-              <p className="text-xs mt-1">Save a PDF or Word doc to access it anytime</p>
+              <p className="text-xs mt-1">Open a PDF or Word doc to access it anytime</p>
             </div>
           )}
         </div>
