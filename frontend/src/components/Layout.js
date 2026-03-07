@@ -145,14 +145,9 @@ const BottomNav = () => (
 
 /* ─────────────────────────────────────────────────────────────────────────
    JOURNAL DATE BAR
-   • Sits just above the bottom nav (bottom = NAV_H)
-   • Scrolling DOWN  → slides down and hides behind/under the bottom nav
-   • Scrolling UP    → slides back up into view
-   • Clicking date   → shows calendar popup above the date bar
-   • Bottom nav is untouched and always visible
 ───────────────────────────────────────────────────────────────────────── */
-const NAV_H  = 64;   // bottom nav height (h-16)
-const BAR_H  = 42;   // date bar height
+const NAV_H  = 64;
+const BAR_H  = 42;
 
 const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen }) => {
   const [barVisible, setBarVisible] = useState(true);
@@ -163,7 +158,6 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
   const ministryEndDate = addYears(startDate, 6);
   const isToday         = format(journalDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
 
-  /* scroll listener — only hides the date bar, never the nav */
   useEffect(() => {
     const onScroll = () => {
       if (ticking.current) return;
@@ -180,10 +174,8 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  /* always show bar when picker is open */
   useEffect(() => { if (pickerOpen) setBarVisible(true); }, [pickerOpen]);
 
-  /* close calendar picker on scroll */
   useEffect(() => {
     if (!pickerOpen) return;
     const onScroll = () => setPickerOpen(false);
@@ -191,29 +183,17 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
     return () => window.removeEventListener('scroll', onScroll);
   }, [pickerOpen, setPickerOpen]);
 
-  /*
-    barBottom: how far from the bottom of the viewport the bar sits.
-    When visible  → sits on top of the bottom nav: NAV_H px from bottom
-    When hidden   → slides down by BAR_H so it's tucked under the nav
-  */
   const barBottom = barVisible
     ? `calc(${NAV_H}px + env(safe-area-inset-bottom, 0px))`
     : `calc(${NAV_H - BAR_H}px + env(safe-area-inset-bottom, 0px))`;
 
-  /*
-    Calendar panel bottom = just above the date bar
-  */
   const calBottom = `calc(${NAV_H + BAR_H}px + env(safe-area-inset-bottom, 0px) + 0.25rem)`;
 
   return (
     <>
-      {/* ── Calendar popup — only when pickerOpen ── */}
       {pickerOpen && (
         <>
-          {/* tap-outside backdrop */}
           <div className="fixed inset-0 z-[55]" onClick={() => setPickerOpen(false)} />
-
-          {/* calendar panel */}
           <div
             className="fixed z-[60] left-2 right-2 bg-white dark:bg-stone-800 rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-700"
             style={{ bottom: calBottom }}
@@ -227,7 +207,6 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
                 <X className="w-4 h-4" />
               </button>
             </div>
-
             <div className="w-full">
               <CalendarErrorBoundary>
               <CalendarComponent
@@ -238,7 +217,6 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
               />
               </CalendarErrorBoundary>
             </div>
-
             <div className="px-4 py-2 border-t border-stone-100 dark:border-stone-700 bg-stone-50 dark:bg-stone-800/60 rounded-b-2xl">
               <p className="text-[11px] text-stone-400 dark:text-stone-500 text-center">
                 6-Year Journal · {format(startDate, 'MMM yyyy')} – {format(ministryEndDate, 'MMM yyyy')}
@@ -248,7 +226,6 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
         </>
       )}
 
-      {/* ── Date bar strip ── */}
       <div
         className="fixed left-0 right-0 z-[45] transition-all duration-300"
         style={{ bottom: barBottom }}
@@ -257,14 +234,12 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
           <button onClick={() => setJournalDate(d => subDays(d, 1))} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors" style={{ minHeight: 0 }}>
             <ChevronLeft className="w-5 h-5" />
           </button>
-
           <button onClick={() => setPickerOpen(v => !v)} className="flex items-center gap-2 px-3 py-1 rounded-full hover:bg-white/20 transition-colors" style={{ minHeight: 0 }}>
             <CalendarDays className="w-4 h-4" />
             <span className="text-sm font-semibold">
               {isToday ? 'Today · ' : ''}{format(journalDate, 'MMM d, yyyy')} ({format(journalDate, 'EEE')})
             </span>
           </button>
-
           <button onClick={() => setJournalDate(d => addDays(d, 1))} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors" style={{ minHeight: 0 }}>
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -311,6 +286,15 @@ const SideNav = () => (
 );
 
 /* ─────────────────────────────────────────────────────────────────────────
+   GLOBAL DIALOG TRACKER
+   useBackButtonClose (in other files) calls window.__dialogOpen = true/false
+   so Layout's exit handler knows whether a dialog is currently open.
+───────────────────────────────────────────────────────────────────────── */
+if (typeof window.__dialogOpenCount === 'undefined') {
+  window.__dialogOpenCount = 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
    LAYOUT
 ───────────────────────────────────────────────────────────────────────── */
 const Layout = () => {
@@ -325,24 +309,25 @@ const Layout = () => {
 
   // ── Exit app on Back button ───────────────────────────────────────────────
   const [showExitToast, setShowExitToast] = useState(false);
-  const exitTimerRef = useRef(null);
+  const exitTimerRef   = useRef(null);
+  const showExitToastRef = useRef(false);
+
+  useEffect(() => { showExitToastRef.current = showExitToast; }, [showExitToast]);
 
   useEffect(() => {
-    // Push sentinel so first Back press is always interceptable
     window.history.pushState({ appEntry: true }, '');
 
     const onPopState = (e) => {
-      // If PDF viewer back-press handler will handle this, skip
       if (e.state?.pdfOpen) return;
 
-      // Re-push sentinel to keep intercepting future back presses
+      // ── Skip exit logic if any dialog/form card is currently open ──
+      if (window.__dialogOpenCount > 0) return;
+
       window.history.pushState({ appEntry: true }, '');
 
       if (showExitToastRef.current) {
-        // Second back press within 2s — exit
         clearTimeout(exitTimerRef.current);
         setShowExitToast(false);
-        // PWA / Android WebView close
         if (window.navigator.app) window.navigator.app.exitApp();
         else window.close();
       } else {
@@ -362,14 +347,9 @@ const Layout = () => {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Use a ref to track toast state inside the closure without re-registering
-  const showExitToastRef = useRef(false);
-  useEffect(() => { showExitToastRef.current = showExitToast; }, [showExitToast]);
-
   return (
     <div className="min-h-screen bg-paper dark:bg-stone-900 transition-colors">
 
-      {/* ── Press back again to exit ── */}
       {showExitToast && (
         <div
           className="fixed left-1/2 z-[200] px-5 py-2.5 rounded-full bg-stone-900/90 dark:bg-stone-100/90 text-white dark:text-stone-900 text-sm font-medium shadow-xl backdrop-blur-sm transition-all"
@@ -382,6 +362,7 @@ const Layout = () => {
           Press back again to exit
         </div>
       )}
+
       {isTablet ? (
         <>
           <SideNav />
@@ -403,7 +384,6 @@ const Layout = () => {
         </>
       ) : (
         <>
-          {/* Mobile top header */}
           <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-b border-stone-200 dark:border-stone-700">
             <div className="flex items-center justify-between px-4 h-12">
               <div className="flex items-center gap-2">
@@ -414,10 +394,6 @@ const Layout = () => {
             </div>
           </div>
 
-          {/* Page content
-              paddingTop  = top header (48px)
-              paddingBottom = bottom nav (64px) + date bar (42px on journal) + safe area + extra breathing room
-          */}
           <main style={{
             paddingTop: '3rem',
             paddingBottom: isJournalPage
@@ -429,10 +405,8 @@ const Layout = () => {
             </div>
           </main>
 
-          {/* Bottom nav — always visible */}
           <BottomNav />
 
-          {/* Journal date bar — only on journal page */}
           {isJournalPage && (
             <JournalDateBar
               journalDate={journalDate}

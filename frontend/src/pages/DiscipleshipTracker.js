@@ -21,16 +21,19 @@ const onEnter  = (nextRef) => (e) => {
 const useBackButtonClose = (isOpen, closeFn) => {
   useEffect(() => {
     if (!isOpen) return;
-    // Push a history entry so the back gesture has something to pop
+    // Tell Layout not to trigger double-back exit while this dialog is open
+    window.__dialogOpenCount = (window.__dialogOpenCount || 0) + 1;
     window.history.pushState({ dialog: true }, '');
     const onPop = () => {
-      // 1) Dismiss keyboard by blurring any focused input
       if (document.activeElement) document.activeElement.blur();
-      // 2) Close the dialog on next tick (gives keyboard time to hide)
       setTimeout(closeFn, 50);
     };
     window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      // Decrement so Layout knows this dialog is closed
+      window.__dialogOpenCount = Math.max(0, (window.__dialogOpenCount || 1) - 1);
+    };
   }, [isOpen, closeFn]);
 };
 

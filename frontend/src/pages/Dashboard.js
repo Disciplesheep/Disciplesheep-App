@@ -29,13 +29,19 @@ const ic = "text-xs border-stone-200 dark:border-stone-600 dark:bg-stone-700 dar
 const useBackButtonClose = (isOpen, closeFn) => {
   useEffect(() => {
     if (!isOpen) return;
+    // Tell Layout not to trigger double-back exit while this dialog is open
+    window.__dialogOpenCount = (window.__dialogOpenCount || 0) + 1;
     window.history.pushState({ dialog: true }, '');
     const onPop = () => {
       if (document.activeElement) document.activeElement.blur();
       setTimeout(closeFn, 50);
     };
     window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      // Decrement so Layout knows this dialog is closed
+      window.__dialogOpenCount = Math.max(0, (window.__dialogOpenCount || 1) - 1);
+    };
   }, [isOpen, closeFn]);
 };
 
@@ -49,14 +55,6 @@ const Dashboard = () => {
   const emptyExpense = { date: formatDate(new Date()), category: '', item: '', php: '', usd: '' };
   const [isExpenseOpen, setIsExpenseOpen] = useState(false);
   const [expenseForm, setExpenseForm]     = useState(emptyExpense);
-
-  const emptyPerson = {
-    date: formatDate(new Date()), name: '', age: '', birthday: '',
-    generation: '', contactNumber: '', facebookUrl: '', address: emptyAddress,
-    connection: '', topic: '', nextStep: '', contactFrequencyDays: 7,
-  };
-  const [isPersonOpen, setIsPersonOpen] = useState(false);
-  const [personForm, setPersonForm]     = useState(emptyPerson);
 
   const closeExpenseDialog = () => { setIsExpenseOpen(false); setExpenseForm(emptyExpense); };
   const closePersonDialog  = () => { setIsPersonOpen(false); setPersonForm(emptyPerson); };
@@ -75,6 +73,14 @@ const Dashboard = () => {
     setExpenseForm(emptyExpense);
     setIsExpenseOpen(false);
   };
+
+  const emptyPerson = {
+    date: formatDate(new Date()), name: '', age: '', birthday: '',
+    generation: '', contactNumber: '', facebookUrl: '', address: emptyAddress,
+    connection: '', topic: '', nextStep: '', contactFrequencyDays: 7,
+  };
+  const [isPersonOpen, setIsPersonOpen] = useState(false);
+  const [personForm, setPersonForm]     = useState(emptyPerson);
 
   const refPDate = useRef(null); const refPName = useRef(null); const refPAge = useRef(null);
   const refPBirthday = useRef(null); const refPPhone = useRef(null); const refPFacebook = useRef(null);
@@ -205,13 +211,8 @@ const Dashboard = () => {
     </div>
   );
 
-  // ── FIX: Added onClick to navigate to /stewardship/expenses ──
   const budgetCard = (
-    <Card
-      className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 px-4 py-2 cursor-pointer hover:shadow-md transition-shadow"
-      onClick={() => navigate('/stewardship/expenses')}
-      data-testid="budget-progress-card"
-    >
+    <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 px-4 py-2" data-testid="budget-progress-card">
       <div className="flex items-center justify-between mb-1.5">
         <h3 className="font-serif font-semibold text-stone-900 dark:text-stone-100 text-base">Monthly Budget</h3>
         <span className="text-xs font-mono text-stone-600 dark:text-stone-400">₱{monthExpenses.toFixed(0)} / ₱{monthlyBudget}</span>

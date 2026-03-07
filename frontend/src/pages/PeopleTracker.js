@@ -131,13 +131,19 @@ const getAgeFromBirthday = (birthday) => {
 const useBackButtonClose = (isOpen, closeFn) => {
   useEffect(() => {
     if (!isOpen) return;
+    // Tell Layout not to trigger double-back exit while this dialog is open
+    window.__dialogOpenCount = (window.__dialogOpenCount || 0) + 1;
     window.history.pushState({ dialog: true }, '');
     const onPop = () => {
       if (document.activeElement) document.activeElement.blur();
       setTimeout(closeFn, 50);
     };
     window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      // Decrement so Layout knows this dialog is closed
+      window.__dialogOpenCount = Math.max(0, (window.__dialogOpenCount || 1) - 1);
+    };
   }, [isOpen, closeFn]);
 };
 
