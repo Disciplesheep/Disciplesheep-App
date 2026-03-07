@@ -1,9 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Moon, Sun, Sunrise, Type, Settings as SettingsIcon, Lock, ShieldCheck, ShieldOff, Eye, EyeOff, Download } from 'lucide-react';
+import {
+  Moon, Sun, Sunrise, Type, Settings as SettingsIcon,
+  Lock, ShieldCheck, ShieldOff, Eye, EyeOff,
+  Download, Upload, CheckCircle, AlertCircle, HardDrive,
+} from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { useProfilePassword } from '@/hooks/useProfilePassword';
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const getBackupFilename = () => {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const time = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+  return `DS-Backup-${date}_${time}.json`;
+};
+
+const collectAllData = () => {
+  const backup = { _meta: { version: '1.0', exportedAt: new Date().toISOString(), app: 'Disciplesheep' } };
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    try { backup[key] = JSON.parse(localStorage.getItem(key)); }
+    catch { backup[key] = localStorage.getItem(key); }
+  }
+  return backup;
+};
+
+const restoreAllData = (backup) => {
+  const { _meta, ...data } = backup;
+  Object.entries(data).forEach(([key, value]) => {
+    localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+  });
+};
 
 // ── Segmented Toggle ──────────────────────────────────────────────────────────
 const SegmentedToggle = ({ options, value, onChange, name }) => {
@@ -45,7 +74,7 @@ const FontPreview = ({ fontSize }) => {
   );
 };
 
-// ── Password Field helper ─────────────────────────────────────────────────────
+// ── Password Field ─────────────────────────────────────────────────────────────
 const PwField = ({ label, value, onChange, show, onToggle, onEnter, autoFocus, isCorrect }) => (
   <div className="space-y-1">
     <label className="text-xs text-stone-500 dark:text-stone-400">{label}</label>
@@ -64,9 +93,7 @@ const PwField = ({ label, value, onChange, show, onToggle, onEnter, autoFocus, i
         }`}
       />
       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-        {isCorrect && (
-          <span className="text-forest-500 text-xs font-bold">✓</span>
-        )}
+        {isCorrect && <span className="text-forest-500 text-xs font-bold">✓</span>}
         <button type="button" onClick={onToggle} className="text-stone-400 hover:text-stone-600 dark:hover:text-stone-300">
           {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
         </button>
@@ -78,7 +105,7 @@ const PwField = ({ label, value, onChange, show, onToggle, onEnter, autoFocus, i
 // ── Security Card ─────────────────────────────────────────────────────────────
 const SecurityCard = () => {
   const { hasPassword, setPassword, verifyPassword, removePassword } = useProfilePassword();
-  const [mode, setMode]       = useState(null); // 'set' | 'change' | 'remove'
+  const [mode, setMode]       = useState(null);
   const [current, setCurrent] = useState('');
   const [next,    setNext]    = useState('');
   const [confirm, setConfirm] = useState('');
@@ -90,21 +117,13 @@ const SecurityCard = () => {
 
   useEffect(() => {
     if (!currentIsCorrect) return;
-
     if (mode === 'remove') {
-      const timer = setTimeout(() => {
-        removePassword();
-        setSuccess('Password removed. Deletions are unprotected.');
-        reset();
-      }, 400);
+      const timer = setTimeout(() => { removePassword(); setSuccess('Password removed. Deletions are unprotected.'); reset(); }, 400);
       return () => clearTimeout(timer);
     }
-
     if (mode === 'change') {
       const nextInput = document.querySelector('input[data-field="new-password"]');
-      if (nextInput) {
-        setTimeout(() => nextInput.focus(), 400);
-      }
+      if (nextInput) setTimeout(() => nextInput.focus(), 400);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIsCorrect]);
@@ -116,29 +135,21 @@ const SecurityCard = () => {
     if (mode === 'set') {
       if (next.trim().length < 4) return setError('Password must be at least 4 characters.');
       if (next !== confirm)        return setError('Passwords do not match.');
-      setPassword(next.trim());
-      setSuccess('Password set. Deletions are now protected.');
-      reset();
+      setPassword(next.trim()); setSuccess('Password set. Deletions are now protected.'); reset();
     } else if (mode === 'change') {
-      if (!verifyPassword(current))    return setError('Current password is incorrect.');
-      if (next.trim().length < 4)      return setError('New password must be at least 4 characters.');
-      if (next !== confirm)            return setError('New passwords do not match.');
-      setPassword(next.trim());
-      setSuccess('Password updated successfully.');
-      reset();
+      if (!verifyPassword(current))   return setError('Current password is incorrect.');
+      if (next.trim().length < 4)     return setError('New password must be at least 4 characters.');
+      if (next !== confirm)           return setError('New passwords do not match.');
+      setPassword(next.trim()); setSuccess('Password updated successfully.'); reset();
     } else if (mode === 'remove') {
       if (!verifyPassword(current)) return setError('Incorrect password.');
-      removePassword();
-      setSuccess('Password removed. Deletions are unprotected.');
-      reset();
+      removePassword(); setSuccess('Password removed. Deletions are unprotected.'); reset();
     }
   };
 
   return (
     <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="security-card">
       <h2 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-5">Security</h2>
-
-      {/* Status row */}
       <div className="flex items-center gap-3 mb-5">
         <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${hasPassword ? 'bg-forest-100 dark:bg-forest-900/30' : 'bg-stone-100 dark:bg-stone-700'}`}>
           <Lock className={`w-4 h-4 ${hasPassword ? 'text-forest-600 dark:text-forest-400' : 'text-stone-400'}`} />
@@ -153,193 +164,258 @@ const SecurityCard = () => {
           {hasPassword ? <><ShieldCheck className="w-3 h-3" /> Protected</> : <><ShieldOff className="w-3 h-3" /> Off</>}
         </span>
       </div>
-
-      {/* Action buttons */}
       {mode === null && (
         <div className="flex flex-wrap gap-2">
           {!hasPassword && (
-            <button onClick={() => setMode('set')}
-              className="px-4 py-2 text-sm rounded-xl bg-forest-500 hover:bg-forest-600 text-white transition-colors">
-              Set Password
-            </button>
+            <button onClick={() => setMode('set')} className="px-4 py-2 text-sm rounded-xl bg-forest-500 hover:bg-forest-600 text-white transition-colors">Set Password</button>
           )}
           {hasPassword && (
             <>
-              <button onClick={() => setMode('change')}
-                className="px-4 py-2 text-sm rounded-xl bg-forest-500 hover:bg-forest-600 text-white transition-colors">
-                Change Password
-              </button>
-              <button onClick={() => setMode('remove')}
-                className="px-4 py-2 text-sm rounded-xl border border-red-300 dark:border-red-700 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                Remove Password
-              </button>
+              <button onClick={() => setMode('change')} className="px-4 py-2 text-sm rounded-xl bg-forest-500 hover:bg-forest-600 text-white transition-colors">Change Password</button>
+              <button onClick={() => setMode('remove')} className="px-4 py-2 text-sm rounded-xl border border-red-300 dark:border-red-700 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">Remove Password</button>
             </>
           )}
         </div>
       )}
-
-      {/* Form */}
       {mode !== null && (
         <div className="space-y-3">
           {(mode === 'change' || mode === 'remove') && (
-            <PwField
-              label={mode === 'remove' ? 'Enter password to confirm removal' : 'Current password'}
-              value={current}
-              onChange={e => { setCurrent(e.target.value); setError(''); }}
-              show={showPw}
-              onToggle={() => setShowPw(v => !v)}
-              autoFocus
-              isCorrect={currentIsCorrect}
-            />
+            <PwField label={mode === 'remove' ? 'Enter password to confirm removal' : 'Current password'} value={current} onChange={e => { setCurrent(e.target.value); setError(''); }} show={showPw} onToggle={() => setShowPw(v => !v)} autoFocus isCorrect={currentIsCorrect} />
           )}
           {(mode === 'set' || mode === 'change') && (
             <>
-              <PwField
-                label={mode === 'change' ? 'New password' : 'Password (min 4 characters)'}
-                value={next}
-                onChange={e => { setNext(e.target.value); setError(''); }}
-                show={showPw}
-                onToggle={() => setShowPw(v => !v)}
-                autoFocus={mode === 'set'}
-                data-field="new-password"
-              />
-              <PwField
-                label="Confirm password"
-                value={confirm}
-                onChange={e => { setConfirm(e.target.value); setError(''); }}
-                show={showPw}
-                onToggle={() => setShowPw(v => !v)}
-                onEnter={handleSubmit}
-              />
+              <PwField label={mode === 'change' ? 'New password' : 'Password (min 4 characters)'} value={next} onChange={e => { setNext(e.target.value); setError(''); }} show={showPw} onToggle={() => setShowPw(v => !v)} autoFocus={mode === 'set'} data-field="new-password" />
+              <PwField label="Confirm password" value={confirm} onChange={e => { setConfirm(e.target.value); setError(''); }} show={showPw} onToggle={() => setShowPw(v => !v)} onEnter={handleSubmit} />
             </>
           )}
-
           {error && <p className="text-xs text-red-500">{error}</p>}
-
           {(mode === 'change' || mode === 'remove') && !currentIsCorrect && current.length > 0 && (
-            <p className="text-xs text-stone-400 dark:text-stone-500">
-              {mode === 'remove' ? 'Enter the correct password to auto-confirm removal.' : 'Enter the correct password to continue.'}
-            </p>
+            <p className="text-xs text-stone-400 dark:text-stone-500">{mode === 'remove' ? 'Enter the correct password to auto-confirm removal.' : 'Enter the correct password to continue.'}</p>
           )}
-
           <div className="flex gap-2 pt-1">
-            <button onClick={reset}
-              className="flex-1 h-10 rounded-xl border border-stone-200 dark:border-stone-600 text-stone-600 dark:text-stone-400 text-sm hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">
-              Cancel
-            </button>
+            <button onClick={reset} className="flex-1 h-10 rounded-xl border border-stone-200 dark:border-stone-600 text-stone-600 dark:text-stone-400 text-sm hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">Cancel</button>
             {mode !== 'remove' && (
-              <button onClick={handleSubmit}
-                className={`flex-1 h-10 rounded-xl text-white text-sm transition-colors ${mode === 'set' ? 'bg-forest-500 hover:bg-forest-600' : 'bg-forest-500 hover:bg-forest-600'}`}>
-                {mode === 'set' ? 'Save' : 'Update'}
-              </button>
+              <button onClick={handleSubmit} className="flex-1 h-10 rounded-xl text-white text-sm bg-forest-500 hover:bg-forest-600 transition-colors">{mode === 'set' ? 'Save' : 'Update'}</button>
             )}
           </div>
         </div>
       )}
-
       {success && <p className="text-xs text-forest-600 dark:text-forest-400 font-medium mt-3">{success}</p>}
     </Card>
   );
 };
 
-// ── Backup filename helper ────────────────────────────────────────────────────
-const getBackupFilename = () => {
-  const now = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-  const time = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
-  return `DS-Backup-${date}_${time}.json`;
-};
+// ── Import Prompt Modal (shown on app open when no existing data) ──────────────
+// Usage in your App root:
+//   const hasData = localStorage.length > 0;
+//   const [dismissed, setDismissed] = useState(false);
+//   {!hasData && !dismissed && <ImportPromptBanner onDismiss={() => setDismissed(true)} />}
+export const ImportPromptBanner = ({ onDismiss }) => {
+  const fileRef = useRef(null);
+  const [error, setError] = useState('');
 
-// ── Export Card ───────────────────────────────────────────────────────────────
-const ExportCard = () => {
-  const [status, setStatus] = useState(null); // 'success' | 'empty' | 'error'
-
-  const handleExport = () => {
-    try {
-      // Collect all localStorage data
-      const allData = {};
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        try {
-          allData[key] = JSON.parse(localStorage.getItem(key));
-        } catch {
-          allData[key] = localStorage.getItem(key);
-        }
-      }
-
-      if (Object.keys(allData).length === 0) {
-        setStatus('empty');
-        setTimeout(() => setStatus(null), 3000);
-        return;
-      }
-
-      const payload = {
-        exportedAt: new Date().toISOString(),
-        appVersion: '1.0',
-        app: 'Disciplesheep',
-        data: allData,
-      };
-
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href     = url;
-      a.download = getBackupFilename();
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      setStatus('success');
-      setTimeout(() => setStatus(null), 3000);
-    } catch (err) {
-      console.error('Export failed:', err);
-      setStatus('error');
-      setTimeout(() => setStatus(null), 3000);
+  const handleFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    if (!file.name.startsWith('DS-Backup-') || !file.name.endsWith('.json')) {
+      setError('Please choose a valid DS-Backup-*.json file.');
+      return;
     }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const backup = JSON.parse(ev.target.result);
+        if (!backup._meta || backup._meta.app !== 'Disciplesheep') {
+          setError('This file does not appear to be a Disciplesheep backup.');
+          return;
+        }
+        restoreAllData(backup);
+        window.location.reload();
+      } catch {
+        setError('Could not read backup file. It may be corrupted.');
+      }
+    };
+    reader.readAsText(file);
   };
 
   return (
-    <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="export-card">
-      <h2 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-4">Backup & Export</h2>
-
-      <div className="flex items-start gap-3 mb-5">
-        <div className="w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
-          <Download className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-white dark:bg-stone-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-stone-200 dark:border-stone-700">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full bg-forest-100 dark:bg-forest-900/30 flex items-center justify-center shrink-0">
+            <HardDrive className="w-5 h-5 text-forest-600 dark:text-forest-400" />
+          </div>
+          <div>
+            <h2 className="font-serif text-lg font-semibold text-stone-900 dark:text-stone-100">Restore Backup?</h2>
+            <p className="text-xs text-stone-500 dark:text-stone-400">No existing data found on this device.</p>
+          </div>
         </div>
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">Export All Data</p>
-          <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5 leading-relaxed">
-            Downloads a full snapshot of all your journal entries, settings, and app data as a JSON file.
-            The file will be named <span className="font-mono text-stone-600 dark:text-stone-300">DS-Backup-YYYY-MM-DD_HH-MM-SS.json</span>.
-          </p>
+        <p className="text-sm text-stone-600 dark:text-stone-400 mb-5 leading-relaxed">
+          Do you have a <span className="font-medium text-stone-800 dark:text-stone-200">DS-Backup</span> file from another phone?
+          Import it now to restore all your journals and records.
+        </p>
+        {error && (
+          <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+            <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+          </div>
+        )}
+        <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleFile} />
+        <div className="flex flex-col gap-2">
+          <button onClick={() => fileRef.current?.click()}
+            className="w-full h-11 rounded-xl bg-forest-500 hover:bg-forest-600 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors">
+            <Upload className="w-4 h-4" /> Choose Backup File
+          </button>
+          <button onClick={onDismiss}
+            className="w-full h-11 rounded-xl border border-stone-200 dark:border-stone-600 text-stone-600 dark:text-stone-400 text-sm hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">
+            Start Fresh
+          </button>
         </div>
       </div>
+    </div>
+  );
+};
 
-      <button
-        onClick={handleExport}
-        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 active:scale-95 text-white text-sm font-medium transition-all"
-      >
-        <Download className="w-4 h-4" />
-        Download Backup
-      </button>
+// ── Backup & Restore Card ─────────────────────────────────────────────────────
+const BackupCard = () => {
+  const fileRef = useRef(null);
+  const [exportStatus, setExportStatus] = useState(null);
+  const [importStatus, setImportStatus] = useState(null);
+  const [importMsg,    setImportMsg]    = useState('');
+  const [lastExport,   setLastExport]   = useState(() => localStorage.getItem('ds_last_export') || null);
 
-      {status === 'success' && (
-        <p className="text-xs text-forest-600 dark:text-forest-400 font-medium mt-3">
-          ✓ Backup downloaded successfully.
-        </p>
-      )}
-      {status === 'empty' && (
-        <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-3">
-          No data found to export yet.
-        </p>
-      )}
-      {status === 'error' && (
-        <p className="text-xs text-red-500 font-medium mt-3">
-          Export failed. Please try again.
-        </p>
-      )}
+  const handleExport = () => {
+    try {
+      const backup = collectAllData();
+      const filename = getBackupFilename();
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(url);
+      const ts = new Date().toLocaleString();
+      localStorage.setItem('ds_last_export', ts);
+      setLastExport(ts);
+      setExportStatus('success');
+      setTimeout(() => setExportStatus(null), 3000);
+    } catch {
+      setExportStatus('error');
+      setTimeout(() => setExportStatus(null), 3000);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    if (!file.name.startsWith('DS-Backup-') || !file.name.endsWith('.json')) {
+      setImportMsg('Please choose a valid DS-Backup-*.json file.');
+      setImportStatus('error');
+      setTimeout(() => setImportStatus(null), 4000);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const backup = JSON.parse(ev.target.result);
+        if (!backup._meta || backup._meta.app !== 'Disciplesheep') {
+          setImportMsg('This file does not appear to be a Disciplesheep backup.');
+          setImportStatus('error');
+          setTimeout(() => setImportStatus(null), 4000);
+          return;
+        }
+        restoreAllData(backup);
+        setImportMsg(`Restored from ${file.name}. Reloading…`);
+        setImportStatus('success');
+        setTimeout(() => window.location.reload(), 1800);
+      } catch {
+        setImportMsg('Could not read backup file. It may be corrupted.');
+        setImportStatus('error');
+        setTimeout(() => setImportStatus(null), 4000);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  return (
+    <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="backup-card">
+      <h2 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-1">Backup & Restore</h2>
+      <p className="text-xs text-stone-500 dark:text-stone-400 mb-5">
+        Transfer your data to another phone or keep a personal backup.
+      </p>
+
+      {/* Export */}
+      <div className="mb-5 pb-5 border-b border-stone-100 dark:border-stone-700">
+        <div className="flex items-start gap-3 mb-3">
+          <div className="w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0 mt-0.5">
+            <Download className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">Export Backup</p>
+            <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5 break-all">
+              Saves as <span className="font-mono text-stone-600 dark:text-stone-300">DS-Backup-YYYY-MM-DD_HH-MM-SS.json</span>
+            </p>
+            {lastExport && (
+              <p className="text-xs text-stone-400 dark:text-stone-500 mt-1">Last exported: {lastExport}</p>
+            )}
+          </div>
+        </div>
+
+        {exportStatus === 'success' && (
+          <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-forest-50 dark:bg-forest-900/20 border border-forest-200 dark:border-forest-800">
+            <CheckCircle className="w-4 h-4 text-forest-500 shrink-0" />
+            <p className="text-xs text-forest-700 dark:text-forest-400 font-medium">Backup downloaded successfully!</p>
+          </div>
+        )}
+        {exportStatus === 'error' && (
+          <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+            <p className="text-xs text-red-600 dark:text-red-400">Export failed. Please try again.</p>
+          </div>
+        )}
+
+        <button onClick={handleExport}
+          className="w-full h-10 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors">
+          <Download className="w-4 h-4" /> Download Backup
+        </button>
+      </div>
+
+      {/* Import */}
+      <div>
+        <div className="flex items-start gap-3 mb-3">
+          <div className="w-9 h-9 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center shrink-0 mt-0.5">
+            <Upload className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">Import Backup</p>
+            <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+              Restore from a <span className="font-mono text-stone-600 dark:text-stone-300">DS-Backup-*.json</span> file.{' '}
+              <span className="text-amber-600 dark:text-amber-500 font-medium">Overwrites current data.</span>
+            </p>
+          </div>
+        </div>
+
+        {importStatus === 'success' && (
+          <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-forest-50 dark:bg-forest-900/20 border border-forest-200 dark:border-forest-800">
+            <CheckCircle className="w-4 h-4 text-forest-500 shrink-0" />
+            <p className="text-xs text-forest-700 dark:text-forest-400 font-medium">{importMsg}</p>
+          </div>
+        )}
+        {importStatus === 'error' && (
+          <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+            <p className="text-xs text-red-600 dark:text-red-400">{importMsg}</p>
+          </div>
+        )}
+
+        <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleFileChange} />
+        <button onClick={() => fileRef.current?.click()}
+          className="w-full h-10 rounded-xl border-2 border-dashed border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 text-sm font-medium flex items-center justify-center gap-2 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
+          <Upload className="w-4 h-4" /> Choose Backup File
+        </button>
+      </div>
     </Card>
   );
 };
@@ -375,15 +451,12 @@ const Settings = () => {
     { value: 'xlarge', label: 'X-Large' },
   ];
 
-  const getFontSizeDescription = () => {
-    const descriptions = {
-      small:  'Easy reading — ideal for longer sessions',
-      medium: 'Comfortable large — great for daily use',
-      large:  'Maximum size — easiest on the eyes',
-      xlarge: 'Extra large — for maximum comfort',
-    };
-    return descriptions[fontSize] || descriptions.small;
-  };
+  const getFontSizeDescription = () => ({
+    small:  'Easy reading — ideal for longer sessions',
+    medium: 'Comfortable large — great for daily use',
+    large:  'Maximum size — easiest on the eyes',
+    xlarge: 'Extra large — for maximum comfort',
+  }[fontSize] || 'Easy reading — ideal for longer sessions');
 
   return (
     <>
@@ -454,11 +527,11 @@ const Settings = () => {
           </div>
         </Card>
 
-        {/* Security — Delete Guard */}
+        {/* Security */}
         <SecurityCard />
 
-        {/* Backup & Export */}
-        <ExportCard />
+        {/* Backup & Restore */}
+        <BackupCard />
 
         {/* Data & Storage */}
         <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="data-card">
