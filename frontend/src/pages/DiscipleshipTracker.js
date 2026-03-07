@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { useDiscipleshipTracking, DISCIPLESHIP_LEVELS, getDirectDisciples } from '@/hooks/useDiscipleshipTracking';
 import { Users, Plus, ArrowRight, TrendingUp, Target, Edit2, Trash2, UserPlus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -15,26 +15,6 @@ import { getCurrentMinistryYear, getYearTargets } from '@/data/dailyDevotionals'
 const focusRef = (ref) => setTimeout(() => ref?.current?.focus(), 80);
 const onEnter  = (nextRef) => (e) => {
   if (e.key === 'Enter') { e.preventDefault(); focusRef(nextRef); }
-};
-
-/* ── Back-button: dismiss keyboard then close dialog ─────────────────────── */
-const useBackButtonClose = (isOpen, closeFn) => {
-  useEffect(() => {
-    if (!isOpen) return;
-    // Tell Layout not to trigger double-back exit while this dialog is open
-    window.__dialogOpenCount = (window.__dialogOpenCount || 0) + 1;
-    window.history.pushState({ dialog: true }, '');
-    const onPop = () => {
-      if (document.activeElement) document.activeElement.blur();
-      setTimeout(closeFn, 50);
-    };
-    window.addEventListener('popstate', onPop);
-    return () => {
-      window.removeEventListener('popstate', onPop);
-      // Decrement so Layout knows this dialog is closed
-      window.__dialogOpenCount = Math.max(0, (window.__dialogOpenCount || 1) - 1);
-    };
-  }, [isOpen, closeFn]);
 };
 
 const DiscipleshipTracker = () => {
@@ -60,11 +40,6 @@ const DiscipleshipTracker = () => {
   const stats = getMultiplicationStats();
   const currentYear = getCurrentMinistryYear();
   const yearTargets = getYearTargets(currentYear);
-
-  const closeAddDialog = () => { setIsAddDialogOpen(false); resetForm(); };
-
-  // Back button support
-  useBackButtonClose(isAddDialogOpen, closeAddDialog);
 
   const resetForm = () => {
     setFormData({
@@ -162,11 +137,12 @@ const DiscipleshipTracker = () => {
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl">{editingId ? 'Edit Disciple' : 'Add New Disciple'}</DialogTitle>
           </DialogHeader>
+          {/* CHANGED: added max-h-[60vh] overflow-y-auto dialog-scroll */}
           <div className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto dialog-scroll" data-form>
 
             <div>
-              <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Name *</Label>
-              <Input ref={refName} type="text" value={formData.name} autoFocus
+              <Label htmlFor="dt-name" className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Name *</Label>
+              <Input id="dt-name" ref={refName} type="text" value={formData.name} autoFocus
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                 onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
                 placeholder="Full name" className="text-xs border-stone-200"
@@ -233,8 +209,8 @@ const DiscipleshipTracker = () => {
 
             {formData.contactFrequency === 'custom' && (
               <div>
-                <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Custom Frequency</Label>
-                <Input ref={refCustomFreq} type="text" value={formData.customFrequency || ''}
+                <Label htmlFor="dt-custom-freq" className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Custom Frequency</Label>
+                <Input id="dt-custom-freq" ref={refCustomFreq} type="text" value={formData.customFrequency || ''}
                   onChange={e => setFormData({ ...formData, customFrequency: e.target.value })}
                   onKeyDown={onEnter(refNotes)}
                   placeholder="e.g. Every 2 weeks, Monthly, As needed"
@@ -243,8 +219,8 @@ const DiscipleshipTracker = () => {
             )}
 
             <div>
-              <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Notes</Label>
-              <Input ref={refNotes} type="text" value={formData.notes}
+              <Label htmlFor="dt-notes" className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Notes</Label>
+              <Input id="dt-notes" ref={refNotes} type="text" value={formData.notes}
                 onChange={e => setFormData({ ...formData, notes: e.target.value })}
                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit(); } }}
                 placeholder="Spiritual growth, prayer needs, etc. · Press Enter to save"

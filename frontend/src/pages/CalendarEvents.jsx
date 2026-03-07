@@ -209,8 +209,8 @@ const EventForm = React.memo(({ open, onOpenChange, initial, onSave }) => {
 
         <div className="space-y-4 mt-2 max-h-[75vh] overflow-y-auto pr-1">
           <div>
-            <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-1 block">Title *</Label>
-            <Input value={form.title} onChange={e => set('title', e.target.value)}
+            <Label htmlFor="ef-title" className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-1 block">Title *</Label>
+            <Input id="ef-title" value={form.title} onChange={e => set('title', e.target.value)}
               placeholder="e.g. Bible study, Cell group"
               className="dark:bg-stone-700 dark:border-stone-600 dark:text-stone-100" />
           </div>
@@ -236,14 +236,14 @@ const EventForm = React.memo(({ open, onOpenChange, initial, onSave }) => {
           </div>
 
           <div>
-            <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-1 block">Time (optional)</Label>
-            <Input type="time" value={form.time} onChange={e => set('time', e.target.value)}
+            <Label htmlFor="ef-time" className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-1 block">Time (optional)</Label>
+            <Input id="ef-time" type="time" value={form.time} onChange={e => set('time', e.target.value)}
               className="font-mono dark:bg-stone-700 dark:border-stone-600 dark:text-stone-100" />
           </div>
 
           <div>
-            <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-1 block">Notes (optional)</Label>
-            <Input value={form.description} onChange={e => set('description', e.target.value)}
+            <Label htmlFor="ef-notes" className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-1 block">Notes (optional)</Label>
+            <Input id="ef-notes" value={form.description} onChange={e => set('description', e.target.value)}
               placeholder="Any details..."
               className="dark:bg-stone-700 dark:border-stone-600 dark:text-stone-100" />
           </div>
@@ -275,7 +275,7 @@ const EventForm = React.memo(({ open, onOpenChange, initial, onSave }) => {
 
           {form.remind && (
             <div>
-              <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">How many minutes before?</Label>
+              <Label htmlFor="ef-remind-min" className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">How many minutes before?</Label>
               <div className="flex gap-2 flex-wrap items-center">
                 {REMIND_PRESETS.map(m => (
                   <button key={m} type="button" onClick={() => set('remindMinutes', m)} style={{ minHeight: 0 }}
@@ -287,7 +287,7 @@ const EventForm = React.memo(({ open, onOpenChange, initial, onSave }) => {
                     {m === '60' ? '1 hr' : m === '120' ? '2 hrs' : `${m} min`}
                   </button>
                 ))}
-                <Input type="number" min="1" max="1440" value={form.remindMinutes}
+                <Input id="ef-remind-min" type="number" min="1" max="1440" value={form.remindMinutes}
                   onChange={e => set('remindMinutes', e.target.value)}
                   className="w-20 h-8 text-xs font-mono dark:bg-stone-700 dark:border-stone-600" placeholder="custom" />
               </div>

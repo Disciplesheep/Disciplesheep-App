@@ -10,16 +10,19 @@ import { format, addDays, subDays, addYears } from 'date-fns';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { CHURCH_PLANT_START_DATE } from '@/data/dailyDevotionals';
 
+/* ── Constants outside component — no re-creation on render ─────────────── */
 const NAV_H      = 64;
 const BAR_H      = 42;
 const ROOT_PAGES = ['/', '/stewardship', '/journal', '/calendar', '/discipleship'];
 
+/* ── FIX: moved outside Layout so it's stable (no missing-deps warning) ─── */
 const CUSTOM_BACK = {
   '/stewardship/people':   '/stewardship',
   '/stewardship/expenses': '/stewardship',
   '/stewardship/reports':  '/stewardship',
 };
 
+/* ── Auto-export — pure function, no closure deps ───────────────────────── */
 const triggerAutoExport = () => {
   const DATA_KEYS = ['dailyEntries','peopleContacts','expenses','weeklyReports','monthlyReports','calendarEvents'];
   const backup = { _version: 1, _exportedAt: new Date().toISOString() };
@@ -40,6 +43,7 @@ const triggerAutoExport = () => {
   URL.revokeObjectURL(url);
 };
 
+/* ── Shared Avatar ───────────────────────────────────────────────────────── */
 const Avatar = ({ size = 36 }) => {
   const photo = localStorage.getItem('profile_photo') || '';
   return photo
@@ -47,6 +51,7 @@ const Avatar = ({ size = 36 }) => {
     : <div style={{ width: size, height: size, borderRadius: '50%', background: '#4d7c0f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.45 }}>🐑</div>;
 };
 
+/* ── Calendar error boundary ─────────────────────────────────────────────── */
 class CalendarErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { error: false }; }
   static getDerivedStateFromError() { return { error: true }; }
@@ -60,6 +65,7 @@ class CalendarErrorBoundary extends React.Component {
   }
 }
 
+/* ── Nav items ───────────────────────────────────────────────────────────── */
 const navItems = [
   { to: '/',             icon: LayoutGrid,   label: 'Dashboard' },
   { to: '/stewardship',  icon: TrendingUp,   label: 'Stewardship' },
@@ -68,6 +74,7 @@ const navItems = [
   { to: '/discipleship', icon: GitBranch,    label: 'Disciples' },
 ];
 
+/* ── Profile hook ────────────────────────────────────────────────────────── */
 const useProfile = () => {
   const [name,  setName]  = useState(() => localStorage.getItem('profile_name')  || '');
   const [photo, setPhoto] = useState(() => localStorage.getItem('profile_photo') || '');
@@ -76,6 +83,7 @@ const useProfile = () => {
   return { name, photo, saveName, savePhoto };
 };
 
+/* ── Shared avatar editor ────────────────────────────────────────────────── */
 const AvatarEditor = ({ size, fileRef, onPhotoChange }) => (
   <div className="relative" style={{ width: size, height: size }}>
     <Avatar size={size} />
@@ -90,6 +98,7 @@ const AvatarEditor = ({ size, fileRef, onPhotoChange }) => (
   </div>
 );
 
+/* ── Profile Modal (mobile) ──────────────────────────────────────────────── */
 const ProfileModal = ({ open, onClose }) => {
   const [editingName, setEditingName] = useState(false);
   const [nameInput,   setNameInput]   = useState('');
@@ -165,6 +174,7 @@ const ProfileModal = ({ open, onClose }) => {
   );
 };
 
+/* ── Profile Menu (tablet dropdown) ─────────────────────────────────────── */
 const ProfileMenu = () => {
   const [open,        setOpen]        = useState(false);
   const [editingName, setEditingName] = useState(false);
@@ -225,6 +235,7 @@ const ProfileMenu = () => {
   );
 };
 
+/* ── Bottom Nav ──────────────────────────────────────────────────────────── */
 const BottomNav = () => (
   <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-t border-stone-200 dark:border-stone-700" data-testid="bottom-navigation">
     <div className="h-16 flex items-center justify-around px-1 max-w-2xl mx-auto">
@@ -250,6 +261,7 @@ const BottomNav = () => (
   </nav>
 );
 
+/* ── Journal Date Bar ────────────────────────────────────────────────────── */
 const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen }) => {
   const [barVisible, setBarVisible] = useState(true);
   const lastScrollY = useRef(0);
@@ -336,12 +348,14 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
   );
 };
 
+/* ── Side Nav (tablet) ───────────────────────────────────────────────────── */
 const SideNav = () => {
   const navigate = useNavigate();
   return (
     <aside className="fixed top-0 left-0 h-full w-56 bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-r border-stone-200 dark:border-stone-700 flex flex-col z-50 shadow-lg">
       <div className="flex items-center justify-between px-5 py-6 border-b border-stone-100 dark:border-stone-800">
         <div className="flex items-center gap-3">
+          {/* ↓ clickable sheep — navigates to Settings */}
           <button
             onClick={() => navigate('/settings')}
             className="w-9 h-9 rounded-xl bg-forest-500 flex items-center justify-center flex-shrink-0 hover:bg-forest-700 active:scale-95 transition-all"
@@ -380,11 +394,14 @@ const SideNav = () => {
 
 if (typeof window.__dialogOpenCount === 'undefined') window.__dialogOpenCount = 0;
 
+/* ── Layout ──────────────────────────────────────────────────────────────── */
 const Layout = () => {
   const { isTablet }  = useScreenSize();
   const location      = useLocation();
   const navigate      = useNavigate();
   const isJournalPage = location.pathname === '/journal';
+
+  // CUSTOM_BACK is now defined at module level (no missing-deps warning)
 
   const [journalDate,  setJournalDate]  = useState(new Date());
   const [pickerOpen,   setPickerOpen]   = useState(false);
@@ -420,15 +437,17 @@ const Layout = () => {
     };
   }, []);
 
+  // ── Sentinel push on root page entry ─────────────────────────────────────
   const resetExitStep = useCallback(() => {
     exitStepRef.current = 0;
     setExitToastMsg('');
   }, []);
 
-  // ── Push sentinel on every root page arrival ──────────────────────────────
   useEffect(() => {
     if (ROOT_PAGES.includes(location.pathname)) {
-      window.history.pushState({ appEntry: true }, '');
+      // replaceState avoids adding a skippable history entry on initial load
+      // (pushState without user interaction triggers a browser warning)
+      window.history.replaceState({ appEntry: true }, '');
     } else {
       resetExitStep();
     }
@@ -440,6 +459,7 @@ const Layout = () => {
       if (e.state?.pdfOpen) return;
       if (window.__dialogOpenCount > 0) return;
 
+      // Custom back destinations for sub-pages (CUSTOM_BACK is module-level)
       const customDest = CUSTOM_BACK[window.location.pathname];
       if (customDest) { navigate(customDest); return; }
 
@@ -466,6 +486,7 @@ const Layout = () => {
     };
     window.addEventListener('popstate', onPopState);
     return () => { window.removeEventListener('popstate', onPopState); clearTimeout(exitTimerRef.current); };
+    // FIX: navigate is now included; CUSTOM_BACK is stable (module-level const)
   }, [navigate, resetExitStep]);
 
   const toastBottom = isJournalPage
@@ -499,21 +520,19 @@ const Layout = () => {
       ) : (
         <>
           <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-b border-stone-200 dark:border-stone-700">
-            <div className="flex items-center gap-2 px-4 h-12 min-w-0 overflow-hidden">
-              {/* Only 🐑 + Disciplesheep are tappable */}
-              <button
-                onClick={() => setProfileOpen(true)}
-                className="flex items-center gap-2 shrink-0 hover:opacity-70 active:scale-95 transition-all"
-                title="My Profile"
-              >
-                <span className="text-lg">🐑</span>
-                <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100">Disciplesheep</p>
+            <div className="flex items-center px-4 h-12">
+              {/* ↓ sheep + title — opens Profile modal (which has Settings link) */}
+              <button onClick={() => setProfileOpen(true)}
+                className="flex items-center gap-2 min-w-0 hover:opacity-70 active:scale-95 transition-all"
+                title="My Profile">
+                <span className="text-lg shrink-0">🐑</span>
+                <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100 shrink-0">Disciplesheep</p>
+                <div className="w-px h-6 bg-stone-300 dark:bg-stone-600 shrink-0 mx-1" />
+                <div className="min-w-0 text-left">
+                  <p className="text-xs italic text-stone-700 dark:text-stone-300 leading-tight">"The Lord is my Shepherd,</p>
+                  <p className="text-xs italic text-stone-700 dark:text-stone-300 leading-tight">that's all I want!"</p>
+                </div>
               </button>
-              {/* Separator and quote — not tappable */}
-              <div className="w-px h-5 bg-stone-300 dark:bg-stone-600 shrink-0" />
-              <p className="text-xs italic text-stone-500 dark:text-stone-400 truncate min-w-0">
-                "The Lord is my Shepherd, that's all I want!"
-              </p>
             </div>
           </div>
 
