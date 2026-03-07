@@ -50,6 +50,14 @@ const Dashboard = () => {
   const [isExpenseOpen, setIsExpenseOpen] = useState(false);
   const [expenseForm, setExpenseForm]     = useState(emptyExpense);
 
+  const emptyPerson = {
+    date: formatDate(new Date()), name: '', age: '', birthday: '',
+    generation: '', contactNumber: '', facebookUrl: '', address: emptyAddress,
+    connection: '', topic: '', nextStep: '', contactFrequencyDays: 7,
+  };
+  const [isPersonOpen, setIsPersonOpen] = useState(false);
+  const [personForm, setPersonForm]     = useState(emptyPerson);
+
   const closeExpenseDialog = () => { setIsExpenseOpen(false); setExpenseForm(emptyExpense); };
   const closePersonDialog  = () => { setIsPersonOpen(false); setPersonForm(emptyPerson); };
 
@@ -67,14 +75,6 @@ const Dashboard = () => {
     setExpenseForm(emptyExpense);
     setIsExpenseOpen(false);
   };
-
-  const emptyPerson = {
-    date: formatDate(new Date()), name: '', age: '', birthday: '',
-    generation: '', contactNumber: '', facebookUrl: '', address: emptyAddress,
-    connection: '', topic: '', nextStep: '', contactFrequencyDays: 7,
-  };
-  const [isPersonOpen, setIsPersonOpen] = useState(false);
-  const [personForm, setPersonForm]     = useState(emptyPerson);
 
   const refPDate = useRef(null); const refPName = useRef(null); const refPAge = useRef(null);
   const refPBirthday = useRef(null); const refPPhone = useRef(null); const refPFacebook = useRef(null);
