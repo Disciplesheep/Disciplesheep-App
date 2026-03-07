@@ -47,7 +47,6 @@ const ProfileModal = ({ open, onClose }) => {
   const fileRef = useRef();
   const { name, photo, saveName, savePhoto } = useProfile();
 
-  // ── Register with back-button system so exit flow is blocked while open ──
   useEffect(() => {
     if (!open) return;
     window.__dialogOpenCount = (window.__dialogOpenCount || 0) + 1;
@@ -432,7 +431,6 @@ const Layout = () => {
       setTimeout(() => { justDismissedKeyboard = false; }, 400);
     };
 
-    // Block the click that follows a keyboard-dismissing tap so dialog stays open
     const onClickCapture = (e) => {
       if (!justDismissedKeyboard) return;
       justDismissedKeyboard = false;
@@ -449,13 +447,18 @@ const Layout = () => {
 
   const resetExitStep = () => { exitStepRef.current = 0; setExitToastMsg(''); };
 
+  // Only these 5 root pages trigger the 3-tap exit rule
+  const ROOT_PAGES = ['/', '/stewardship', '/journal', '/calendar', '/discipleship'];
+
   useEffect(() => {
     window.history.pushState({ appEntry: true }, '');
 
     const onPopState = (e) => {
       if (e.state?.pdfOpen) return;
-      // ── If any dialog/modal is open, let its own handler deal with back ──
+      // If any dialog/modal is open, let its own handler deal with back
       if (window.__dialogOpenCount > 0) return;
+      // On sub-pages, let the browser handle back navigation normally
+      if (!ROOT_PAGES.includes(window.location.pathname)) return;
 
       window.history.pushState({ appEntry: true }, '');
       clearTimeout(exitTimerRef.current);
