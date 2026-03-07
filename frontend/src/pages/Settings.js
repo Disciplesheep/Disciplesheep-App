@@ -501,12 +501,20 @@ const PermissionsCard = () => {
                   <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
                   {cfg.label}
                 </span>
+              ) : isDenied ? (
+                <button onClick={() => {
+                  // Try chrome deep link first, fallback gracefully
+                  const a = document.createElement('a');
+                  a.href = 'chrome://settings/content/siteDetails?site=' + encodeURIComponent(window.location.origin);
+                  a.click();
+                }}
+                  className="px-3 py-1.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium transition-colors shrink-0 flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3" /> Open Settings
+                </button>
               ) : canRequest ? (
                 <button onClick={() => handleRequest(def.id)}
-                  className={`px-3 py-1.5 rounded-full text-white text-xs font-medium transition-colors shrink-0 ${
-                    isDenied ? "bg-red-500 hover:bg-red-600" : "bg-forest-500 hover:bg-forest-600"
-                  }`}>
-                  {isDenied ? "Re-request" : "Allow"}
+                  className="px-3 py-1.5 rounded-full bg-forest-500 hover:bg-forest-600 text-white text-xs font-medium transition-colors shrink-0">
+                  Allow
                 </button>
               ) : null}
             </div>
@@ -517,10 +525,10 @@ const PermissionsCard = () => {
       {PERM_DEFS.some(d => statuses[d.id] === "denied") && (
         <div className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800">
           <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed font-medium mb-1">
-            Permission still denied after tapping Re-request?
+            🔒 Blocked by browser
           </p>
           <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
-            Open your phone's <span className="font-semibold">Settings → Apps → Browser → Permissions</span> and enable it manually.
+            Tap <span className="font-semibold">Open Settings</span>, then find this site and enable the permission. On iPhone, go to <span className="font-semibold">Settings → Safari → [this site]</span>.
           </p>
         </div>
       )}
