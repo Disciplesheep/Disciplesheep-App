@@ -391,8 +391,8 @@ const Layout = () => {
                 <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100 shrink-0">Disciplesheep</p>
                 <div className="w-px h-6 bg-stone-300 dark:bg-stone-600 shrink-0 mx-1" />
                 <div className="min-w-0">
-                  <p className="text-[9px] italic text-stone-400 dark:text-stone-500 leading-tight">"The Lord is my Shepherd,</p>
-                  <p className="text-[9px] italic text-stone-400 dark:text-stone-500 leading-tight">that's all I want!"</p>
+                  <p className="text-xs italic text-stone-700 dark:text-stone-300 leading-tight">"The Lord is my Shepherd,</p>
+                  <p className="text-xs italic text-stone-700 dark:text-stone-300 leading-tight">that's all I want!"</p>
                 </div>
               </div>
               <ProfileMenu />
