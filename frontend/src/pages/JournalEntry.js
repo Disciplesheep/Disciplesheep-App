@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useOutletContext } from 'react-router-dom';
 import { useJournalData, useLocalStorage } from '@/hooks/useLocalStorage';
 import {
-  CheckCircle2, Clock, BookOpen, FileText, Save, Maximize2, Minimize2,
+  CheckCircle2, Clock, BookOpen, FileText, FileUp, Maximize2, Minimize2,
   Trash2, X, FileType2, AlertCircle
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -376,7 +376,7 @@ const JournalEntry = () => {
           <button onClick={() => fileInputRef.current?.click()}
             className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-forest-300 dark:border-forest-700 text-forest-600 dark:text-forest-400 hover:bg-forest-50 dark:hover:bg-forest-900/20 transition-colors text-sm font-medium"
             style={{ minHeight: 0 }}>
-            <Save className="w-4 h-4" /> Save File
+            <FileUp className="w-4 h-4" /> Save File
           </button>
           <input ref={fileInputRef} type="file" accept={ACCEPT} className="hidden" onChange={handleSaveFile} />
 
