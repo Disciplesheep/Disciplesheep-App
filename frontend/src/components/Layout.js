@@ -42,6 +42,100 @@ const useProfile = () => {
   return { name, photo, saveName, savePhoto };
 };
 
+const ProfileModal = ({ open, onClose }) => {
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const navigate = useNavigate();
+  const fileRef = useRef();
+  const { name, photo, saveName, savePhoto } = useProfile();
+
+  const handleNameSave = () => { saveName(nameInput.trim()); setEditingName(false); };
+  const handlePhoto = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => savePhoto(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  const Avatar = ({ size = 96 }) => (
+    photo
+      ? <img src={photo} alt="profile" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />
+      : <div style={{ width: size, height: size, borderRadius: '50%', background: '#4d7c0f', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.45 }}>🐑</div>
+  );
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-start justify-center pt-16 px-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-white dark:bg-stone-800 rounded-3xl shadow-2xl border border-stone-100 dark:border-stone-700 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-2">
+          <p className="font-serif text-xl font-bold text-stone-900 dark:text-stone-100">My Profile</p>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-stone-100 dark:bg-stone-700 text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Avatar + Name */}
+        <div className="flex flex-col items-center gap-4 px-6 py-6">
+          <div className="relative">
+            <Avatar size={96} />
+            <button
+              onClick={() => fileRef.current.click()}
+              className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-forest-500 flex items-center justify-center shadow-lg hover:bg-forest-700 transition-colors"
+              title="Change photo"
+            >
+              <Camera className="w-4 h-4 text-white" />
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+          </div>
+
+          {editingName ? (
+            <div className="flex items-center gap-2 w-full">
+              <input
+                autoFocus value={nameInput}
+                onChange={e => setNameInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleNameSave(); if (e.key === 'Escape') setEditingName(false); }}
+                placeholder="Your name..."
+                className="flex-1 text-base px-4 py-2.5 rounded-xl border border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100 outline-none focus:border-forest-500"
+              />
+              <button onClick={handleNameSave} className="w-9 h-9 rounded-full bg-forest-500 flex items-center justify-center hover:bg-forest-700">
+                <Check className="w-4 h-4 text-white" />
+              </button>
+              <button onClick={() => setEditingName(false)} className="w-9 h-9 rounded-full bg-stone-200 dark:bg-stone-600 flex items-center justify-center hover:bg-stone-300">
+                <X className="w-4 h-4 text-stone-600 dark:text-stone-300" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => { setNameInput(name); setEditingName(true); }}
+              className="text-center hover:opacity-70 transition-opacity"
+              title="Tap to edit name"
+            >
+              <p className="font-semibold text-stone-900 dark:text-stone-100 text-lg">{name || 'Tap to set your name'}</p>
+              <p className="text-sm text-stone-400 dark:text-stone-500 mt-1">Church Planter · tap to edit</p>
+            </button>
+          )}
+        </div>
+
+        {/* Settings link */}
+        <div className="border-t border-stone-100 dark:border-stone-700">
+          <button
+            onClick={() => { navigate('/settings'); onClose(); }}
+            className="w-full flex items-center gap-3 px-6 py-4 text-sm text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
+          >
+            <SettingsIcon className="w-5 h-5 text-stone-400" />
+            <span className="font-medium">Settings</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Keep ProfileMenu for tablet SideNav (small dropdown style)
 const ProfileMenu = () => {
   const [open, setOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
@@ -304,6 +398,7 @@ const Layout = () => {
 
   const [journalDate, setJournalDate] = useState(new Date());
   const [pickerOpen,  setPickerOpen]  = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const outletContext = { journalDate, setJournalDate, pickerOpen, setPickerOpen };
 
@@ -386,17 +481,23 @@ const Layout = () => {
         <>
           <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-b border-stone-200 dark:border-stone-700">
             <div className="flex items-center px-4 h-12">
-              <div className="flex items-center gap-2 min-w-0">
+              <button
+                onClick={() => setProfileOpen(true)}
+                className="flex items-center gap-2 min-w-0 hover:opacity-70 active:scale-95 transition-all"
+                title="My Profile"
+              >
                 <span className="text-lg shrink-0">🐑</span>
                 <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100 shrink-0">Disciplesheep</p>
                 <div className="w-px h-6 bg-stone-300 dark:bg-stone-600 shrink-0 mx-1" />
-                <div className="min-w-0">
+                <div className="min-w-0 text-left">
                   <p className="text-xs italic text-stone-700 dark:text-stone-300 leading-tight">"The Lord is my Shepherd,</p>
                   <p className="text-xs italic text-stone-700 dark:text-stone-300 leading-tight">that's all I want!"</p>
                 </div>
-              </div>
+              </button>
             </div>
           </div>
+
+          <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
 
           <main style={{
             paddingTop: '3rem',
