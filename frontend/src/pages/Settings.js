@@ -82,16 +82,16 @@ const PwField = ({ label, value, onChange, show, onToggle, onEnter, autoFocus, i
     <label className="text-xs text-stone-500 dark:text-stone-400">{label}</label>
     <div className="relative">
       <input
-        type={show ? 'text' : 'password'}
+        type={show ? "text" : "password"}
         value={value}
         onChange={onChange}
-        onKeyDown={e => e.key === 'Enter' && onEnter?.()}
+        onKeyDown={e => e.key === "Enter" && onEnter?.()}
         autoFocus={autoFocus}
         autoComplete="new-password"
         className={`w-full px-4 py-2.5 pr-10 rounded-xl border text-sm bg-stone-50 dark:bg-stone-700 text-stone-900 dark:text-stone-100 outline-none transition-colors ${
           isCorrect
-            ? 'border-forest-500 bg-forest-50 dark:bg-forest-900/20'
-            : 'border-stone-200 dark:border-stone-600 focus:border-forest-500'
+            ? "border-forest-500 bg-forest-50 dark:bg-forest-900/20"
+            : "border-stone-200 dark:border-stone-600 focus:border-forest-500"
         }`}
       />
       <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
@@ -108,44 +108,44 @@ const PwField = ({ label, value, onChange, show, onToggle, onEnter, autoFocus, i
 const SecurityCard = () => {
   const { hasPassword, setPassword, verifyPassword, removePassword } = useProfilePassword();
   const [mode, setMode]       = useState(null);
-  const [current, setCurrent] = useState('');
-  const [next,    setNext]    = useState('');
-  const [confirm, setConfirm] = useState('');
+  const [current, setCurrent] = useState("");
+  const [next,    setNext]    = useState("");
+  const [confirm, setConfirm] = useState("");
   const [showPw,  setShowPw]  = useState(false);
-  const [error,   setError]   = useState('');
-  const [success, setSuccess] = useState('');
+  const [error,   setError]   = useState("");
+  const [success, setSuccess] = useState("");
 
-  const currentIsCorrect = (mode === 'change' || mode === 'remove') && current.length > 0 && verifyPassword(current);
+  const currentIsCorrect = (mode === "change" || mode === "remove") && current.length > 0 && verifyPassword(current);
 
   useEffect(() => {
     if (!currentIsCorrect) return;
-    if (mode === 'remove') {
-      const timer = setTimeout(() => { removePassword(); setSuccess('Password removed. Deletions are unprotected.'); reset(); }, 400);
+    if (mode === "remove") {
+      const timer = setTimeout(() => { removePassword(); setSuccess("Password removed. Deletions are unprotected."); reset(); }, 400);
       return () => clearTimeout(timer);
     }
-    if (mode === 'change') {
-      const nextInput = document.querySelector('input[data-field="new-password"]');
+    if (mode === "change") {
+      const nextInput = document.querySelector("input[data-field=\"new-password\"]");
       if (nextInput) setTimeout(() => nextInput.focus(), 400);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIsCorrect]);
 
-  const reset = () => { setMode(null); setCurrent(''); setNext(''); setConfirm(''); setError(''); setSuccess(''); };
+  const reset = () => { setMode(null); setCurrent(""); setNext(""); setConfirm(""); setError(""); setSuccess(""); };
 
   const handleSubmit = () => {
-    setError('');
-    if (mode === 'set') {
-      if (next.trim().length < 4) return setError('Password must be at least 4 characters.');
-      if (next !== confirm)        return setError('Passwords do not match.');
-      setPassword(next.trim()); setSuccess('Password set. Deletions are now protected.'); reset();
-    } else if (mode === 'change') {
-      if (!verifyPassword(current))   return setError('Current password is incorrect.');
-      if (next.trim().length < 4)     return setError('New password must be at least 4 characters.');
-      if (next !== confirm)           return setError('New passwords do not match.');
-      setPassword(next.trim()); setSuccess('Password updated successfully.'); reset();
-    } else if (mode === 'remove') {
-      if (!verifyPassword(current)) return setError('Incorrect password.');
-      removePassword(); setSuccess('Password removed. Deletions are unprotected.'); reset();
+    setError("");
+    if (mode === "set") {
+      if (next.trim().length < 4) return setError("Password must be at least 4 characters.");
+      if (next !== confirm)        return setError("Passwords do not match.");
+      setPassword(next.trim()); setSuccess("Password set. Deletions are now protected."); reset();
+    } else if (mode === "change") {
+      if (!verifyPassword(current))   return setError("Current password is incorrect.");
+      if (next.trim().length < 4)     return setError("New password must be at least 4 characters.");
+      if (next !== confirm)           return setError("New passwords do not match.");
+      setPassword(next.trim()); setSuccess("Password updated successfully."); reset();
+    } else if (mode === "remove") {
+      if (!verifyPassword(current)) return setError("Incorrect password.");
+      removePassword(); setSuccess("Password removed. Deletions are unprotected."); reset();
     }
   };
 
@@ -153,51 +153,51 @@ const SecurityCard = () => {
     <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="security-card">
       <h2 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-5">Security</h2>
       <div className="flex items-center gap-3 mb-5">
-        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${hasPassword ? 'bg-forest-100 dark:bg-forest-900/30' : 'bg-stone-100 dark:bg-stone-700'}`}>
-          <Lock className={`w-4 h-4 ${hasPassword ? 'text-forest-600 dark:text-forest-400' : 'text-stone-400'}`} />
+        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${hasPassword ? "bg-forest-100 dark:bg-forest-900/30" : "bg-stone-100 dark:bg-stone-700"}`}>
+          <Lock className={`w-4 h-4 ${hasPassword ? "text-forest-600 dark:text-forest-400" : "text-stone-400"}`} />
         </div>
         <div className="flex-1">
           <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">Delete Guard</p>
           <p className="text-xs text-stone-500 dark:text-stone-400">
-            {hasPassword ? 'Password required before any record can be deleted.' : 'No password set — deletions require no confirmation.'}
+            {hasPassword ? "Password required before any record can be deleted." : "No password set — deletions require no confirmation."}
           </p>
         </div>
-        <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1 ${hasPassword ? 'bg-forest-50 dark:bg-forest-900/20 text-forest-700 dark:text-forest-400' : 'bg-stone-100 dark:bg-stone-700 text-stone-500'}`}>
+        <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1 ${hasPassword ? "bg-forest-50 dark:bg-forest-900/20 text-forest-700 dark:text-forest-400" : "bg-stone-100 dark:bg-stone-700 text-stone-500"}`}>
           {hasPassword ? <><ShieldCheck className="w-3 h-3" /> Protected</> : <><ShieldOff className="w-3 h-3" /> Off</>}
         </span>
       </div>
       {mode === null && (
         <div className="flex flex-wrap gap-2">
           {!hasPassword && (
-            <button onClick={() => setMode('set')} className="px-4 py-2 text-sm rounded-xl bg-forest-500 hover:bg-forest-600 text-white transition-colors">Set Password</button>
+            <button onClick={() => setMode("set")} className="px-4 py-2 text-sm rounded-xl bg-forest-500 hover:bg-forest-600 text-white transition-colors">Set Password</button>
           )}
           {hasPassword && (
             <>
-              <button onClick={() => setMode('change')} className="px-4 py-2 text-sm rounded-xl bg-forest-500 hover:bg-forest-600 text-white transition-colors">Change Password</button>
-              <button onClick={() => setMode('remove')} className="px-4 py-2 text-sm rounded-xl border border-red-300 dark:border-red-700 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">Remove Password</button>
+              <button onClick={() => setMode("change")} className="px-4 py-2 text-sm rounded-xl bg-forest-500 hover:bg-forest-600 text-white transition-colors">Change Password</button>
+              <button onClick={() => setMode("remove")} className="px-4 py-2 text-sm rounded-xl border border-red-300 dark:border-red-700 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">Remove Password</button>
             </>
           )}
         </div>
       )}
       {mode !== null && (
         <div className="space-y-3">
-          {(mode === 'change' || mode === 'remove') && (
-            <PwField label={mode === 'remove' ? 'Enter password to confirm removal' : 'Current password'} value={current} onChange={e => { setCurrent(e.target.value); setError(''); }} show={showPw} onToggle={() => setShowPw(v => !v)} autoFocus isCorrect={currentIsCorrect} />
+          {(mode === "change" || mode === "remove") && (
+            <PwField label={mode === "remove" ? "Enter password to confirm removal" : "Current password"} value={current} onChange={e => { setCurrent(e.target.value); setError(""); }} show={showPw} onToggle={() => setShowPw(v => !v)} autoFocus isCorrect={currentIsCorrect} />
           )}
-          {(mode === 'set' || mode === 'change') && (
+          {(mode === "set" || mode === "change") && (
             <>
-              <PwField label={mode === 'change' ? 'New password' : 'Password (min 4 characters)'} value={next} onChange={e => { setNext(e.target.value); setError(''); }} show={showPw} onToggle={() => setShowPw(v => !v)} autoFocus={mode === 'set'} data-field="new-password" />
-              <PwField label="Confirm password" value={confirm} onChange={e => { setConfirm(e.target.value); setError(''); }} show={showPw} onToggle={() => setShowPw(v => !v)} onEnter={handleSubmit} />
+              <PwField label={mode === "change" ? "New password" : "Password (min 4 characters)"} value={next} onChange={e => { setNext(e.target.value); setError(""); }} show={showPw} onToggle={() => setShowPw(v => !v)} autoFocus={mode === "set"} data-field="new-password" />
+              <PwField label="Confirm password" value={confirm} onChange={e => { setConfirm(e.target.value); setError(""); }} show={showPw} onToggle={() => setShowPw(v => !v)} onEnter={handleSubmit} />
             </>
           )}
           {error && <p className="text-xs text-red-500">{error}</p>}
-          {(mode === 'change' || mode === 'remove') && !currentIsCorrect && current.length > 0 && (
-            <p className="text-xs text-stone-400 dark:text-stone-500">{mode === 'remove' ? 'Enter the correct password to auto-confirm removal.' : 'Enter the correct password to continue.'}</p>
+          {(mode === "change" || mode === "remove") && !currentIsCorrect && current.length > 0 && (
+            <p className="text-xs text-stone-400 dark:text-stone-500">{mode === "remove" ? "Enter the correct password to auto-confirm removal." : "Enter the correct password to continue."}</p>
           )}
           <div className="flex gap-2 pt-1">
             <button onClick={reset} className="flex-1 h-10 rounded-xl border border-stone-200 dark:border-stone-600 text-stone-600 dark:text-stone-400 text-sm hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">Cancel</button>
-            {mode !== 'remove' && (
-              <button onClick={handleSubmit} className="flex-1 h-10 rounded-xl text-white text-sm bg-forest-500 hover:bg-forest-600 transition-colors">{mode === 'set' ? 'Save' : 'Update'}</button>
+            {mode !== "remove" && (
+              <button onClick={handleSubmit} className="flex-1 h-10 rounded-xl text-white text-sm bg-forest-500 hover:bg-forest-600 transition-colors">{mode === "set" ? "Save" : "Update"}</button>
             )}
           </div>
         </div>
@@ -207,35 +207,31 @@ const SecurityCard = () => {
   );
 };
 
-// ── Import Prompt Modal (shown on app open when no existing data) ──────────────
-// Usage in your App root:
-//   const hasData = localStorage.length > 0;
-//   const [dismissed, setDismissed] = useState(false);
-//   {!hasData && !dismissed && <ImportPromptBanner onDismiss={() => setDismissed(true)} />}
+// ── Import Prompt Modal ───────────────────────────────────────────────────────
 export const ImportPromptBanner = ({ onDismiss }) => {
   const fileRef = useRef(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const handleFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    e.target.value = '';
-    if (!file.name.startsWith('DS-Backup-') || !file.name.endsWith('.json')) {
-      setError('Please choose a valid DS-Backup-*.json file.');
+    e.target.value = "";
+    if (!file.name.startsWith("DS-Backup-") || !file.name.endsWith(".json")) {
+      setError("Please choose a valid DS-Backup-*.json file.");
       return;
     }
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
         const backup = JSON.parse(ev.target.result);
-        if (!backup._meta || backup._meta.app !== 'Disciplesheep') {
-          setError('This file does not appear to be a Disciplesheep backup.');
+        if (!backup._meta || backup._meta.app !== "Disciplesheep") {
+          setError("This file does not appear to be a Disciplesheep backup.");
           return;
         }
         restoreAllData(backup);
         window.location.reload();
       } catch {
-        setError('Could not read backup file. It may be corrupted.');
+        setError("Could not read backup file. It may be corrupted.");
       }
     };
     reader.readAsText(file);
@@ -284,26 +280,26 @@ const BackupCard = () => {
   const fileRef = useRef(null);
   const [exportStatus, setExportStatus] = useState(null);
   const [importStatus, setImportStatus] = useState(null);
-  const [importMsg,    setImportMsg]    = useState('');
-  const [lastExport,   setLastExport]   = useState(() => localStorage.getItem('ds_last_export') || null);
+  const [importMsg,    setImportMsg]    = useState("");
+  const [lastExport,   setLastExport]   = useState(() => localStorage.getItem("ds_last_export") || null);
 
   const handleExport = () => {
     try {
       const backup = collectAllData();
       const filename = getBackupFilename();
-      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url; a.download = filename;
       document.body.appendChild(a); a.click();
       document.body.removeChild(a); URL.revokeObjectURL(url);
       const ts = new Date().toLocaleString();
-      localStorage.setItem('ds_last_export', ts);
+      localStorage.setItem("ds_last_export", ts);
       setLastExport(ts);
-      setExportStatus('success');
+      setExportStatus("success");
       setTimeout(() => setExportStatus(null), 3000);
     } catch {
-      setExportStatus('error');
+      setExportStatus("error");
       setTimeout(() => setExportStatus(null), 3000);
     }
   };
@@ -311,10 +307,10 @@ const BackupCard = () => {
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    e.target.value = '';
-    if (!file.name.startsWith('DS-Backup-') || !file.name.endsWith('.json')) {
-      setImportMsg('Please choose a valid DS-Backup-*.json file.');
-      setImportStatus('error');
+    e.target.value = "";
+    if (!file.name.startsWith("DS-Backup-") || !file.name.endsWith(".json")) {
+      setImportMsg("Please choose a valid DS-Backup-*.json file.");
+      setImportStatus("error");
       setTimeout(() => setImportStatus(null), 4000);
       return;
     }
@@ -322,19 +318,19 @@ const BackupCard = () => {
     reader.onload = (ev) => {
       try {
         const backup = JSON.parse(ev.target.result);
-        if (!backup._meta || backup._meta.app !== 'Disciplesheep') {
-          setImportMsg('This file does not appear to be a Disciplesheep backup.');
-          setImportStatus('error');
+        if (!backup._meta || backup._meta.app !== "Disciplesheep") {
+          setImportMsg("This file does not appear to be a Disciplesheep backup.");
+          setImportStatus("error");
           setTimeout(() => setImportStatus(null), 4000);
           return;
         }
         restoreAllData(backup);
-        setImportMsg(`Restored from ${file.name}. Reloading…`);
-        setImportStatus('success');
+        setImportMsg(`Restored from ${file.name}. Reloading...`);
+        setImportStatus("success");
         setTimeout(() => window.location.reload(), 1800);
       } catch {
-        setImportMsg('Could not read backup file. It may be corrupted.');
-        setImportStatus('error');
+        setImportMsg("Could not read backup file. It may be corrupted.");
+        setImportStatus("error");
         setTimeout(() => setImportStatus(null), 4000);
       }
     };
@@ -347,8 +343,6 @@ const BackupCard = () => {
       <p className="text-xs text-stone-500 dark:text-stone-400 mb-5">
         Transfer your data to another phone or keep a personal backup.
       </p>
-
-      {/* Export */}
       <div className="mb-5 pb-5 border-b border-stone-100 dark:border-stone-700">
         <div className="flex items-start gap-3 mb-3">
           <div className="w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0 mt-0.5">
@@ -364,13 +358,13 @@ const BackupCard = () => {
             )}
           </div>
         </div>
-        {exportStatus === 'success' && (
+        {exportStatus === "success" && (
           <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-forest-50 dark:bg-forest-900/20 border border-forest-200 dark:border-forest-800">
             <CheckCircle className="w-4 h-4 text-forest-500 shrink-0" />
             <p className="text-xs text-forest-700 dark:text-forest-400 font-medium">Backup downloaded successfully!</p>
           </div>
         )}
-        {exportStatus === 'error' && (
+        {exportStatus === "error" && (
           <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
             <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
             <p className="text-xs text-red-600 dark:text-red-400">Export failed. Please try again.</p>
@@ -381,8 +375,6 @@ const BackupCard = () => {
           <Download className="w-4 h-4" /> Download Backup
         </button>
       </div>
-
-      {/* Import */}
       <div>
         <div className="flex items-start gap-3 mb-3">
           <div className="w-9 h-9 rounded-full bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center shrink-0 mt-0.5">
@@ -391,18 +383,18 @@ const BackupCard = () => {
           <div className="flex-1">
             <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">Import Backup</p>
             <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
-              Restore from a <span className="font-mono text-stone-600 dark:text-stone-300">DS-Backup-*.json</span> file.{' '}
+              Restore from a <span className="font-mono text-stone-600 dark:text-stone-300">DS-Backup-*.json</span> file.{" "}
               <span className="text-amber-600 dark:text-amber-500 font-medium">Overwrites current data.</span>
             </p>
           </div>
         </div>
-        {importStatus === 'success' && (
+        {importStatus === "success" && (
           <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-forest-50 dark:bg-forest-900/20 border border-forest-200 dark:border-forest-800">
             <CheckCircle className="w-4 h-4 text-forest-500 shrink-0" />
             <p className="text-xs text-forest-700 dark:text-forest-400 font-medium">{importMsg}</p>
           </div>
         )}
-        {importStatus === 'error' && (
+        {importStatus === "error" && (
           <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
             <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
             <p className="text-xs text-red-600 dark:text-red-400">{importMsg}</p>
@@ -420,32 +412,32 @@ const BackupCard = () => {
 
 // ── Device Permissions Card ───────────────────────────────────────────────────
 const PERM_ICONS = {
-  notifications:        Bell,
-  camera:               Camera,
-  microphone:           Mic,
-  geolocation:          MapPin,
-  'persistent-storage': Database,
+  notifications:          Bell,
+  camera:                 Camera,
+  microphone:             Mic,
+  geolocation:            MapPin,
+  "persistent-storage":   Database,
 };
 
 const STATUS_CONFIG = {
-  granted:     { label: 'Allowed',     bg: 'bg-forest-50 dark:bg-forest-900/20', text: 'text-forest-700 dark:text-forest-400', dot: 'bg-forest-500' },
-  denied:      { label: 'Denied',      bg: 'bg-red-50 dark:bg-red-900/20',       text: 'text-red-600 dark:text-red-400',        dot: 'bg-red-500'    },
-  prompt:      { label: 'Not set',     bg: 'bg-stone-100 dark:bg-stone-700',     text: 'text-stone-500 dark:text-stone-400',    dot: 'bg-stone-400'  },
-  unknown:     { label: 'Unknown',     bg: 'bg-stone-100 dark:bg-stone-700',     text: 'text-stone-500 dark:text-stone-400',    dot: 'bg-stone-300'  },
-  unsupported: { label: 'Unavailable', bg: 'bg-stone-100 dark:bg-stone-700',     text: 'text-stone-400 dark:text-stone-500',    dot: 'bg-stone-300'  },
+  granted:     { label: "Allowed",     bg: "bg-forest-50 dark:bg-forest-900/20", text: "text-forest-700 dark:text-forest-400", dot: "bg-forest-500" },
+  denied:      { label: "Denied",      bg: "bg-red-50 dark:bg-red-900/20",       text: "text-red-600 dark:text-red-400",        dot: "bg-red-500"    },
+  prompt:      { label: "Not set",     bg: "bg-stone-100 dark:bg-stone-700",     text: "text-stone-500 dark:text-stone-400",    dot: "bg-stone-400"  },
+  unknown:     { label: "Unknown",     bg: "bg-stone-100 dark:bg-stone-700",     text: "text-stone-500 dark:text-stone-400",    dot: "bg-stone-300"  },
+  unsupported: { label: "Unavailable", bg: "bg-stone-100 dark:bg-stone-700",     text: "text-stone-400 dark:text-stone-500",    dot: "bg-stone-300"  },
 };
 
 const PERM_DEFS = [
-  { id: 'notifications',        emoji: '🔔', label: 'Notifications',      description: 'Daily devotional reminders & prayer alerts'       },
-  { id: 'camera',               emoji: '📷', label: 'Camera',             description: 'Profile photo & document scanning'                },
-  { id: 'microphone',           emoji: '🎙️', label: 'Microphone',         description: 'Voice prayer & journal notes'                     },
-  { id: 'geolocation',          emoji: '📍', label: 'Location',           description: 'Tag ministry visits & outreach locations'          },
-  { id: 'persistent-storage',   emoji: '💾', label: 'Persistent Storage', description: 'Protect journal data from being auto-cleared'      },
+  { id: "notifications",      emoji: "🔔", label: "Notifications",      description: "Daily devotional reminders & prayer alerts"   },
+  { id: "camera",             emoji: "📷", label: "Camera",             description: "Profile photo & document scanning"            },
+  { id: "microphone",         emoji: "🎙️", label: "Microphone",         description: "Voice prayer & journal notes"                 },
+  { id: "geolocation",        emoji: "📍", label: "Location",           description: "Tag ministry visits & outreach locations"     },
+  { id: "persistent-storage", emoji: "💾", label: "Persistent Storage", description: "Protect journal data from being auto-cleared" },
 ];
 
 const PermissionsCard = () => {
   const { statuses, request, refresh } = usePermissions();
-  const [requesting, setRequesting]    = useState(null);
+  const [requesting, setRequesting] = useState(null);
 
   const handleRequest = useCallback(async (id) => {
     setRequesting(id);
@@ -454,7 +446,7 @@ const PermissionsCard = () => {
   }, [request]);
 
   const allGranted = PERM_DEFS.every(d =>
-    statuses[d.id] === 'granted' || statuses[d.id] === 'unsupported'
+    statuses[d.id] === "granted" || statuses[d.id] === "unsupported"
   );
 
   return (
@@ -479,19 +471,19 @@ const PermissionsCard = () => {
 
       <div className="space-y-3">
         {PERM_DEFS.map(def => {
-          const status    = statuses[def.id] || 'unknown';
-          const cfg       = STATUS_CONFIG[status] || STATUS_CONFIG.unknown;
-          const Icon      = PERM_ICONS[def.id] || Smartphone;
-          const isLoading = requesting === def.id;
-          const canRequest = status === 'prompt' || status === 'unknown';
-          const isDenied   = status === 'denied';
+          const status     = statuses[def.id] || "unknown";
+          const cfg        = STATUS_CONFIG[status] || STATUS_CONFIG.unknown;
+          const Icon       = PERM_ICONS[def.id] || Smartphone;
+          const isLoading  = requesting === def.id;
+          const isDenied   = status === "denied";
+          const canRequest = status === "prompt" || status === "unknown" || isDenied;
 
           return (
             <div key={def.id} className="flex items-center gap-3">
               <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                status === 'granted' ? 'bg-forest-100 dark:bg-forest-900/30' : 'bg-stone-100 dark:bg-stone-700'
+                status === "granted" ? "bg-forest-100 dark:bg-forest-900/30" : "bg-stone-100 dark:bg-stone-700"
               }`}>
-                <Icon className={`w-4 h-4 ${status === 'granted' ? 'text-forest-600 dark:text-forest-400' : 'text-stone-400'}`} />
+                <Icon className={`w-4 h-4 ${status === "granted" ? "text-forest-600 dark:text-forest-400" : "text-stone-400"}`} />
               </div>
 
               <div className="flex-1 min-w-0">
@@ -502,33 +494,35 @@ const PermissionsCard = () => {
               {isLoading ? (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-stone-100 dark:bg-stone-700">
                   <RefreshCw className="w-3 h-3 text-stone-400 animate-spin" />
-                  <span className="text-xs text-stone-500">Asking…</span>
+                  <span className="text-xs text-stone-500">Asking...</span>
                 </div>
-              ) : isDenied ? (
+              ) : status === "granted" || status === "unsupported" ? (
                 <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1.5 shrink-0 ${cfg.bg} ${cfg.text}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
                   {cfg.label}
                 </span>
               ) : canRequest ? (
                 <button onClick={() => handleRequest(def.id)}
-                  className="px-3 py-1.5 rounded-full bg-forest-500 hover:bg-forest-600 text-white text-xs font-medium transition-colors shrink-0">
-                  Allow
+                  className={`px-3 py-1.5 rounded-full text-white text-xs font-medium transition-colors shrink-0 ${
+                    isDenied ? "bg-red-500 hover:bg-red-600" : "bg-forest-500 hover:bg-forest-600"
+                  }`}>
+                  {isDenied ? "Re-request" : "Allow"}
                 </button>
-              ) : (
-                <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1.5 shrink-0 ${cfg.bg} ${cfg.text}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-                  {cfg.label}
-                </span>
-              )}
+              ) : null}
             </div>
           );
         })}
       </div>
 
-      {PERM_DEFS.some(d => statuses[d.id] === 'denied') && (
-        <p className="text-xs text-stone-400 dark:text-stone-500 mt-4 leading-relaxed">
-          <span className="font-medium text-stone-600 dark:text-stone-400">Denied permissions</span> must be re-enabled in your phone's Settings → Apps → Browser → Permissions.
-        </p>
+      {PERM_DEFS.some(d => statuses[d.id] === "denied") && (
+        <div className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800">
+          <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed font-medium mb-1">
+            Permission still denied after tapping Re-request?
+          </p>
+          <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+            Open your phone's <span className="font-semibold">Settings → Apps → Browser → Permissions</span> and enable it manually.
+          </p>
+        </div>
       )}
     </Card>
   );
@@ -539,38 +533,38 @@ const Settings = () => {
   const { themeMode, changeThemeMode, fontSize, changeFontSize } = useTheme();
 
   const getThemeIcon = () => {
-    if (themeMode === 'auto')  return <Sunrise className="w-5 h-5 text-stone-600 dark:text-stone-300" />;
-    if (themeMode === 'dark')  return <Moon    className="w-5 h-5 text-stone-600 dark:text-stone-300" />;
+    if (themeMode === "auto")  return <Sunrise className="w-5 h-5 text-stone-600 dark:text-stone-300" />;
+    if (themeMode === "dark")  return <Moon    className="w-5 h-5 text-stone-600 dark:text-stone-300" />;
     return                            <Sun     className="w-5 h-5 text-stone-600 dark:text-stone-300" />;
   };
 
   const getThemeDescription = () => {
-    if (themeMode === 'auto') {
+    if (themeMode === "auto") {
       const isDay = new Date().getHours() >= 6 && new Date().getHours() < 18;
-      return `Auto · currently ${isDay ? 'day' : 'night'} mode`;
+      return `Auto · currently ${isDay ? "day" : "night"} mode`;
     }
-    return themeMode === 'dark' ? 'Always night mode' : 'Always day mode';
+    return themeMode === "dark" ? "Always night mode" : "Always day mode";
   };
 
   const themeOptions = [
-    { value: 'light', label: 'Day',   icon: <Sun     style={{ width:15, height:15 }} /> },
-    { value: 'dark',  label: 'Night', icon: <Moon    style={{ width:15, height:15 }} /> },
-    { value: 'auto',  label: 'Auto',  icon: <Sunrise style={{ width:15, height:15 }} /> },
+    { value: "light", label: "Day",   icon: <Sun     style={{ width:15, height:15 }} /> },
+    { value: "dark",  label: "Night", icon: <Moon    style={{ width:15, height:15 }} /> },
+    { value: "auto",  label: "Auto",  icon: <Sunrise style={{ width:15, height:15 }} /> },
   ];
 
   const fontSizeOptions = [
-    { value: 'small',  label: 'Small'   },
-    { value: 'medium', label: 'Medium'  },
-    { value: 'large',  label: 'Large'   },
-    { value: 'xlarge', label: 'X-Large' },
+    { value: "small",  label: "Small"   },
+    { value: "medium", label: "Medium"  },
+    { value: "large",  label: "Large"   },
+    { value: "xlarge", label: "X-Large" },
   ];
 
   const getFontSizeDescription = () => ({
-    small:  'Easy reading — ideal for longer sessions',
-    medium: 'Comfortable large — great for daily use',
-    large:  'Maximum size — easiest on the eyes',
-    xlarge: 'Extra large — for maximum comfort',
-  }[fontSize] || 'Easy reading — ideal for longer sessions');
+    small:  "Easy reading — ideal for longer sessions",
+    medium: "Comfortable large — great for daily use",
+    large:  "Maximum size — easiest on the eyes",
+    xlarge: "Extra large — for maximum comfort",
+  }[fontSize] || "Easy reading — ideal for longer sessions");
 
   return (
     <>
@@ -599,7 +593,6 @@ const Settings = () => {
 
       <div className="space-y-6 pb-6">
 
-        {/* Header */}
         <div className="relative overflow-hidden rounded-2xl p-8 text-white bg-stone-800 dark:bg-stone-900" data-testid="settings-header">
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-2">
@@ -610,10 +603,8 @@ const Settings = () => {
           </div>
         </div>
 
-        {/* Appearance */}
         <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="appearance-card">
           <h2 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-6">Appearance</h2>
-
           <div className="mb-6 pb-6 border-b border-stone-200 dark:border-stone-700">
             <div className="flex items-center gap-3 mb-3">
               {getThemeIcon()}
@@ -624,10 +615,9 @@ const Settings = () => {
             </div>
             <SegmentedToggle name="Theme mode" options={themeOptions} value={themeMode} onChange={changeThemeMode} />
             <p className="mt-2 text-xs text-center text-stone-400 dark:text-stone-500">
-              {themeMode === 'auto' ? 'Switches automatically at 6 am and 6 pm' : themeMode === 'dark' ? 'Night mode is always on' : 'Day mode is always on'}
+              {themeMode === "auto" ? "Switches automatically at 6 am and 6 pm" : themeMode === "dark" ? "Night mode is always on" : "Day mode is always on"}
             </p>
           </div>
-
           <div>
             <div className="flex items-center gap-3 mb-3">
               <Type className="w-5 h-5 text-stone-600 dark:text-stone-300" />
@@ -641,24 +631,18 @@ const Settings = () => {
           </div>
         </Card>
 
-        {/* Security */}
         <SecurityCard />
-
-        {/* Backup & Restore */}
         <BackupCard />
-
-        {/* Device Permissions */}
         <PermissionsCard />
 
-        {/* Data & Storage */}
         <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="data-card">
           <h2 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-4">Data & Storage</h2>
           <div className="space-y-3 text-sm text-stone-600 dark:text-stone-400">
             {[
-              { color: 'bg-green-500', text: 'All data saved locally in your browser' },
-              { color: 'bg-green-500', text: 'Works offline — no internet needed' },
-              { color: 'bg-green-500', text: 'Auto-saves as you type' },
-              { color: 'bg-blue-500',  text: 'Your data never leaves your device' },
+              { color: "bg-green-500", text: "All data saved locally in your browser" },
+              { color: "bg-green-500", text: "Works offline — no internet needed" },
+              { color: "bg-green-500", text: "Auto-saves as you type" },
+              { color: "bg-blue-500",  text: "Your data never leaves your device" },
             ].map((item, i) => (
               <p key={i} className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full shrink-0 ${item.color}`} />
@@ -668,7 +652,6 @@ const Settings = () => {
           </div>
         </Card>
 
-        {/* About */}
         <Card className="bg-forest-50 dark:bg-stone-800 rounded-xl border border-forest-100 dark:border-stone-700 p-6">
           <h2 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-2">Disciplesheep</h2>
           <p className="text-sm text-stone-700 dark:text-stone-300 mb-3">Version 1.0 · Church Planter's Companion</p>
