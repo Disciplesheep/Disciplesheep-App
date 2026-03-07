@@ -11,9 +11,16 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { CHURCH_PLANT_START_DATE } from '@/data/dailyDevotionals';
 
 /* ── Constants outside component — no re-creation on render ─────────────── */
-const NAV_H     = 64;
-const BAR_H     = 42;
+const NAV_H      = 64;
+const BAR_H      = 42;
 const ROOT_PAGES = ['/', '/stewardship', '/journal', '/calendar', '/discipleship'];
+
+/* ── FIX: moved outside Layout so it's stable (no missing-deps warning) ─── */
+const CUSTOM_BACK = {
+  '/stewardship/people':   '/stewardship',
+  '/stewardship/expenses': '/stewardship',
+  '/stewardship/reports':  '/stewardship',
+};
 
 /* ── Auto-export — pure function, no closure deps ───────────────────────── */
 const triggerAutoExport = () => {
@@ -76,7 +83,7 @@ const useProfile = () => {
   return { name, photo, saveName, savePhoto };
 };
 
-/* ── Shared avatar editor (used by both ProfileModal and ProfileMenu) ────── */
+/* ── Shared avatar editor ────────────────────────────────────────────────── */
 const AvatarEditor = ({ size, fileRef, onPhotoChange }) => (
   <div className="relative" style={{ width: size, height: size }}>
     <Avatar size={size} />
@@ -99,7 +106,6 @@ const ProfileModal = ({ open, onClose }) => {
   const fileRef  = useRef();
   const { name, saveName, savePhoto } = useProfile();
 
-  // Register with back-button system
   useEffect(() => {
     if (!open) return;
     window.__dialogOpenCount = (window.__dialogOpenCount || 0) + 1;
@@ -343,38 +349,48 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
 };
 
 /* ── Side Nav (tablet) ───────────────────────────────────────────────────── */
-const SideNav = () => (
-  <aside className="fixed top-0 left-0 h-full w-56 bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-r border-stone-200 dark:border-stone-700 flex flex-col z-50 shadow-lg">
-    <div className="flex items-center justify-between px-5 py-6 border-b border-stone-100 dark:border-stone-800">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-forest-500 flex items-center justify-center flex-shrink-0"><span className="text-xl">🐑</span></div>
-        <div>
-          <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100 leading-tight">Disciplesheep</p>
-          <p className="text-[10px] text-stone-500 dark:text-stone-400 tracking-wide uppercase">Journal</p>
+const SideNav = () => {
+  const navigate = useNavigate();
+  return (
+    <aside className="fixed top-0 left-0 h-full w-56 bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-r border-stone-200 dark:border-stone-700 flex flex-col z-50 shadow-lg">
+      <div className="flex items-center justify-between px-5 py-6 border-b border-stone-100 dark:border-stone-800">
+        <div className="flex items-center gap-3">
+          {/* ↓ clickable sheep — navigates to Settings */}
+          <button
+            onClick={() => navigate('/settings')}
+            className="w-9 h-9 rounded-xl bg-forest-500 flex items-center justify-center flex-shrink-0 hover:bg-forest-700 active:scale-95 transition-all"
+            title="Settings"
+          >
+            <span className="text-xl">🐑</span>
+          </button>
+          <div>
+            <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100 leading-tight">Disciplesheep</p>
+            <p className="text-[10px] text-stone-500 dark:text-stone-400 tracking-wide uppercase">Journal</p>
+          </div>
         </div>
+        <ProfileMenu />
       </div>
-      <ProfileMenu />
-    </div>
-    <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-      {navItems.map(({ to, icon: Icon, label }) => (
-        <NavLink key={to} to={to} end={to === '/'}
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-sm font-medium ${
-              isActive ? 'bg-forest-500 text-white shadow-sm' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 hover:text-stone-900 dark:hover:text-stone-100'
-            }`
-          }
-        >
-          {({ isActive }) => (
-            <><Icon className="w-5 h-5 flex-shrink-0" strokeWidth={isActive ? 2 : 1.5} /><span>{label}</span></>
-          )}
-        </NavLink>
-      ))}
-    </nav>
-    <div className="px-5 py-4 border-t border-stone-100 dark:border-stone-800">
-      <p className="text-[10px] text-stone-400 dark:text-stone-600 text-center">Church Planter&#39;s Companion</p>
-    </div>
-  </aside>
-);
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        {navItems.map(({ to, icon: Icon, label }) => (
+          <NavLink key={to} to={to} end={to === '/'}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-sm font-medium ${
+                isActive ? 'bg-forest-500 text-white shadow-sm' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 hover:text-stone-900 dark:hover:text-stone-100'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <><Icon className="w-5 h-5 flex-shrink-0" strokeWidth={isActive ? 2 : 1.5} /><span>{label}</span></>
+            )}
+          </NavLink>
+        ))}
+      </nav>
+      <div className="px-5 py-4 border-t border-stone-100 dark:border-stone-800">
+        <p className="text-[10px] text-stone-400 dark:text-stone-600 text-center">Church Planter&#39;s Companion</p>
+      </div>
+    </aside>
+  );
+};
 
 if (typeof window.__dialogOpenCount === 'undefined') window.__dialogOpenCount = 0;
 
@@ -385,16 +401,11 @@ const Layout = () => {
   const navigate      = useNavigate();
   const isJournalPage = location.pathname === '/journal';
 
-  // Custom back destinations for specific pages
-  const CUSTOM_BACK = {
-    '/stewardship/people':   '/stewardship',
-    '/stewardship/expenses': '/stewardship',
-    '/stewardship/reports':  '/stewardship',
-  };
+  // CUSTOM_BACK is now defined at module level (no missing-deps warning)
 
-  const [journalDate, setJournalDate] = useState(new Date());
-  const [pickerOpen,  setPickerOpen]  = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
+  const [journalDate,  setJournalDate]  = useState(new Date());
+  const [pickerOpen,   setPickerOpen]   = useState(false);
+  const [profileOpen,  setProfileOpen]  = useState(false);
   const [exitToastMsg, setExitToastMsg] = useState('');
 
   const exitStepRef  = useRef(0);
@@ -426,14 +437,13 @@ const Layout = () => {
     };
   }, []);
 
-  // ── 3-tap back exit: sentinel push + handler in one effect ───────────────
+  // ── Sentinel push on root page entry ─────────────────────────────────────
   const resetExitStep = useCallback(() => {
     exitStepRef.current = 0;
     setExitToastMsg('');
   }, []);
 
   useEffect(() => {
-    // Push sentinel whenever we land on a root page
     if (ROOT_PAGES.includes(location.pathname)) {
       window.history.pushState({ appEntry: true }, '');
     } else {
@@ -441,17 +451,18 @@ const Layout = () => {
     }
   }, [location.pathname, resetExitStep]);
 
+  // ── Back-button handler ───────────────────────────────────────────────────
   useEffect(() => {
     const onPopState = (e) => {
       if (e.state?.pdfOpen) return;
       if (window.__dialogOpenCount > 0) return;
-      // Custom back destinations for specific sub-pages
+
+      // Custom back destinations for sub-pages (CUSTOM_BACK is module-level)
       const customDest = CUSTOM_BACK[window.location.pathname];
       if (customDest) { navigate(customDest); return; }
-      // On all other sub-pages, let browser handle back normally
+
       if (!ROOT_PAGES.includes(window.location.pathname)) return;
 
-      // Re-push sentinel so next back is also intercepted
       window.history.pushState({ appEntry: true }, '');
       clearTimeout(exitTimerRef.current);
 
@@ -473,9 +484,9 @@ const Layout = () => {
     };
     window.addEventListener('popstate', onPopState);
     return () => { window.removeEventListener('popstate', onPopState); clearTimeout(exitTimerRef.current); };
-  }, [resetExitStep]);
+    // FIX: navigate is now included; CUSTOM_BACK is stable (module-level const)
+  }, [navigate, resetExitStep]);
 
-  // Exit toast clears above bottom nav; add BAR_H only on journal page
   const toastBottom = isJournalPage
     ? `calc(${NAV_H + BAR_H + 12}px + env(safe-area-inset-bottom, 0px))`
     : `calc(${NAV_H + 12}px + env(safe-area-inset-bottom, 0px))`;
@@ -508,6 +519,7 @@ const Layout = () => {
         <>
           <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-b border-stone-200 dark:border-stone-700">
             <div className="flex items-center px-4 h-12">
+              {/* ↓ sheep + title — opens Profile modal (which has Settings link) */}
               <button onClick={() => setProfileOpen(true)}
                 className="flex items-center gap-2 min-w-0 hover:opacity-70 active:scale-95 transition-all"
                 title="My Profile">
