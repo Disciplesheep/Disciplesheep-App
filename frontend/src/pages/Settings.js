@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
   Moon, Sun, Sunrise, Type, Settings as SettingsIcon,
   Lock, ShieldCheck, ShieldOff, Eye, EyeOff,
   Download, Upload, CheckCircle, AlertCircle, HardDrive,
+  Bell, Camera, Mic, MapPin, Database, RefreshCw, Smartphone,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { useProfilePassword } from '@/hooks/useProfilePassword';
+import usePermissions from '@/hooks/usePermissions';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const getBackupFilename = () => {
@@ -362,7 +364,6 @@ const BackupCard = () => {
             )}
           </div>
         </div>
-
         {exportStatus === 'success' && (
           <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-forest-50 dark:bg-forest-900/20 border border-forest-200 dark:border-forest-800">
             <CheckCircle className="w-4 h-4 text-forest-500 shrink-0" />
@@ -375,7 +376,6 @@ const BackupCard = () => {
             <p className="text-xs text-red-600 dark:text-red-400">Export failed. Please try again.</p>
           </div>
         )}
-
         <button onClick={handleExport}
           className="w-full h-10 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors">
           <Download className="w-4 h-4" /> Download Backup
@@ -396,7 +396,6 @@ const BackupCard = () => {
             </p>
           </div>
         </div>
-
         {importStatus === 'success' && (
           <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-forest-50 dark:bg-forest-900/20 border border-forest-200 dark:border-forest-800">
             <CheckCircle className="w-4 h-4 text-forest-500 shrink-0" />
@@ -409,13 +408,128 @@ const BackupCard = () => {
             <p className="text-xs text-red-600 dark:text-red-400">{importMsg}</p>
           </div>
         )}
-
         <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleFileChange} />
         <button onClick={() => fileRef.current?.click()}
           className="w-full h-10 rounded-xl border-2 border-dashed border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 text-sm font-medium flex items-center justify-center gap-2 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors">
           <Upload className="w-4 h-4" /> Choose Backup File
         </button>
       </div>
+    </Card>
+  );
+};
+
+// ── Device Permissions Card ───────────────────────────────────────────────────
+const PERM_ICONS = {
+  notifications:        Bell,
+  camera:               Camera,
+  microphone:           Mic,
+  geolocation:          MapPin,
+  'persistent-storage': Database,
+};
+
+const STATUS_CONFIG = {
+  granted:     { label: 'Allowed',     bg: 'bg-forest-50 dark:bg-forest-900/20', text: 'text-forest-700 dark:text-forest-400', dot: 'bg-forest-500' },
+  denied:      { label: 'Denied',      bg: 'bg-red-50 dark:bg-red-900/20',       text: 'text-red-600 dark:text-red-400',        dot: 'bg-red-500'    },
+  prompt:      { label: 'Not set',     bg: 'bg-stone-100 dark:bg-stone-700',     text: 'text-stone-500 dark:text-stone-400',    dot: 'bg-stone-400'  },
+  unknown:     { label: 'Unknown',     bg: 'bg-stone-100 dark:bg-stone-700',     text: 'text-stone-500 dark:text-stone-400',    dot: 'bg-stone-300'  },
+  unsupported: { label: 'Unavailable', bg: 'bg-stone-100 dark:bg-stone-700',     text: 'text-stone-400 dark:text-stone-500',    dot: 'bg-stone-300'  },
+};
+
+const PERM_DEFS = [
+  { id: 'notifications',        emoji: '🔔', label: 'Notifications',      description: 'Daily devotional reminders & prayer alerts'       },
+  { id: 'camera',               emoji: '📷', label: 'Camera',             description: 'Profile photo & document scanning'                },
+  { id: 'microphone',           emoji: '🎙️', label: 'Microphone',         description: 'Voice prayer & journal notes'                     },
+  { id: 'geolocation',          emoji: '📍', label: 'Location',           description: 'Tag ministry visits & outreach locations'          },
+  { id: 'persistent-storage',   emoji: '💾', label: 'Persistent Storage', description: 'Protect journal data from being auto-cleared'      },
+];
+
+const PermissionsCard = () => {
+  const { statuses, request, refresh } = usePermissions();
+  const [requesting, setRequesting]    = useState(null);
+
+  const handleRequest = useCallback(async (id) => {
+    setRequesting(id);
+    await request(id);
+    setRequesting(null);
+  }, [request]);
+
+  const allGranted = PERM_DEFS.every(d =>
+    statuses[d.id] === 'granted' || statuses[d.id] === 'unsupported'
+  );
+
+  return (
+    <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="permissions-card">
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100">Device Permissions</h2>
+        <button onClick={refresh} title="Refresh status"
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 transition-colors">
+          <RefreshCw className="w-4 h-4" />
+        </button>
+      </div>
+      <p className="text-xs text-stone-500 dark:text-stone-400 mb-5">
+        Grant access so the app works fully on your device.
+      </p>
+
+      {allGranted && (
+        <div className="flex items-center gap-2 mb-4 p-3 rounded-xl bg-forest-50 dark:bg-forest-900/20 border border-forest-100 dark:border-forest-800">
+          <CheckCircle className="w-4 h-4 text-forest-500 shrink-0" />
+          <p className="text-xs text-forest-700 dark:text-forest-400 font-medium">All permissions granted — app is fully enabled.</p>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {PERM_DEFS.map(def => {
+          const status    = statuses[def.id] || 'unknown';
+          const cfg       = STATUS_CONFIG[status] || STATUS_CONFIG.unknown;
+          const Icon      = PERM_ICONS[def.id] || Smartphone;
+          const isLoading = requesting === def.id;
+          const canRequest = status === 'prompt' || status === 'unknown';
+          const isDenied   = status === 'denied';
+
+          return (
+            <div key={def.id} className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                status === 'granted' ? 'bg-forest-100 dark:bg-forest-900/30' : 'bg-stone-100 dark:bg-stone-700'
+              }`}>
+                <Icon className={`w-4 h-4 ${status === 'granted' ? 'text-forest-600 dark:text-forest-400' : 'text-stone-400'}`} />
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{def.emoji} {def.label}</p>
+                <p className="text-xs text-stone-500 dark:text-stone-400 truncate">{def.description}</p>
+              </div>
+
+              {isLoading ? (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-stone-100 dark:bg-stone-700">
+                  <RefreshCw className="w-3 h-3 text-stone-400 animate-spin" />
+                  <span className="text-xs text-stone-500">Asking…</span>
+                </div>
+              ) : isDenied ? (
+                <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1.5 shrink-0 ${cfg.bg} ${cfg.text}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                  {cfg.label}
+                </span>
+              ) : canRequest ? (
+                <button onClick={() => handleRequest(def.id)}
+                  className="px-3 py-1.5 rounded-full bg-forest-500 hover:bg-forest-600 text-white text-xs font-medium transition-colors shrink-0">
+                  Allow
+                </button>
+              ) : (
+                <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1.5 shrink-0 ${cfg.bg} ${cfg.text}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+                  {cfg.label}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {PERM_DEFS.some(d => statuses[d.id] === 'denied') && (
+        <p className="text-xs text-stone-400 dark:text-stone-500 mt-4 leading-relaxed">
+          <span className="font-medium text-stone-600 dark:text-stone-400">Denied permissions</span> must be re-enabled in your phone's Settings → Apps → Browser → Permissions.
+        </p>
+      )}
     </Card>
   );
 };
@@ -532,6 +646,9 @@ const Settings = () => {
 
         {/* Backup & Restore */}
         <BackupCard />
+
+        {/* Device Permissions */}
+        <PermissionsCard />
 
         {/* Data & Storage */}
         <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="data-card">
