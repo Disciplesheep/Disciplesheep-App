@@ -502,15 +502,10 @@ const PermissionsCard = () => {
                   {cfg.label}
                 </span>
               ) : isDenied ? (
-                <button onClick={() => {
-                  // Try chrome deep link first, fallback gracefully
-                  const a = document.createElement('a');
-                  a.href = 'chrome://settings/content/siteDetails?site=' + encodeURIComponent(window.location.origin);
-                  a.click();
-                }}
-                  className="px-3 py-1.5 rounded-full bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium transition-colors shrink-0 flex items-center gap-1">
-                  <RefreshCw className="w-3 h-3" /> Open Settings
-                </button>
+                <span className="text-xs font-medium px-2.5 py-1 rounded-full flex items-center gap-1.5 shrink-0 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                  Blocked
+                </span>
               ) : canRequest ? (
                 <button onClick={() => handleRequest(def.id)}
                   className="px-3 py-1.5 rounded-full bg-forest-500 hover:bg-forest-600 text-white text-xs font-medium transition-colors shrink-0">
@@ -523,13 +518,45 @@ const PermissionsCard = () => {
       </div>
 
       {PERM_DEFS.some(d => statuses[d.id] === "denied") && (
-        <div className="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800">
-          <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed font-medium mb-1">
-            🔒 Blocked by browser
-          </p>
-          <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
-            Tap <span className="font-semibold">Open Settings</span>, then find this site and enable the permission. On iPhone, go to <span className="font-semibold">Settings → Safari → [this site]</span>.
-          </p>
+        <div className="mt-4 rounded-xl border border-amber-200 dark:border-amber-800 overflow-hidden">
+          <div className="bg-amber-50 dark:bg-amber-900/20 px-4 py-3">
+            <p className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wide">🔒 How to unblock</p>
+            <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">Your browser has blocked this permission. Follow these steps:</p>
+          </div>
+          <div className="bg-white dark:bg-stone-800 px-4 py-3 space-y-3">
+            <div>
+              <p className="text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1.5">📱 Android (Chrome)</p>
+              <div className="space-y-1">
+                {[
+                  'Tap the 🔒 lock icon in the address bar above',
+                  'Tap "Permissions"',
+                  'Find the blocked permission and switch it ON',
+                  'Reload the app',
+                ].map((step, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <span className="w-4 h-4 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{i+1}</span>
+                    <p className="text-xs text-stone-600 dark:text-stone-400">{step}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="border-t border-stone-100 dark:border-stone-700 pt-3">
+              <p className="text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1.5">🍎 iPhone (Safari)</p>
+              <div className="space-y-1">
+                {[
+                  'Open the iPhone Settings app',
+                  'Scroll down and tap "Safari"',
+                  'Tap "Settings for Websites" → find the permission',
+                  'Set it to "Allow"',
+                ].map((step, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <span className="w-4 h-4 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{i+1}</span>
+                    <p className="text-xs text-stone-600 dark:text-stone-400">{step}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </Card>
