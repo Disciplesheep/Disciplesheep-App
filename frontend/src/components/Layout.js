@@ -417,6 +417,36 @@ const Layout = () => {
   const exitStepRef  = useRef(0);
   const exitTimerRef = useRef(null);
 
+  // ── Two-tap dismiss: tap 1 = blur keyboard, tap 2 = close dialog ─────────
+  useEffect(() => {
+    let justDismissedKeyboard = false;
+
+    const onPointerDown = (e) => {
+      const active = document.activeElement;
+      const hasKeyboard = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
+      if (!hasKeyboard) return;
+      const isInteractive = e.target.closest('button, input, textarea, select, a, label, [role="button"], [role="option"], [role="combobox"]');
+      if (isInteractive) return;
+      active.blur();
+      justDismissedKeyboard = true;
+      setTimeout(() => { justDismissedKeyboard = false; }, 400);
+    };
+
+    // Block the click that follows a keyboard-dismissing tap so dialog stays open
+    const onClickCapture = (e) => {
+      if (!justDismissedKeyboard) return;
+      justDismissedKeyboard = false;
+      e.stopImmediatePropagation();
+    };
+
+    document.addEventListener('pointerdown', onPointerDown, { capture: true });
+    document.addEventListener('click', onClickCapture, { capture: true });
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, { capture: true });
+      document.removeEventListener('click', onClickCapture, { capture: true });
+    };
+  }, []);
+
   const resetExitStep = () => { exitStepRef.current = 0; setExitToastMsg(''); };
 
   useEffect(() => {
