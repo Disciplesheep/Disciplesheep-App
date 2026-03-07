@@ -216,8 +216,8 @@ const EventForm = React.memo(({ open, onOpenChange, initial, onSave }) => {
           </div>
 
           <div>
-            <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-1 block">Date *</Label>
-            <button type="button" onClick={toggleCal}
+            <Label htmlFor="ef-date-btn" className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-1 block">Date *</Label>
+            <button id="ef-date-btn" type="button" onClick={toggleCal}
               className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-stone-200 dark:border-stone-600 dark:bg-stone-700 text-sm hover:bg-stone-50 dark:hover:bg-stone-600 transition-colors"
               style={{ minHeight: 0 }}>
               <span className="flex items-center gap-2 text-stone-700 dark:text-stone-200">
@@ -249,8 +249,8 @@ const EventForm = React.memo(({ open, onOpenChange, initial, onSave }) => {
           </div>
 
           <div>
-            <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Color</Label>
-            <div className="flex gap-2">
+            <Label id="ef-color-label" className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Color</Label>
+            <div className="flex gap-2" role="group" aria-labelledby="ef-color-label">
               {EVENT_COLORS.map(c => (
                 <button key={c.value} type="button" onClick={() => set('color', c.value)}
                   title={c.label}

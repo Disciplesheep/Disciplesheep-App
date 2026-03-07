@@ -42,13 +42,13 @@ const AddressFields = ({ value, onChange, ic }) => {
     <div className="space-y-3 p-3 bg-stone-50 dark:bg-stone-700/40 rounded-xl border border-stone-200 dark:border-stone-600">
       <div>
         <span className={sub}>Street / Purok / Sitio</span>
-        <Input type="text" value={value.street || ''} onChange={e => set('street', e.target.value)} placeholder="e.g. 123 Rizal St., Purok 4" className={ic} />
+        <Input id="pt-addr-street" type="text" value={value.street || ''} onChange={e => set('street', e.target.value)} placeholder="e.g. 123 Rizal St., Purok 4" className={ic} />
       </div>
       <div>
         <span className={sub}>Province</span>
         {manualProvince ? (
           <div className="flex gap-2">
-            <Input type="text" value={value.province || ''} onChange={e => set('province', e.target.value)} placeholder="Type province name" className={`${ic} flex-1`} />
+            <Input id="pt-addr-province" type="text" value={value.province || ''} onChange={e => set('province', e.target.value)} placeholder="Type province name" className={`${ic} flex-1`} />
             <Button type="button" variant="ghost" size="sm" onClick={() => { setManualProvince(false); onChange({ ...value, province: '', city: '', barangay: '' }); }} className="text-xs text-stone-400 hover:text-red-500 shrink-0 px-2">✕</Button>
           </div>
         ) : (
@@ -62,7 +62,7 @@ const AddressFields = ({ value, onChange, ic }) => {
         <span className={sub}>City / Municipality</span>
         {(manualCity || availableCities.length === 0) ? (
           <div className="flex gap-2">
-            <Input type="text" value={value.city || ''} onChange={e => set('city', e.target.value)} placeholder="Type city or municipality" className={`${ic} flex-1`} />
+            <Input id="pt-addr-city" type="text" value={value.city || ''} onChange={e => set('city', e.target.value)} placeholder="Type city or municipality" className={`${ic} flex-1`} />
             {availableCities.length > 0 && <Button type="button" variant="ghost" size="sm" onClick={() => { setManualCity(false); onChange({ ...value, city: '', barangay: '' }); setManualBrgy(false); }} className="text-xs text-stone-400 hover:text-red-500 shrink-0 px-2">✕</Button>}
           </div>
         ) : (
@@ -76,7 +76,7 @@ const AddressFields = ({ value, onChange, ic }) => {
         <span className={sub}>Barangay</span>
         {(manualBrgy || availableBrgys.length === 0) ? (
           <div className="flex gap-2">
-            <Input type="text" value={value.barangay || ''} onChange={e => set('barangay', e.target.value)} placeholder="Type barangay name" className={`${ic} flex-1`} />
+            <Input id="pt-addr-barangay" type="text" value={value.barangay || ''} onChange={e => set('barangay', e.target.value)} placeholder="Type barangay name" className={`${ic} flex-1`} />
             {availableBrgys.length > 0 && <Button type="button" variant="ghost" size="sm" onClick={() => { setManualBrgy(false); set('barangay', ''); }} className="text-xs text-stone-400 hover:text-red-500 shrink-0 px-2">✕</Button>}
           </div>
         ) : (
@@ -127,26 +127,6 @@ const getAgeFromBirthday = (birthday) => {
   return age > 0 ? String(age) : '';
 };
 
-/* ── Back-button: dismiss keyboard then close dialog ─────────────────────── */
-const useBackButtonClose = (isOpen, closeFn) => {
-  useEffect(() => {
-    if (!isOpen) return;
-    // Tell Layout not to trigger double-back exit while this dialog is open
-    window.__dialogOpenCount = (window.__dialogOpenCount || 0) + 1;
-    window.history.pushState({ dialog: true }, '');
-    const onPop = () => {
-      if (document.activeElement) document.activeElement.blur();
-      setTimeout(closeFn, 50);
-    };
-    window.addEventListener('popstate', onPop);
-    return () => {
-      window.removeEventListener('popstate', onPop);
-      // Decrement so Layout knows this dialog is closed
-      window.__dialogOpenCount = Math.max(0, (window.__dialogOpenCount || 1) - 1);
-    };
-  }, [isOpen, closeFn]);
-};
-
 const PeopleTracker = () => {
   const { peopleContacts, setPeopleContacts } = useJournalData();
   const { isTablet } = useScreenSize();
@@ -179,12 +159,6 @@ const PeopleTracker = () => {
 
   const [formData, setFormData] = useState(emptyForm);
 
-  const resetForm = () => { setFormData(emptyForm); setEditingId(null); };
-  const closeAddDialog = () => { setIsAddDialogOpen(false); resetForm(); };
-
-  // Back button support
-  useBackButtonClose(isAddDialogOpen, closeAddDialog);
-
   useEffect(() => {
     if (location.state?.openForm) {
       setIsAddDialogOpen(true);
@@ -203,6 +177,8 @@ const PeopleTracker = () => {
     const generation = getGenerationFromAge(val);
     setFormData(f => ({ ...f, age: val, generation }));
   };
+
+  const resetForm = () => { setFormData(emptyForm); setEditingId(null); };
 
   const handleSubmit = () => {
     if (!formData.name || !formData.generation) { toast.error('Please fill in Name and Generation'); return; }
@@ -250,9 +226,9 @@ const PeopleTracker = () => {
 
   const ic = "text-xs border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100";
 
-  const field = (label, children) => (
+  const field = (label, children, id) => (
     <div>
-      <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">{label}</Label>
+      <Label htmlFor={id} className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">{label}</Label>
       {children}
     </div>
   );
@@ -275,7 +251,7 @@ const PeopleTracker = () => {
       <div className="flex gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-          <Input type="text" placeholder="Search people, address, number..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 rounded-full border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100" data-testid="search-people-input" />
+          <Input id="pt-search" type="text" placeholder="Search people, address, number..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 rounded-full border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100" data-testid="search-people-input" />
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={o => { setIsAddDialogOpen(o); if (!o) resetForm(); }}>
           <DialogTrigger asChild>
@@ -287,31 +263,32 @@ const PeopleTracker = () => {
             <DialogHeader>
               <DialogTitle className="font-serif text-2xl">{editingId ? 'Edit Contact' : 'Add New Contact'}</DialogTitle>
             </DialogHeader>
+            {/* CHANGED: 70vh pr-1 → 60vh dialog-scroll */}
             <div className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto dialog-scroll" data-form>
-              {field('Date contacted', <Input ref={refDate} type="date" value={formData.date} onChange={e => setFormData(f => ({ ...f, date: e.target.value }))} onKeyDown={onEnter(refDate)} className={ic} />)}
-              {field('Name *', <Input ref={refName} type="text" value={formData.name} placeholder="Full name" onChange={e => setFormData(f => ({ ...f, name: e.target.value }))} onKeyDown={onEnter(refName)} className={ic} autoFocus />)}
+              {field('Date contacted', <Input id="pt-date" ref={refDate} type="date" value={formData.date} onChange={e => setFormData(f => ({ ...f, date: e.target.value }))} onKeyDown={onEnter(refDate)} className={ic} />, 'pt-date')}
+              {field('Name *', <Input id="pt-name" ref={refName} type="text" value={formData.name} placeholder="Full name" onChange={e => setFormData(f => ({ ...f, name: e.target.value }))} onKeyDown={onEnter(refName)} className={ic} autoFocus />, 'pt-name')}
               <div className="grid grid-cols-2 gap-4">
-                {field('Age', <Input ref={refAge} type="number" min="1" max="120" value={formData.age} placeholder="e.g. 24" onChange={e => handleAgeChange(e.target.value)} onKeyDown={onEnter(refAge)} className={`${ic} font-mono`} />)}
-                {field('Birthday', <Input ref={refBirthday} type="date" value={formData.birthday} onChange={e => handleBirthdayChange(e.target.value)} className={ic} />)}
+                {field('Age', <Input id="pt-age" ref={refAge} type="number" min="1" max="120" value={formData.age} placeholder="e.g. 24" onChange={e => handleAgeChange(e.target.value)} onKeyDown={onEnter(refAge)} className={`${ic} font-mono`} />, 'pt-age')}
+                {field('Birthday', <Input id="pt-birthday" ref={refBirthday} type="date" value={formData.birthday} onChange={e => handleBirthdayChange(e.target.value)} className={ic} />, 'pt-birthday')}
               </div>
               {field('Generation *',
                 <Select value={formData.generation} onValueChange={v => { setFormData(f => ({ ...f, generation: v })); setTimeout(() => refPhone.current?.focus(), 100); }}>
-                  <SelectTrigger className={ic}><SelectValue placeholder="Select generation" /></SelectTrigger>
+                  <SelectTrigger id="pt-generation" className={ic}><SelectValue placeholder="Select generation" /></SelectTrigger>
                   <SelectContent>{GENERATIONS.map(g => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}</SelectContent>
                 </Select>
-              )}
-              {field('Contact Number', <Input ref={refPhone} type="tel" value={formData.contactNumber} placeholder="e.g. 09171234567" onChange={e => setFormData(f => ({ ...f, contactNumber: e.target.value }))} onKeyDown={onEnter(refPhone)} className={ic} />)}
+              , 'pt-generation')}
+              {field('Contact Number', <Input id="pt-phone" ref={refPhone} type="tel" value={formData.contactNumber} placeholder="e.g. 09171234567" onChange={e => setFormData(f => ({ ...f, contactNumber: e.target.value }))} onKeyDown={onEnter(refPhone)} className={ic} />, 'pt-phone')}
               {field('Address', <AddressFields value={formData.address} onChange={addr => setFormData(f => ({ ...f, address: addr }))} ic={ic} />)}
-              {field('Facebook Profile Link', <Input ref={refFacebook} type="text" value={formData.facebookUrl} placeholder="e.g. https://facebook.com/username" onChange={e => setFormData(f => ({ ...f, facebookUrl: e.target.value }))} onKeyDown={onEnter(refFacebook)} className={ic} />)}
-              {field('How Connected', <Input ref={refConnection} type="text" value={formData.connection} placeholder="e.g. WPU campus, Coffee shop" onChange={e => setFormData(f => ({ ...f, connection: e.target.value }))} onKeyDown={onEnter(refConnection)} className={ic} />)}
-              {field('Conversation Topic', <Input ref={refTopic} type="text" value={formData.topic} placeholder="What did you discuss?" onChange={e => setFormData(f => ({ ...f, topic: e.target.value }))} onKeyDown={onEnter(refTopic)} className={ic} />)}
-              {field('Next Step', <Input ref={refNextStep} type="text" value={formData.nextStep} placeholder="Follow-up action" onChange={e => setFormData(f => ({ ...f, nextStep: e.target.value }))} onKeyDown={onEnter(refNextStep)} className={ic} />)}
+              {field('Facebook Profile Link', <Input id="pt-facebook" ref={refFacebook} type="text" value={formData.facebookUrl} placeholder="e.g. https://facebook.com/username" onChange={e => setFormData(f => ({ ...f, facebookUrl: e.target.value }))} onKeyDown={onEnter(refFacebook)} className={ic} />, 'pt-facebook')}
+              {field('How Connected', <Input id="pt-connection" ref={refConnection} type="text" value={formData.connection} placeholder="e.g. WPU campus, Coffee shop" onChange={e => setFormData(f => ({ ...f, connection: e.target.value }))} onKeyDown={onEnter(refConnection)} className={ic} />, 'pt-connection')}
+              {field('Conversation Topic', <Input id="pt-topic" ref={refTopic} type="text" value={formData.topic} placeholder="What did you discuss?" onChange={e => setFormData(f => ({ ...f, topic: e.target.value }))} onKeyDown={onEnter(refTopic)} className={ic} />, 'pt-topic')}
+              {field('Next Step', <Input id="pt-nextstep" ref={refNextStep} type="text" value={formData.nextStep} placeholder="Follow-up action" onChange={e => setFormData(f => ({ ...f, nextStep: e.target.value }))} onKeyDown={onEnter(refNextStep)} className={ic} />, 'pt-nextstep')}
               {field('Contact Frequency (days)',
                 <>
-                  <Input ref={refFrequency} type="number" min="1" max="365" value={formData.contactFrequencyDays} onChange={e => setFormData(f => ({ ...f, contactFrequencyDays: parseInt(e.target.value) || 7 }))} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit(); } }} placeholder="Days between follow-ups" className={`${ic} font-mono`} />
+                  <Input id="pt-freq" ref={refFrequency} type="number" min="1" max="365" value={formData.contactFrequencyDays} onChange={e => setFormData(f => ({ ...f, contactFrequencyDays: parseInt(e.target.value) || 7 }))} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSubmit(); } }} placeholder="Days between follow-ups" className={`${ic} font-mono`} />
                   <p className="text-xs text-stone-400 mt-1">How often to follow up · Press Enter to save</p>
                 </>
-              )}
+              , 'pt-freq')}
               <Button onClick={handleSubmit} className="w-full bg-forest-500 hover:bg-forest-900 text-white rounded-full h-11">{editingId ? 'Update Contact' : 'Add Contact'}</Button>
             </div>
           </DialogContent>

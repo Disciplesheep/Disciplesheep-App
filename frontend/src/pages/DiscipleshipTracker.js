@@ -240,7 +240,7 @@ const DiscipleshipTracker = () => {
             </div>
 
             <div>
-              <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Generation Level *</Label>
+              <Label htmlFor="dt-level" className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Generation Level *</Label>
               <Select value={formData.level} onValueChange={v => {
                 set('level', v);
                 set('discipledBy', '');
@@ -251,7 +251,7 @@ const DiscipleshipTracker = () => {
                   }, 120);
                 }
               }}>
-                <SelectTrigger className="text-xs border-stone-200" data-testid="disciple-level-select"><SelectValue /></SelectTrigger>
+                <SelectTrigger id="dt-level" className="text-xs border-stone-200" data-testid="disciple-level-select"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value={DISCIPLESHIP_LEVELS.TIMOTHY}>Timothy (Your direct disciple)</SelectItem>
                   <SelectItem value={DISCIPLESHIP_LEVELS.FAITHFUL_MEN}>Faithful Men (Discipled by Timothy)</SelectItem>
@@ -262,7 +262,7 @@ const DiscipleshipTracker = () => {
 
             {formData.level !== DISCIPLESHIP_LEVELS.TIMOTHY && (
               <div>
-                <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Discipled By</Label>
+                <Label htmlFor="dt-discipled-by" className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Discipled By</Label>
                 <Select value={formData.discipledBy}
                   onValueChange={v => {
                     set('discipledBy', v);
@@ -271,7 +271,7 @@ const DiscipleshipTracker = () => {
                     }, 120);
                   }}
                   data-testid="discipled-by-select">
-                  <SelectTrigger className="text-xs border-stone-200" data-testid="discipled-by-select"><SelectValue placeholder="Select mentor" /></SelectTrigger>
+                  <SelectTrigger id="dt-discipled-by" className="text-xs border-stone-200" data-testid="discipled-by-select"><SelectValue placeholder="Select mentor" /></SelectTrigger>
                   <SelectContent>
                     {formData.level === DISCIPLESHIP_LEVELS.FAITHFUL_MEN && timothys.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
                     {formData.level === DISCIPLESHIP_LEVELS.OTHERS && faithfulMen.map(fm => <SelectItem key={fm.id} value={fm.id}>{fm.name}</SelectItem>)}
@@ -281,13 +281,13 @@ const DiscipleshipTracker = () => {
             )}
 
             <div>
-              <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Contact Frequency</Label>
+              <Label htmlFor="dt-contact-freq" className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Contact Frequency</Label>
               <Select value={formData.contactFrequency}
                 onValueChange={v => {
                   set('contactFrequency', v);
                   if (v === 'custom') focusRef(refCustomFreq); else focusRef(refNotes);
                 }}>
-                <SelectTrigger className="text-xs border-stone-200" data-testid="contact-frequency-select"><SelectValue /></SelectTrigger>
+                <SelectTrigger id="dt-contact-freq" className="text-xs border-stone-200" data-testid="contact-frequency-select"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {FREQ_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                 </SelectContent>

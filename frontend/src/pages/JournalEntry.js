@@ -131,12 +131,13 @@ const DocxViewer = ({ dataUrl, fontSize = 16 }) => {
 };
 
 /* ── WritingField — prevents parent re-render from re-mounting textareas ─── */
-const WritingField = React.memo(({ label, value, onChange, placeholder, testId }) => (
+const WritingField = React.memo(({ id, label, value, onChange, placeholder, testId }) => (
   <div>
-    <Label className="text-xs uppercase tracking-widest text-mango-500 dark:text-mango-400 font-bold mb-2 block">
+    <Label htmlFor={id} className="text-xs uppercase tracking-widest text-mango-500 dark:text-mango-400 font-bold mb-2 block">
       {label}
     </Label>
     <Textarea
+      id={id}
       value={value}
       onChange={onChange}
       onInput={autoGrow}
@@ -328,7 +329,7 @@ const JournalEntry = () => {
           <div className="space-y-6">
             {/* Passage */}
             <div>
-              <Label className="text-xs uppercase tracking-widest text-forest-700 dark:text-forest-400 font-bold mb-2 block">📖 Passage (NASB)</Label>
+              <p className="text-xs uppercase tracking-widest text-forest-700 dark:text-forest-400 font-bold mb-2 block">📖 Passage (NASB)</p>
               <div className="bg-forest-50/50 dark:bg-forest-900/30 border-l-4 border-forest-500 p-4 rounded-r-lg">
                 <p className="font-serif text-base text-stone-800 dark:text-stone-200 leading-relaxed italic">{entry.passage}</p>
               </div>
@@ -336,7 +337,7 @@ const JournalEntry = () => {
 
             {/* Key Verse */}
             <div>
-              <Label className="text-xs uppercase tracking-widest text-amber-600 dark:text-amber-400 font-bold mb-2 block">🔑 Key Verse — {entry.keyVerse}</Label>
+              <p className="text-xs uppercase tracking-widest text-amber-600 dark:text-amber-400 font-bold mb-2 block">🔑 Key Verse — {entry.keyVerse}</p>
               <div className="bg-amber-50/50 dark:bg-amber-900/20 border-l-4 border-amber-500 p-4 rounded-r-lg">
                 <p className="text-sm text-stone-800 dark:text-stone-200 leading-relaxed italic">"{entry.keyVerseText}"</p>
               </div>
@@ -344,7 +345,7 @@ const JournalEntry = () => {
 
             {/* Principle */}
             <div>
-              <Label className="text-xs uppercase tracking-widest text-forest-700 dark:text-forest-400 font-bold mb-2 block">💡 Principle — Timeless Truth for Church Planting</Label>
+              <p className="text-xs uppercase tracking-widest text-forest-700 dark:text-forest-400 font-bold mb-2 block">💡 Principle — Timeless Truth for Church Planting</p>
               <div className="bg-stone-50 dark:bg-stone-700 border-l-4 border-stone-400 dark:border-stone-500 p-4 rounded-r-lg">
                 <p className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed">{entry.principle}</p>
               </div>
@@ -352,11 +353,12 @@ const JournalEntry = () => {
 
             {/* Practice */}
             <div>
-              <Label className="text-xs uppercase tracking-widest text-forest-700 dark:text-forest-400 font-bold mb-2 block">✓ Practice — Today's Action Step</Label>
+              <p className="text-xs uppercase tracking-widest text-forest-700 dark:text-forest-400 font-bold mb-2 block">✓ Practice — Today's Action Step</p>
               <div className="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 p-4 rounded-r-lg mb-3">
                 <p className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed font-medium">{entry.practice}</p>
               </div>
               <Textarea
+                id="je-practice-notes"
                 value={entry.practiceNotes}
                 onChange={setPracticeNotes}
                 onInput={autoGrow}
@@ -368,6 +370,7 @@ const JournalEntry = () => {
 
             {/* Praises */}
             <WritingField
+              id="je-praises"
               label="🙌 Praises — What do I thank God for?"
               value={entry.praises}
               onChange={setPraises}
@@ -377,6 +380,7 @@ const JournalEntry = () => {
 
             {/* Prayer */}
             <WritingField
+              id="je-prayer"
               label="🙏 Prayer — My prayers for today"
               value={entry.prayer}
               onChange={setPrayer}
