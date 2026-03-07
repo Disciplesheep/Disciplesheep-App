@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutGrid, BookOpen, GitBranch, TrendingUp,
   CalendarDays, Settings as SettingsIcon, X, Camera, Check,
-  ChevronLeft, ChevronRight, HandHeart
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { useScreenSize } from '@/hooks/useScreenSize';
 import { format, addDays, subDays, addYears } from 'date-fns';
@@ -13,7 +13,7 @@ import { CHURCH_PLANT_START_DATE } from '@/data/dailyDevotionals';
 /* ── Constants outside component — no re-creation on render ─────────────── */
 const NAV_H      = 64;
 const BAR_H      = 42;
-const ROOT_PAGES = ['/', '/stewardship', '/journal', '/calendar', '/discipleship', '/prayer'];
+const ROOT_PAGES = ['/', '/stewardship', '/journal', '/calendar', '/discipleship'];
 
 /* ── FIX: moved outside Layout so it's stable (no missing-deps warning) ─── */
 const CUSTOM_BACK = {
@@ -24,7 +24,7 @@ const CUSTOM_BACK = {
 
 /* ── Auto-export — pure function, no closure deps ───────────────────────── */
 const triggerAutoExport = () => {
-  const DATA_KEYS = ['dailyEntries','peopleContacts','expenses','weeklyReports','monthlyReports','calendarEvents','prayerRequests','prayerFiles'];
+  const DATA_KEYS = ['dailyEntries','peopleContacts','expenses','weeklyReports','monthlyReports','calendarEvents'];
   const backup = { _version: 1, _exportedAt: new Date().toISOString() };
   DATA_KEYS.forEach(key => {
     try { const r = localStorage.getItem(key); backup[key] = r ? JSON.parse(r) : null; }
@@ -67,11 +67,11 @@ class CalendarErrorBoundary extends React.Component {
 
 /* ── Nav items ───────────────────────────────────────────────────────────── */
 const navItems = [
-  { to: '/',             icon: LayoutGrid,   label: 'Dashboard'   },
+  { to: '/',             icon: LayoutGrid,   label: 'Dashboard' },
   { to: '/stewardship',  icon: TrendingUp,   label: 'Stewardship' },
-  { to: '/journal',      icon: BookOpen,     label: 'Journal'     },
-  { to: '/prayer',       icon: HandHeart,    label: 'Prayer'      },
-  { to: '/discipleship', icon: GitBranch,    label: 'Disciples'   },
+  { to: '/journal',      icon: BookOpen,     label: 'Journal' },
+  { to: '/calendar',     icon: CalendarDays, label: 'Calendar' },
+  { to: '/discipleship', icon: GitBranch,    label: 'Disciples' },
 ];
 
 /* ── Profile hook ────────────────────────────────────────────────────────── */
@@ -355,6 +355,7 @@ const SideNav = () => {
     <aside className="fixed top-0 left-0 h-full w-56 bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-r border-stone-200 dark:border-stone-700 flex flex-col z-50 shadow-lg">
       <div className="flex items-center justify-between px-5 py-6 border-b border-stone-100 dark:border-stone-800">
         <div className="flex items-center gap-3">
+          {/* ↓ clickable sheep — navigates to Settings */}
           <button
             onClick={() => navigate('/settings')}
             className="w-9 h-9 rounded-xl bg-forest-500 flex items-center justify-center flex-shrink-0 hover:bg-forest-700 active:scale-95 transition-all"
@@ -400,6 +401,8 @@ const Layout = () => {
   const navigate      = useNavigate();
   const isJournalPage = location.pathname === '/journal';
 
+  // CUSTOM_BACK is now defined at module level (no missing-deps warning)
+
   const [journalDate,  setJournalDate]  = useState(new Date());
   const [pickerOpen,   setPickerOpen]   = useState(false);
   const [profileOpen,  setProfileOpen]  = useState(false);
@@ -442,6 +445,8 @@ const Layout = () => {
 
   useEffect(() => {
     if (ROOT_PAGES.includes(location.pathname)) {
+      // replaceState avoids adding a skippable history entry on initial load
+      // (pushState without user interaction triggers a browser warning)
       window.history.replaceState({ appEntry: true }, '');
     } else {
       resetExitStep();
@@ -454,6 +459,7 @@ const Layout = () => {
       if (e.state?.pdfOpen) return;
       if (window.__dialogOpenCount > 0) return;
 
+      // Custom back destinations for sub-pages (CUSTOM_BACK is module-level)
       const customDest = CUSTOM_BACK[window.location.pathname];
       if (customDest) { navigate(customDest); return; }
 
@@ -480,6 +486,7 @@ const Layout = () => {
     };
     window.addEventListener('popstate', onPopState);
     return () => { window.removeEventListener('popstate', onPopState); clearTimeout(exitTimerRef.current); };
+    // FIX: navigate is now included; CUSTOM_BACK is stable (module-level const)
   }, [navigate, resetExitStep]);
 
   const toastBottom = isJournalPage
@@ -514,6 +521,7 @@ const Layout = () => {
         <>
           <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-b border-stone-200 dark:border-stone-700">
             <div className="flex items-center px-4 h-12">
+              {/* ↓ sheep + title — opens Profile modal (which has Settings link) */}
               <button onClick={() => setProfileOpen(true)}
                 className="flex items-center gap-2 min-w-0 hover:opacity-70 active:scale-95 transition-all"
                 title="My Profile">
