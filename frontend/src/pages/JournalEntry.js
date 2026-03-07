@@ -34,6 +34,12 @@ const fmtSize = (bytes) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+/* ── Auto-grow helper ────────────────────────────────────────────────────── */
+const autoGrow = (e) => {
+  e.target.style.height = 'auto';
+  e.target.style.height = e.target.scrollHeight + 'px';
+};
+
 /* ── DOCX Viewer ─────────────────────────────────────────────────────────── */
 const FONT_SIZES = [12, 14, 16, 18, 20, 24];
 
@@ -92,14 +98,15 @@ const JournalEntry = () => {
   const devotional = getDevotionalForDate(dateKey);
 
   const buildEntry = (dev, saved = {}) => ({
-    passage:      dev.passage,
-    keyVerse:     dev.keyVerse,
-    keyVerseText: dev.keyVerseText,
-    principle:    dev.principle,
-    practice:     dev.practice,
-    praises: saved.praises || '',
-    prayer:  saved.prayer  || '',
-    tasks:   saved.tasks   || [],
+    passage:        dev.passage,
+    keyVerse:       dev.keyVerse,
+    keyVerseText:   dev.keyVerseText,
+    principle:      dev.principle,
+    practice:       dev.practice,
+    practiceNotes:  saved.practiceNotes || '',
+    praises:        saved.praises || '',
+    prayer:         saved.prayer  || '',
+    tasks:          saved.tasks   || [],
   });
 
   const [entry, setEntry]           = useState(buildEntry(devotional, dailyEntries[dateKey]));
@@ -132,7 +139,7 @@ const JournalEntry = () => {
 
   // ── File viewer state ─────────────────────────────────────────────────────
   const [savedFiles, setSavedFiles]       = useLocalStorage('savedPdfs', []);
-  const [activeFile, setActiveFile]       = useState(null); // { name, dataUrl, fileType, temp? }
+  const [activeFile, setActiveFile]       = useState(null);
   const [isFullscreen, setIsFullscreen]   = useState(false);
   const [tempObjectUrl, setTempObjectUrl] = useState(null);
   const [docFontSize, setDocFontSize]     = useState(32);
@@ -184,7 +191,6 @@ const JournalEntry = () => {
     const file = e.target.files[0];
     readFile(file, (dataUrl, fileType) => {
       if (fileType === 'pdf') {
-        // Convert dataUrl back to object URL for PDF iframe (more reliable)
         const blob = dataUrlToBlob(dataUrl);
         const url  = URL.createObjectURL(blob);
         if (tempObjectUrl) URL.revokeObjectURL(tempObjectUrl);
@@ -247,6 +253,14 @@ const JournalEntry = () => {
     { id: 'pdf',        icon: FileText, label: 'Files' },
   ];
 
+  // Shared textarea style for writing spaces
+  const writingStyle = {
+    minHeight: '128px', // 4 lines at 2rem line-height (32px × 4)
+    height: 'auto',
+    overflow: 'hidden',
+    resize: 'none',
+  };
+
   return (
     <div className="space-y-4 pb-6">
 
@@ -298,26 +312,44 @@ const JournalEntry = () => {
                 <p className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed">{entry.principle}</p>
               </div>
             </div>
+
+            {/* ── Practice: prefilled block + personal writing space ── */}
             <div>
               <Label className="text-xs uppercase tracking-widest text-forest-700 dark:text-forest-400 font-bold mb-2 block">✓ Practice — Today's Action Step</Label>
-              <div className="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 p-4 rounded-r-lg">
+              <div className="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 p-4 rounded-r-lg mb-3">
                 <p className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed font-medium">{entry.practice}</p>
               </div>
+              <Textarea
+                value={entry.practiceNotes}
+                onChange={(e) => setEntry({ ...entry, practiceNotes: e.target.value })}
+                onInput={autoGrow}
+                placeholder="Write how you will apply this today…"
+                className="lined-paper bg-transparent border-none focus:ring-0 text-base font-serif text-stone-800 dark:text-stone-200 placeholder:text-stone-400 dark:placeholder:text-stone-500 leading-[2rem] pt-1 pb-0"
+                style={writingStyle}
+              />
             </div>
+
+            {/* ── Praises ── */}
             <div>
               <Label className="text-xs uppercase tracking-widest text-mango-500 dark:text-mango-400 font-bold mb-2 block">🙌 Praises — What do I thank God for?</Label>
               <Textarea value={entry.praises}
                 onChange={(e) => setEntry({ ...entry, praises: e.target.value })}
+                onInput={autoGrow}
                 placeholder="Express your gratitude based on today's passage..."
-                className="min-h-[300px] lined-paper bg-transparent border-none focus:ring-0 text-base font-serif text-stone-800 dark:text-stone-200 resize-none placeholder:text-stone-400 dark:placeholder:text-stone-500 leading-[2rem] pt-1 pb-0"
+                className="lined-paper bg-transparent border-none focus:ring-0 text-base font-serif text-stone-800 dark:text-stone-200 placeholder:text-stone-400 dark:placeholder:text-stone-500 leading-[2rem] pt-1 pb-0"
+                style={writingStyle}
                 data-testid="praises-input" />
             </div>
+
+            {/* ── Prayer ── */}
             <div>
               <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">🙏 Prayer — My prayers for today</Label>
               <Textarea value={entry.prayer}
                 onChange={(e) => setEntry({ ...entry, prayer: e.target.value })}
+                onInput={autoGrow}
                 placeholder="Pray the passage back to God, intercede for Timothys and Puerto Princesa..."
-                className="min-h-[360px] lined-paper bg-transparent border-none focus:ring-0 text-base font-serif text-stone-800 dark:text-stone-200 resize-none placeholder:text-stone-400 dark:placeholder:text-stone-500 leading-[2rem] pt-1 pb-0"
+                className="lined-paper bg-transparent border-none focus:ring-0 text-base font-serif text-stone-800 dark:text-stone-200 placeholder:text-stone-400 dark:placeholder:text-stone-500 leading-[2rem] pt-1 pb-0"
+                style={writingStyle}
                 data-testid="prayer-input" />
             </div>
           </div>
