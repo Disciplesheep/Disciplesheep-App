@@ -1,360 +1,536 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import { useJournalData, useLocalStorage } from '@/hooks/useLocalStorage';
+import React, { useState, useCallback, useEffect, useMemo, memo } from 'react';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useScreenSize } from '@/hooks/useScreenSize';
 import {
-  CheckCircle2, Clock, BookOpen, FileText, FolderOpen, Maximize2, Minimize2,
-  Trash2, X, FileType2, AlertCircle, HandHeart, Plus, CheckCheck,
-  RotateCcw, Calendar, Star, Flame, Heart, Home, Users, Globe, Filter,
+  Plus, Trash2, CheckCheck, RotateCcw, Calendar,
+  Flame, Star, Search, ChevronDown, ChevronUp,
+  Heart, Home, Users, BookOpen, Globe, Filter, Pencil,
+  HandHeart, CheckSquare, Square, MessageSquare,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { formatDate } from '@/utils/dateUtils';
-import { getDevotionalForDate } from '@/data/dailyDevotionals';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
-/* ── Constants ───────────────────────────────────────────────────────────── */
-const ACCEPT        = '.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-const FONT_SIZE_MIN = 12;
-const FONT_SIZE_MAX = 32;
-const MAX_FILE_BYTES = 15 * 1024 * 1024;
-
-/* Tab definitions — used for the right-side FABs */
-const TABS = [
-  { id: 'devotional', Icon: BookOpen,  label: "5P's",   color: 'bg-forest-500 hover:bg-forest-700', shadow: 'shadow-forest-900/30' },
-  { id: 'prayer',     Icon: HandHeart, label: 'Prayer', color: 'bg-rose-600 hover:bg-rose-700',     shadow: 'shadow-rose-900/30'   },
-  { id: 'pdf',        Icon: FileText,  label: 'Files',  color: 'bg-stone-600 hover:bg-stone-700',   shadow: 'shadow-stone-900/30'  },
-];
-
-const WRITING_STYLE = {
-  minHeight: '128px',
-  height: 'auto',
-  overflow: 'hidden',
-  resize: 'none',
-};
-
-/* ── Prayer categories ───────────────────────────────────────────────────── */
-const CATEGORIES = [
-  { id: 'all',       label: 'All',       icon: Filter   },
-  { id: 'personal',  label: 'Personal',  icon: Heart    },
-  { id: 'family',    label: 'Family',    icon: Home     },
-  { id: 'timothy',   label: 'Timothys',  icon: Users    },
-  { id: 'church',    label: 'Church',    icon: BookOpen },
-  { id: 'community', label: 'Community', icon: Globe    },
-];
-
-const CAT_COLORS = {
-  personal:  'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400',
-  family:    'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
-  timothy:   'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-  church:    'bg-forest-100 dark:bg-forest-900/30 text-forest-700 dark:text-forest-400',
-  community: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
-};
-
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
-const isPdf   = (name) => name?.toLowerCase().endsWith('.pdf');
-const isDocx  = (name) => !!name?.toLowerCase().match(/\.docx?$/);
-const fmtSize = (b) => b < 1024*1024 ? `${(b/1024).toFixed(0)} KB` : `${(b/(1024*1024)).toFixed(1)} MB`;
 const todayIso = () => new Date().toISOString().split('T')[0];
-const fmtDate  = (iso) => iso ? new Date(iso).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '';
+const fmtDate  = (iso) =>
+  iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+const preventSelectClose = (e) => {
+  if (e.target.closest('[data-radix-popper-content-wrapper]')) e.preventDefault();
+};
+const IC = 'text-xs border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100';
 
-const autoGrow = (e) => {
-  e.target.style.height = 'auto';
-  e.target.style.height = e.target.scrollHeight + 'px';
+/* ── Categories ──────────────────────────────────────────────────────────── */
+const CATEGORIES = [
+  { id: 'all',       label: 'All',       Icon: Filter,    badge: 'bg-stone-100  dark:bg-stone-800    text-stone-600  dark:text-stone-400'          },
+  { id: 'personal',  label: 'Personal',  Icon: Heart,     badge: 'bg-rose-100   dark:bg-rose-900/30  text-rose-700   dark:text-rose-400'            },
+  { id: 'family',    label: 'Family',    Icon: Home,      badge: 'bg-amber-100  dark:bg-amber-900/30 text-amber-700  dark:text-amber-400'           },
+  { id: 'timothy',   label: 'Timothys',  Icon: Users,     badge: 'bg-blue-100   dark:bg-blue-900/30  text-blue-700   dark:text-blue-400'            },
+  { id: 'church',    label: 'Church',    Icon: BookOpen,  badge: 'bg-forest-100 dark:bg-forest-900/30 text-forest-700 dark:text-forest-400'        },
+  { id: 'community', label: 'Community', Icon: Globe,     badge: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'        },
+];
+const CAT_MAP = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
+const getCat  = (id) => CAT_MAP[id] || CATEGORIES[1];
+
+/* ── Prefilled Prayer Checklists per category ────────────────────────────── */
+const PRAYER_CHECKLISTS = {
+  personal: [
+    { key: 'salvation',   label: 'Faith & salvation',         prompt: 'Lord, grow my trust and deepen my walk with You…'           },
+    { key: 'holiness',    label: 'Holiness & surrender',      prompt: 'Help me surrender the areas where I\'m still holding on…'   },
+    { key: 'health',      label: 'Physical & mental health',  prompt: 'Strengthen my body and guard my mind today…'                },
+    { key: 'spiritual',   label: 'Spiritual disciplines',     prompt: 'Give me hunger for Your Word, prayer, and fasting…'         },
+    { key: 'provision',   label: 'Daily provision & needs',   prompt: 'Provide for my needs according to Your riches in glory…'    },
+    { key: 'guidance',    label: 'Guidance & decisions',      prompt: 'Direct my steps and make my path clear before me…'          },
+    { key: 'struggles',   label: 'Temptations & struggles',   prompt: 'Where I am weak, be my strength and deliver me…'            },
+    { key: 'gratitude',   label: 'Thanksgiving',              prompt: 'Thank you Lord for…'                                         },
+  ],
+  family: [
+    { key: 'salvation',   label: 'Salvation of family',       prompt: 'Open their hearts to the gospel, Lord…'                     },
+    { key: 'unity',       label: 'Family unity & harmony',    prompt: 'Bind our home with love and peace that passes understanding…' },
+    { key: 'marriage',    label: 'Marriage & relationship',   prompt: 'Strengthen the covenant and deepen our love…'               },
+    { key: 'children',    label: 'Children & youth',          prompt: 'Protect them, shape their character, keep them close to You…' },
+    { key: 'health',      label: 'Health & protection',       prompt: 'Guard each member from sickness, harm, and evil…'           },
+    { key: 'provision',   label: 'Financial provision',       prompt: 'Meet every need and teach us faithful stewardship…'         },
+    { key: 'witness',     label: 'Family as a witness',       prompt: 'Let our home be a light that draws others to Christ…'       },
+  ],
+  timothy: [
+    { key: 'calling',        label: 'Calling & purpose',        prompt: 'Affirm their calling and set their feet on mission…'       },
+    { key: 'discipleship',   label: 'Discipleship growth',      prompt: 'Deepen their rootedness in Scripture and prayer…'          },
+    { key: 'character',      label: 'Character & integrity',    prompt: 'Make them people of uncompromising character…'             },
+    { key: 'community',      label: 'Gospel community',         prompt: 'Surround them with faithful brothers and sisters…'         },
+    { key: 'boldness',       label: 'Boldness in witness',      prompt: 'Give them courage to share Christ in their sphere…'        },
+    { key: 'struggles',      label: 'Struggles & temptations',  prompt: 'Protect them from the evil one and strengthen them…'       },
+    { key: 'ministry',       label: 'Ministry opportunities',   prompt: 'Open doors for them to serve and lead others…'             },
+    { key: 'multiplication', label: 'Multiplying disciples',    prompt: 'Make them faithful to pass on what they\'ve received…'    },
+  ],
+  church: [
+    { key: 'leadership',  label: 'Church leadership',          prompt: 'Give wisdom, humility, and a shepherd\'s heart…'           },
+    { key: 'unity',       label: 'Unity & love',               prompt: 'May we be one as You and the Father are one…'              },
+    { key: 'preaching',   label: 'Preaching & teaching',       prompt: 'Let the Word go forth with power and clarity…'             },
+    { key: 'outreach',    label: 'Evangelism & outreach',      prompt: 'Stir a passion to seek the lost at every cost…'            },
+    { key: 'growth',      label: 'Spiritual growth',           prompt: 'Move the whole congregation into deeper maturity…'         },
+    { key: 'missions',    label: 'Missions & church plants',   prompt: 'Raise up senders, goers, and faithful partners…'           },
+    { key: 'provision',   label: 'Resources & provision',      prompt: 'Supply every need for the work You\'ve called us to…'     },
+    { key: 'revival',     label: 'Revival & renewal',          prompt: 'Pour out Your Spirit afresh upon this congregation…'       },
+  ],
+  community: [
+    { key: 'lost',         label: 'The lost & unsaved',        prompt: 'Soften hearts and send laborers into this harvest field…'  },
+    { key: 'leaders',      label: 'Local leaders & gov\'t',    prompt: 'Grant wisdom, justice, and a fear of God to authorities…' },
+    { key: 'poor',         label: 'The poor & marginalized',   prompt: 'Let justice roll and Your compassion flow through us…'     },
+    { key: 'sick',         label: 'The sick & suffering',      prompt: 'Bring healing and hope to those in pain…'                  },
+    { key: 'peace',        label: 'Peace & justice',           prompt: 'Break every chain of violence, hatred, and injustice…'     },
+    { key: 'revival',      label: 'Community revival',         prompt: 'Transform our barangay/city by the power of the gospel…'  },
+    { key: 'missionaries', label: 'Missionaries in the field', prompt: 'Protect, sustain, and multiply every sent one…'            },
+    { key: 'unreached',    label: 'Unreached peoples',         prompt: 'Let every tribe and tongue hear the name of Jesus…'        },
+  ],
 };
 
-const buildEntry = (dev, saved = {}) => ({
-  passage:       dev.passage,
-  keyVerse:      dev.keyVerse,
-  keyVerseText:  dev.keyVerseText,
-  principle:     dev.principle,
-  practice:      dev.practice,
-  practiceNotes: saved.practiceNotes || '',
-  praises:       saved.praises       || '',
-  prayer:        saved.prayer        || '',
-  tasks:         saved.tasks         || [],
-});
+const buildChecklist = (catId) =>
+  (PRAYER_CHECKLISTS[catId] || []).map(t => ({ ...t, checked: false, note: '' }));
 
-/* ── Lazy mammoth ────────────────────────────────────────────────────────── */
-let mammothPromise = null;
-const loadMammoth = () => {
-  if (mammothPromise) return mammothPromise;
-  mammothPromise = new Promise((resolve, reject) => {
-    if (window.mammoth) { resolve(window.mammoth); return; }
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
-    s.onload  = () => resolve(window.mammoth);
-    s.onerror = () => { mammothPromise = null; reject(new Error('Failed to load mammoth.js')); };
-    document.head.appendChild(s);
-  });
-  return mammothPromise;
-};
-
-/* ── FileIcon ────────────────────────────────────────────────────────────── */
-const FileIcon = ({ name, className = 'w-4 h-4' }) =>
-  isDocx(name) ? <FileType2 className={className} /> : <FileText className={className} />;
-
-/* ── DocxViewer ──────────────────────────────────────────────────────────── */
-const DocxViewer = ({ dataUrl, fontSize = 16 }) => {
-  const [html,    setHtml]    = useState('');
-  const [error,   setError]   = useState('');
-  const [loading, setLoading] = useState(true);
-
+/* ── Back-button close hook ──────────────────────────────────────────────── */
+function useBackButtonClose(isOpen, closeFn) {
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true); setError(''); setHtml('');
-    (async () => {
-      try {
-        const mammoth = await loadMammoth();
-        const base64  = dataUrl.split(',')[1];
-        const binary  = atob(base64);
-        const bytes   = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        const result  = await mammoth.convertToHtml({ arrayBuffer: bytes.buffer });
-        if (!cancelled) setHtml(result.value);
-      } catch (e) {
-        if (!cancelled) setError(e.message || 'Could not convert document.');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [dataUrl]);
+    if (!isOpen) return;
+    window.__dialogOpenCount = (window.__dialogOpenCount || 0) + 1;
+    window.history.pushState({ dialog: true }, '');
+    const onPop = () => { document.activeElement?.blur(); setTimeout(closeFn, 50); };
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      window.__dialogOpenCount = Math.max(0, (window.__dialogOpenCount || 1) - 1);
+    };
+  }, [isOpen, closeFn]);
+}
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64 text-stone-400 dark:text-stone-500">
-      <Clock className="w-5 h-5 animate-spin mr-2" /> Converting document…
-    </div>
-  );
-  if (error) return (
-    <div className="flex items-center justify-center h-40 gap-2 text-red-400 text-sm p-4">
-      <AlertCircle className="w-5 h-5 shrink-0" /><span>{error}</span>
-    </div>
-  );
+/* ── Small Textarea ──────────────────────────────────────────────────────── */
+const Tx = ({ value, onChange, placeholder, rows = 2, className = '' }) => (
+  <textarea value={value} onChange={onChange} placeholder={placeholder} rows={rows}
+    className={`w-full px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700/60 text-sm text-stone-900 dark:text-stone-100 outline-none focus:border-forest-400 transition-colors placeholder:text-stone-400 resize-none ${className}`} />
+);
+
+/* ── Checklist Display (card view) ──────────────────────────────────────── */
+const ChecklistDisplay = memo(({ checklist }) => {
+  const checked = (checklist || []).filter(i => i.checked);
+  if (!checked.length) return null;
   return (
-    <div className="prose prose-stone dark:prose-invert max-w-none p-6 overflow-y-auto"
-      style={{ fontFamily:'Georgia, serif', lineHeight:Math.max(1.3,1.9-(fontSize-12)*0.03), fontSize:`${fontSize}px` }}
-      dangerouslySetInnerHTML={{ __html: html }} />
+    <div className="mt-2.5 space-y-1">
+      {checked.map(item => (
+        <div key={item.key} className="flex gap-2 text-xs items-start">
+          <CheckCheck className="w-3 h-3 text-forest-500 shrink-0 mt-0.5" />
+          <span>
+            <span className="font-semibold text-stone-500 dark:text-stone-400">{item.label}</span>
+            {item.note && <span className="text-stone-400 dark:text-stone-500"> — {item.note}</span>}
+          </span>
+        </div>
+      ))}
+    </div>
   );
-};
+});
+ChecklistDisplay.displayName = 'ChecklistDisplay';
 
-/* ── WritingField ────────────────────────────────────────────────────────── */
-const WritingField = React.memo(({ id, label, value, onChange, placeholder, testId }) => (
-  <div>
-    <Label htmlFor={id} className="text-xs uppercase tracking-widest text-mango-500 dark:text-mango-400 font-bold mb-2 block">
-      {label}
-    </Label>
-    <Textarea id={id} value={value} onChange={onChange} onInput={autoGrow} placeholder={placeholder}
-      className="lined-paper bg-transparent border-none focus:ring-0 text-base font-serif text-stone-800 dark:text-stone-200 placeholder:text-stone-400 dark:placeholder:text-stone-500 leading-[2rem] pt-1 pb-0"
-      style={WRITING_STYLE} data-testid={testId} />
-  </div>
-));
-WritingField.displayName = 'WritingField';
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   PRAYER SUB-COMPONENTS
-═══════════════════════════════════════════════════════════════════════════ */
-
-const AddRequestModal = ({ onSave, onClose }) => {
+/* ── Add / Edit Dialog ───────────────────────────────────────────────────── */
+const RequestDialog = memo(({ open, onClose, onSave, editData }) => {
+  const [person,    setPerson]    = useState('');
   const [text,      setText]      = useState('');
   const [category,  setCategory]  = useState('personal');
-  const [dateAdded, setDateAdded] = useState(todayIso());
-  const [person,    setPerson]    = useState('');
+  const [dateAdded, setDateAdded] = useState(todayIso);
+  const [checklist, setChecklist] = useState(() => buildChecklist('personal'));
+  const [showList,  setShowList]  = useState(true);
+
+  useEffect(() => {
+    if (!open) return;
+    const cat = editData?.category || 'personal';
+    setPerson(editData?.person    || '');
+    setText(editData?.text        || '');
+    setCategory(cat);
+    setDateAdded(editData?.dateAdded || todayIso());
+    setChecklist(editData?.checklist?.length ? editData.checklist : buildChecklist(cat));
+    setShowList(true);
+  }, [open, editData]);
+
+  useBackButtonClose(open, onClose);
+
+  const handleCategoryChange = (id) => {
+    setCategory(id);
+    setChecklist(buildChecklist(id));
+  };
+
+  const toggleCheck = useCallback((key) => setChecklist(prev =>
+    prev.map(i => i.key === key ? { ...i, checked: !i.checked } : i)
+  ), []);
+
+  const setNote = useCallback((key, val) => setChecklist(prev =>
+    prev.map(i => i.key === key ? { ...i, note: val } : i)
+  ), []);
 
   const handleSave = () => {
-    if (!text.trim()) { toast.error('Please enter a prayer request.'); return; }
+    if (!text.trim() && !person.trim() && !checklist.some(i => i.checked)) {
+      toast.error('Please fill in at least one field.'); return;
+    }
     onSave({
-      id: Date.now().toString(),
-      text: text.trim(),
-      person: person.trim(),
+      id:           editData?.id           || Date.now().toString(),
+      text:         text.trim(),
+      person:       person.trim(),
       category,
       dateAdded,
-      answered: false,
-      dateAnswered: null,
-      praise: '',
+      checklist,
+      answered:     editData?.answered     || false,
+      dateAnswered: editData?.dateAnswered || null,
+      praise:       editData?.praise       || '',
     });
     onClose();
   };
 
+  const checkedCount = checklist.filter(i => i.checked).length;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-stone-800 rounded-2xl shadow-2xl w-full max-w-md border border-stone-200 dark:border-stone-700 overflow-hidden">
-        <div className="px-5 py-4" style={{ background:'linear-gradient(135deg,#be123c,#d97706)' }}>
-          <h2 className="font-serif text-lg font-bold text-white">New Prayer Request</h2>
-          <p className="text-white/80 text-xs mt-0.5">Bring it before the Lord</p>
+    <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
+      <DialogContent
+        className="max-w-md max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-2xl overflow-hidden border-stone-200 dark:border-stone-700"
+        onPointerDownOutside={preventSelectClose}>
+
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-white/10"
+          style={{ background: 'linear-gradient(135deg, #1c1917 0%, #14532d 60%, #ca8a04 100%)' }}>
+          <DialogTitle className="font-serif text-xl font-bold text-white">
+            {editData ? 'Edit Prayer' : '✦ New Prayer Request'}
+          </DialogTitle>
+          <DialogDescription className="text-white/50 text-xs mt-0.5 font-serif italic">
+            "In everything, by prayer and petition, with thanksgiving…" — Phil 4:6
+          </DialogDescription>
         </div>
-        <div className="p-5 space-y-4">
+
+        <div className="p-5 space-y-5">
+          {/* Person */}
           <div>
-            <label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">
+            <Label className="text-[10px] uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">
               Person / Topic <span className="normal-case font-normal">(optional)</span>
-            </label>
-            <input value={person} onChange={e => setPerson(e.target.value)}
-              placeholder="e.g. Juan, our church plant, Puerto Princesa…"
-              className="w-full px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm text-stone-900 dark:text-stone-100 outline-none focus:border-rose-400 transition-colors placeholder:text-stone-400" />
+            </Label>
+            <Input value={person} onChange={e => setPerson(e.target.value)}
+              placeholder="e.g. Juan dela Cruz, our church plant…" className={IC} />
           </div>
+
+          {/* General request */}
           <div>
-            <label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">Prayer Request</label>
-            <textarea value={text} onChange={e => setText(e.target.value)}
-              placeholder="Write your prayer request…" rows={3}
-              className="w-full px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm text-stone-900 dark:text-stone-100 outline-none focus:border-rose-400 transition-colors placeholder:text-stone-400 resize-none" />
+            <Label className="text-[10px] uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">General Request</Label>
+            <Tx value={text} onChange={e => setText(e.target.value)}
+              placeholder="Write a summary of your prayer request…" rows={2} />
           </div>
+
+          {/* Category */}
           <div>
-            <label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">Category</label>
-            <div className="flex flex-wrap gap-1.5">
-              {CATEGORIES.filter(c => c.id !== 'all').map(cat => (
-                <button key={cat.id} onClick={() => setCategory(cat.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    category === cat.id ? 'bg-rose-500 text-white shadow-sm' : 'bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-600'
+            <Label className="text-[10px] uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Category</Label>
+            <div className="grid grid-cols-3 gap-1.5">
+              {CATEGORIES.filter(c => c.id !== 'all').map(c => (
+                <button key={c.id} onClick={() => handleCategoryChange(c.id)}
+                  className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl border-2 text-xs font-semibold transition-all ${
+                    category === c.id
+                      ? 'border-forest-500 bg-forest-50 dark:bg-forest-900/30 text-forest-700 dark:text-forest-400'
+                      : 'border-stone-100 dark:border-stone-700 text-stone-500 dark:text-stone-400 hover:border-stone-300 dark:hover:border-stone-600'
                   }`}>
-                  {cat.label}
+                  <c.Icon className="w-3.5 h-3.5 shrink-0" />{c.label}
                 </button>
               ))}
             </div>
           </div>
+
+          {/* Prayer Checklist */}
           <div>
-            <label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">Date Started</label>
-            <input type="date" value={dateAdded} onChange={e => setDateAdded(e.target.value)}
-              className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm text-stone-900 dark:text-stone-100 outline-none focus:border-rose-400 transition-colors" />
+            <button onClick={() => setShowList(v => !v)}
+              className="flex items-center justify-between w-full mb-3">
+              <div className="flex items-center gap-2">
+                <Label className="text-[10px] uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold cursor-pointer">
+                  Prayer Checklist
+                </Label>
+                {checkedCount > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-forest-100 dark:bg-forest-900/40 text-forest-700 dark:text-forest-400 text-[9px] font-bold">
+                    {checkedCount} selected
+                  </span>
+                )}
+              </div>
+              {showList ? <ChevronUp className="w-4 h-4 text-stone-400" /> : <ChevronDown className="w-4 h-4 text-stone-400" />}
+            </button>
+
+            {showList && (
+              <div className="space-y-2 rounded-xl border border-stone-100 dark:border-stone-700 p-3 bg-stone-50/50 dark:bg-stone-900/20">
+                <p className="text-[10px] text-stone-400 dark:text-stone-500 mb-2">
+                  Check what you want to pray for · add a personal note to each
+                </p>
+                {checklist.map(item => (
+                  <div key={item.key}
+                    className={`rounded-xl border transition-all overflow-hidden ${
+                      item.checked
+                        ? 'border-forest-200 dark:border-forest-800 bg-forest-50 dark:bg-forest-900/20'
+                        : 'border-stone-100 dark:border-stone-700 bg-white dark:bg-stone-800'
+                    }`}>
+                    <button onClick={() => toggleCheck(item.key)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 text-left">
+                      {item.checked
+                        ? <CheckSquare className="w-4 h-4 text-forest-500 shrink-0" />
+                        : <Square className="w-4 h-4 text-stone-300 dark:text-stone-600 shrink-0" />}
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-semibold ${
+                          item.checked ? 'text-forest-700 dark:text-forest-400' : 'text-stone-600 dark:text-stone-400'
+                        }`}>{item.label}</p>
+                        {!item.checked && (
+                          <p className="text-[10px] text-stone-400 dark:text-stone-500 truncate">{item.prompt}</p>
+                        )}
+                      </div>
+                    </button>
+                    {item.checked && (
+                      <div className="px-3 pb-3">
+                        <Tx value={item.note}
+                          onChange={e => setNote(item.key, e.target.value)}
+                          placeholder={item.prompt}
+                          rows={2}
+                          className="text-xs bg-white dark:bg-stone-800" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Date */}
+          <div>
+            <Label className="text-[10px] uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">Date Started</Label>
+            <Input type="date" value={dateAdded} onChange={e => setDateAdded(e.target.value)} className={IC} />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-1">
+            <Button variant="outline" onClick={onClose}
+              className="flex-1 rounded-xl border-stone-200 dark:border-stone-600 text-stone-600 dark:text-stone-400">
+              Cancel
+            </Button>
+            <Button onClick={handleSave}
+              className="flex-1 bg-forest-500 hover:bg-forest-700 text-white rounded-xl font-medium">
+              {editData ? 'Save Changes' : '🙏 Save Prayer'}
+            </Button>
           </div>
         </div>
-        <div className="flex gap-2 px-5 pb-5">
-          <button onClick={onClose}
-            className="flex-1 h-10 rounded-xl border border-stone-200 dark:border-stone-600 text-stone-600 dark:text-stone-400 text-sm hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">
-            Cancel
-          </button>
-          <button onClick={handleSave}
-            className="flex-1 h-10 rounded-xl text-white text-sm font-medium hover:opacity-90 transition-opacity"
-            style={{ background:'linear-gradient(135deg,#be123c,#d97706)' }}>
-            Save Request
-          </button>
-        </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
-};
+});
+RequestDialog.displayName = 'RequestDialog';
 
-const MarkAnsweredModal = ({ request, onSave, onClose }) => {
-  const [dateAnswered, setDateAnswered] = useState(todayIso());
+/* ── Mark Answered Dialog ────────────────────────────────────────────────── */
+const MarkAnsweredDialog = memo(({ open, request, onClose, onSave }) => {
+  const [dateAnswered, setDateAnswered] = useState(todayIso);
   const [praise,       setPraise]       = useState('');
 
-  const handleSave = () => { onSave({ dateAnswered, praise: praise.trim() }); onClose(); };
+  useEffect(() => { if (open) { setDateAnswered(todayIso()); setPraise(''); } }, [open]);
+  useBackButtonClose(open, onClose);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-stone-800 rounded-2xl shadow-2xl w-full max-w-md border border-stone-200 dark:border-stone-700 overflow-hidden">
-        <div className="px-5 py-4" style={{ background:'linear-gradient(135deg,#15803d,#059669)' }}>
-          <h2 className="font-serif text-lg font-bold text-white">🙌 Prayer Answered!</h2>
-          <p className="text-white/80 text-xs mt-0.5 line-clamp-1">
-            {request.person ? `${request.person} — ` : ''}{request.text}
-          </p>
+    <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-md p-0 gap-0 rounded-2xl overflow-hidden border-stone-200 dark:border-stone-700">
+        <div className="px-6 py-5 border-b border-white/10"
+          style={{ background: 'linear-gradient(135deg, #14532d 0%, #166534 60%, #15803d 100%)' }}>
+          <DialogTitle className="font-serif text-xl font-bold text-white">🙌 Praise God!</DialogTitle>
+          <DialogDescription className="text-white/50 text-xs mt-0.5 line-clamp-1">
+            {request?.person ? `"${request.person}" — ` : ''}{request?.text}
+          </DialogDescription>
         </div>
         <div className="p-5 space-y-4">
           <div>
-            <label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">Date Answered</label>
-            <input type="date" value={dateAnswered} onChange={e => setDateAnswered(e.target.value)}
-              className="px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm text-stone-900 dark:text-stone-100 outline-none focus:border-forest-400 transition-colors" />
+            <Label className="text-[10px] uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">Date Answered</Label>
+            <Input type="date" value={dateAnswered} onChange={e => setDateAnswered(e.target.value)} className={IC} />
           </div>
           <div>
-            <label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">
-              Praise Note <span className="normal-case font-normal">(optional)</span>
-            </label>
-            <textarea value={praise} onChange={e => setPraise(e.target.value)}
-              placeholder="How did God answer this prayer?" rows={3}
-              className="w-full px-3 py-2 rounded-xl border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm text-stone-900 dark:text-stone-100 outline-none focus:border-forest-400 transition-colors placeholder:text-stone-400 resize-none" />
+            <Label className="text-[10px] uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">
+              Testimony / Praise <span className="normal-case font-normal">(optional)</span>
+            </Label>
+            <Tx value={praise} onChange={e => setPraise(e.target.value)}
+              placeholder="How did God answer? Write your testimony…" rows={4} className="font-serif" />
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose}
+              className="flex-1 rounded-xl border-stone-200 dark:border-stone-600 text-stone-600 dark:text-stone-400">
+              Cancel
+            </Button>
+            <Button onClick={() => { onSave({ dateAnswered, praise: praise.trim() }); onClose(); }}
+              className="flex-1 bg-forest-500 hover:bg-forest-700 text-white rounded-xl">
+              ✅ Mark as Answered
+            </Button>
           </div>
         </div>
-        <div className="flex gap-2 px-5 pb-5">
-          <button onClick={onClose}
-            className="flex-1 h-10 rounded-xl border border-stone-200 dark:border-stone-600 text-stone-600 dark:text-stone-400 text-sm hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors">
-            Cancel
-          </button>
-          <button onClick={handleSave}
-            className="flex-1 h-10 rounded-xl text-white text-sm font-medium hover:opacity-90 transition-opacity"
-            style={{ background:'linear-gradient(135deg,#15803d,#059669)' }}>
-            Mark as Answered
-          </button>
+      </DialogContent>
+    </Dialog>
+  );
+});
+MarkAnsweredDialog.displayName = 'MarkAnsweredDialog';
+
+/* ── Request Card ────────────────────────────────────────────────────────── */
+const RequestCard = memo(({ req, onMarkAnswered, onDelete, onUnmark, onEdit }) => {
+  const [expanded, setExpanded] = useState(false);
+  const cat = getCat(req.category);
+  const checkedCount = useMemo(
+    () => (req.checklist || []).filter(i => i.checked).length,
+    [req.checklist]
+  );
+
+  return (
+    <div className={`rounded-2xl border transition-all overflow-hidden ${
+      req.answered
+        ? 'bg-forest-50/60 dark:bg-forest-900/10 border-forest-200 dark:border-forest-800'
+        : 'bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700 shadow-sm'
+    }`}>
+      <div className="p-4">
+        <div className="flex items-start gap-3">
+          <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${
+            req.answered ? 'bg-forest-500' : 'bg-rose-400 animate-pulse'
+          }`} />
+
+          <div className="flex-1 min-w-0">
+            {req.person && (
+              <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mb-0.5">{req.person}</p>
+            )}
+            {req.text && (
+              <p className="text-sm text-stone-800 dark:text-stone-200 leading-relaxed font-serif">{req.text}</p>
+            )}
+            {req.answered && req.praise && (
+              <div className="mt-2 pl-3 border-l-2 border-forest-400">
+                <p className="text-xs text-forest-700 dark:text-forest-400 italic leading-relaxed">"{req.praise}"</p>
+              </div>
+            )}
+
+            {checkedCount > 0 && (
+              <button onClick={() => setExpanded(v => !v)}
+                className="mt-2 flex items-center gap-1.5 text-[10px] font-semibold text-forest-600 dark:text-forest-400 hover:opacity-80 transition-opacity">
+                {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                <CheckSquare className="w-3 h-3" />
+                {checkedCount} prayer {checkedCount === 1 ? 'area' : 'areas'}
+              </button>
+            )}
+            {expanded && <ChecklistDisplay checklist={req.checklist} />}
+
+            <div className="flex flex-wrap items-center gap-2 mt-2.5">
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cat.badge}`}>{cat.label}</span>
+              <span className="text-[10px] text-stone-400 dark:text-stone-500 flex items-center gap-1">
+                <Calendar className="w-3 h-3" /> {fmtDate(req.dateAdded)}
+              </span>
+              {req.answered && req.dateAnswered && (
+                <span className="text-[10px] text-forest-600 dark:text-forest-400 flex items-center gap-1 font-medium">
+                  <CheckCheck className="w-3 h-3" /> Answered {fmtDate(req.dateAnswered)}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1 shrink-0">
+            {!req.answered ? (
+              <button onClick={() => onMarkAnswered(req)} title="Mark answered"
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-forest-50 dark:bg-forest-900/30 hover:bg-forest-100 dark:hover:bg-forest-900/50 text-forest-600 dark:text-forest-400 transition-colors">
+                <CheckCheck className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <button onClick={() => onUnmark(req.id)} title="Move back to ongoing"
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-stone-100 dark:bg-stone-700 hover:bg-stone-200 dark:hover:bg-stone-600 text-stone-400 transition-colors">
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <button onClick={() => onEdit(req)} title="Edit"
+              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30 text-stone-300 dark:text-stone-600 hover:text-blue-500 transition-colors">
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button onClick={() => onDelete(req.id)} title="Delete"
+              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 text-stone-300 dark:text-stone-600 hover:text-red-500 transition-colors">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
-};
+});
+RequestCard.displayName = 'RequestCard';
 
-const RequestCard = ({ req, onMarkAnswered, onDelete, onUnmark }) => {
-  const catColor = CAT_COLORS[req.category] || CAT_COLORS.personal;
-  const catLabel = CATEGORIES.find(c => c.id === req.category)?.label || req.category;
+/* ── Praise Card ─────────────────────────────────────────────────────────── */
+const PraiseCard = memo(({ req, onDelete }) => {
+  const cat = getCat(req.category);
   return (
-    <div className={`rounded-xl border p-4 transition-all ${
-      req.answered
-        ? 'bg-forest-50/50 dark:bg-forest-900/10 border-forest-200 dark:border-forest-800'
-        : 'bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700 shadow-sm'
-    }`}>
-      <div className="flex items-start gap-3">
-        <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${req.answered ? 'bg-forest-500' : 'bg-rose-400 animate-pulse'}`} />
+    <div className="rounded-2xl border bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700 shadow-sm overflow-hidden">
+      <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #166534, #ca8a04)' }} />
+      <div className="p-4 flex items-start gap-3">
+        <div className="w-7 h-7 rounded-xl bg-forest-100 dark:bg-forest-900/40 flex items-center justify-center shrink-0 mt-0.5">
+          <Star className="w-3.5 h-3.5 text-forest-600 dark:text-forest-400" />
+        </div>
         <div className="flex-1 min-w-0">
-          {req.person && (
-            <p className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-0.5">{req.person}</p>
-          )}
-          <p className="text-sm text-stone-800 dark:text-stone-200 leading-relaxed font-serif">{req.text}</p>
-          {req.answered && req.praise && (
-            <div className="mt-2 pl-3 border-l-2 border-forest-400">
-              <p className="text-xs text-forest-700 dark:text-forest-400 italic leading-relaxed">"{req.praise}"</p>
+          {req.person && <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mb-0.5">{req.person}</p>}
+          {req.text   && <p className="text-sm text-stone-800 dark:text-stone-200 font-serif leading-relaxed">{req.text}</p>}
+          {req.praise && (
+            <div className="mt-2.5 p-3 rounded-xl bg-forest-50 dark:bg-forest-900/20 border border-forest-100 dark:border-forest-800">
+              <p className="text-[10px] font-bold text-forest-700 dark:text-forest-400 uppercase tracking-widest mb-1">🙌 Praise</p>
+              <p className="text-sm text-forest-800 dark:text-forest-300 italic leading-relaxed font-serif">"{req.praise}"</p>
             </div>
           )}
           <div className="flex flex-wrap items-center gap-2 mt-2.5">
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${catColor}`}>{catLabel}</span>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cat.badge}`}>{cat.label}</span>
             <span className="text-[10px] text-stone-400 dark:text-stone-500 flex items-center gap-1">
-              <Calendar className="w-3 h-3" /> {fmtDate(req.dateAdded)}
+              <Calendar className="w-3 h-3" /> Started {fmtDate(req.dateAdded)}
             </span>
-            {req.answered && req.dateAnswered && (
+            {req.dateAnswered && (
               <span className="text-[10px] text-forest-600 dark:text-forest-400 flex items-center gap-1 font-medium">
-                <CheckCheck className="w-3 h-3" /> Answered {fmtDate(req.dateAnswered)}
+                <CheckCheck className="w-3 h-3" /> {fmtDate(req.dateAnswered)}
               </span>
             )}
           </div>
         </div>
-        <div className="flex flex-col gap-1 shrink-0">
-          {!req.answered ? (
-            <button onClick={() => onMarkAnswered(req)} title="Mark as answered"
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-forest-50 dark:bg-forest-900/30 hover:bg-forest-100 dark:hover:bg-forest-900/50 text-forest-600 dark:text-forest-400 transition-colors">
-              <CheckCheck className="w-3.5 h-3.5" />
-            </button>
-          ) : (
-            <button onClick={() => onUnmark(req.id)} title="Move back to ongoing"
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-stone-100 dark:bg-stone-700 hover:bg-stone-200 dark:hover:bg-stone-600 text-stone-400 transition-colors">
-              <RotateCcw className="w-3.5 h-3.5" />
-            </button>
-          )}
-          <button onClick={() => onDelete(req.id)} title="Delete"
-            className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 text-stone-300 hover:text-red-500 transition-colors">
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        <button onClick={() => onDelete(req.id)}
+          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 text-stone-300 hover:text-red-500 transition-colors shrink-0">
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
       </div>
     </div>
   );
-};
+});
+PraiseCard.displayName = 'PraiseCard';
 
-const PrayerPanel = () => {
-  const [requests,     setRequests]     = useLocalStorage('prayerRequests', []);
+/* ═══════════════════════════════════════════════════════════════════════════
+   MAIN PAGE
+═══════════════════════════════════════════════════════════════════════════ */
+const PrayerJournal = () => {
+  const { isTablet } = useScreenSize();
+  const [requests, setRequests] = useLocalStorage('prayerRequests_v2', []);
+
+  const [view,         setView]         = useState('ongoing');
   const [filterCat,    setFilterCat]    = useState('all');
-  const [prayerView,   setPrayerView]   = useState('ongoing');
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [search,       setSearch]       = useState('');
+  const [showAnswered, setShowAnswered] = useState(true);
+  const [addOpen,      setAddOpen]      = useState(false);
+  const [editTarget,   setEditTarget]   = useState(null);
   const [markTarget,   setMarkTarget]   = useState(null);
 
-  const handleAddRequest  = useCallback((req) => {
-    setRequests(prev => [req, ...prev]);
-    toast.success('Prayer request added 🙏');
-  }, [setRequests]);
+  /* ── Actions ── */
+  const handleSave = useCallback((req) => {
+    setRequests(prev => {
+      const i = prev.findIndex(r => r.id === req.id);
+      return i >= 0 ? prev.map(r => r.id === req.id ? req : r) : [req, ...prev];
+    });
+    toast.success(editTarget ? 'Prayer updated ✏️' : 'Prayer request added 🙏');
+    setEditTarget(null);
+  }, [setRequests, editTarget]);
 
   const handleMarkAnswered = useCallback(({ dateAnswered, praise }) => {
+    if (!markTarget) return;
     setRequests(prev => prev.map(r =>
       r.id === markTarget.id ? { ...r, answered: true, dateAnswered, praise } : r
     ));
-    toast.success('Praise God — marked as answered! 🙌');
+    toast.success('Praise God — answered! 🙌');
+    setMarkTarget(null);
   }, [markTarget, setRequests]);
 
   const handleUnmark = useCallback((id) => {
-    setRequests(prev => prev.map(r => r.id === id ? { ...r, answered: false, dateAnswered: null, praise: '' } : r));
+    setRequests(prev => prev.map(r =>
+      r.id === id ? { ...r, answered: false, dateAnswered: null, praise: '' } : r
+    ));
     toast('Moved back to ongoing');
   }, [setRequests]);
 
@@ -363,497 +539,273 @@ const PrayerPanel = () => {
     toast.success('Removed');
   }, [setRequests]);
 
-  const ongoing  = requests.filter(r => !r.answered);
-  const answered = requests.filter(r =>  r.answered);
-  const filtered = (list) => filterCat === 'all' ? list : list.filter(r => r.category === filterCat);
+  const openEdit   = useCallback((req) => setEditTarget(req), []);
+  const openMark   = useCallback((req) => setMarkTarget(req), []);
+  const closeModal = useCallback(() => { setAddOpen(false); setEditTarget(null); }, []);
 
-  return (
-    <>
-      {showAddModal && <AddRequestModal onSave={handleAddRequest} onClose={() => setShowAddModal(false)} />}
-      {markTarget   && (
-        <MarkAnsweredModal request={markTarget}
-          onSave={handleMarkAnswered}
-          onClose={() => setMarkTarget(null)} />
-      )}
+  /* ── Derived lists ── */
+  const [ongoing, answered] = useMemo(() => [
+    requests.filter(r => !r.answered),
+    requests.filter(r =>  r.answered),
+  ], [requests]);
 
-      <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden">
-        <div className="px-5 py-4 flex items-center justify-between"
-          style={{ background:'linear-gradient(135deg,#be123c 0%,#d97706 60%,#15803d 100%)' }}>
+  const filter = useCallback((list) => {
+    const q = search.trim().toLowerCase();
+    return list
+      .filter(r => filterCat === 'all' || r.category === filterCat)
+      .filter(r => !q || [r.person, r.text, ...(r.checklist || []).map(i => i.note)].join(' ').toLowerCase().includes(q));
+  }, [filterCat, search]);
+
+  const filteredOngoing  = useMemo(() => filter(ongoing),  [filter, ongoing]);
+  const filteredAnswered = useMemo(() => filter(answered), [filter, answered]);
+
+  /* ── Header ── */
+  const header = (
+    <div className="relative overflow-hidden rounded-2xl"
+      style={{ background: 'linear-gradient(150deg, #1c1917 0%, #14532d 50%, #ca8a04 100%)' }}>
+      <div className="absolute inset-0 opacity-[0.06]"
+        style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+      <div className="absolute -bottom-8 -right-8 w-40 h-40 rounded-full opacity-20 blur-3xl"
+        style={{ background: '#ca8a04' }} />
+
+      <div className="relative z-10 p-6">
+        <div className="flex items-start justify-between mb-1">
           <div>
-            <h2 className="font-serif text-xl font-bold text-white">Prayer Journal</h2>
-            <p className="text-white/70 text-xs mt-0.5">Requests · Answered · Praises</p>
+            <p className="text-mango-300 text-[10px] uppercase tracking-[0.25em] font-bold mb-1">Church Planting Prayer</p>
+            <h1 className={`font-serif font-bold text-white tracking-tight leading-none ${isTablet ? 'text-4xl' : 'text-3xl'}`}>
+              Prayer Journal
+            </h1>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex gap-2">
-              <div className="text-center bg-white/15 rounded-lg px-2.5 py-1.5 backdrop-blur-sm">
-                <p className="text-sm font-bold text-white font-serif">{ongoing.length}</p>
-                <p className="text-white/70 text-[9px] uppercase tracking-widest">Ongoing</p>
-              </div>
-              <div className="text-center bg-white/15 rounded-lg px-2.5 py-1.5 backdrop-blur-sm">
-                <p className="text-sm font-bold text-white font-serif">{answered.length}</p>
-                <p className="text-white/70 text-[9px] uppercase tracking-widest">Answered</p>
-              </div>
+          <div className="w-10 h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
+            <HandHeart className="w-5 h-5 text-mango-300" />
+          </div>
+        </div>
+        <p className="text-white/40 text-xs mt-2 font-serif italic">
+          "Call to me and I will answer you." — Jer 33:3
+        </p>
+        <div className="flex gap-2 mt-5">
+          {[
+            { n: ongoing.length,  label: 'Ongoing',  color: '#fca5a5' },
+            { n: answered.length, label: 'Answered', color: '#86efac' },
+            { n: requests.length, label: 'Total',    color: '#fcd34d' },
+          ].map(s => (
+            <div key={s.label}
+              className="flex-1 rounded-xl py-3 px-2 text-center"
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <p className="text-xl font-black font-serif" style={{ color: s.color }}>{s.n}</p>
+              <p className="text-[9px] uppercase tracking-widest text-white/40 font-semibold mt-0.5">{s.label}</p>
             </div>
-            <button onClick={() => setShowAddModal(true)}
-              className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-all border border-white/20 backdrop-blur-sm"
-              title="New prayer request">
-              <Plus className="w-5 h-5" />
-            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  /* ── Category filter bar ── */
+  const categoryFilterBar = (
+    <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+      {CATEGORIES.map(cat => (
+        <button key={cat.id} onClick={() => setFilterCat(cat.id)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all border ${
+            filterCat === cat.id
+              ? 'bg-forest-500 border-forest-500 text-white shadow-sm'
+              : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:border-stone-300'
+          }`}>
+          <cat.Icon className="w-3 h-3" />{cat.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  /* ── View toggle ── */
+  const viewToggle = (
+    <div className="flex gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1">
+      {[
+        { id: 'ongoing', label: 'Ongoing', Icon: Flame, count: ongoing.length,  activeColor: 'text-rose-600 dark:text-rose-400'    },
+        { id: 'praises', label: 'Praises', Icon: Star,  count: answered.length, activeColor: 'text-forest-600 dark:text-forest-400' },
+      ].map(t => (
+        <button key={t.id} onClick={() => setView(t.id)}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${
+            view === t.id
+              ? `bg-white dark:bg-stone-700 ${t.activeColor} shadow-sm`
+              : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
+          }`}>
+          <t.Icon className="w-3.5 h-3.5" />{t.label} ({t.count})
+        </button>
+      ))}
+    </div>
+  );
+
+  /* ── Ongoing view ── */
+  const ongoingView = (
+    <div className="space-y-4">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300 dark:text-stone-600" />
+        <Input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search prayers, people…"
+          className="pl-9 text-xs border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100" />
+      </div>
+
+      {categoryFilterBar}
+
+      <Card className="bg-white dark:bg-stone-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100 dark:border-stone-700">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
+            <h3 className="font-serif font-semibold text-stone-900 dark:text-stone-100 text-sm">Ongoing Prayers</h3>
+            <span className="text-xs text-stone-400 dark:text-stone-500">({filteredOngoing.length})</span>
           </div>
+          <Button size="sm" onClick={() => setAddOpen(true)}
+            className="h-7 px-3 rounded-lg bg-forest-500 hover:bg-forest-700 text-white text-xs gap-1">
+            <Plus className="w-3 h-3" /> Add
+          </Button>
         </div>
-
-        <div className="flex gap-1 p-3 bg-stone-50 dark:bg-stone-900/30 border-b border-stone-100 dark:border-stone-700">
-          <button onClick={() => setPrayerView('ongoing')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${
-              prayerView === 'ongoing'
-                ? 'bg-white dark:bg-stone-700 text-rose-600 dark:text-rose-400 shadow-sm'
-                : 'text-stone-500 dark:text-stone-400 hover:text-stone-700'
-            }`}>
-            <Flame className="w-3.5 h-3.5" /> Ongoing ({ongoing.length})
-          </button>
-          <button onClick={() => setPrayerView('praises')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${
-              prayerView === 'praises'
-                ? 'bg-white dark:bg-stone-700 text-forest-600 dark:text-forest-400 shadow-sm'
-                : 'text-stone-500 dark:text-stone-400 hover:text-stone-700'
-            }`}>
-            <Star className="w-3.5 h-3.5" /> Praises ({answered.length})
-          </button>
-        </div>
-
-        <div className="p-4 space-y-3">
-          {prayerView === 'ongoing' && (
-            <>
-              <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth:'none' }}>
-                {CATEGORIES.map(cat => (
-                  <button key={cat.id} onClick={() => setFilterCat(cat.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
-                      filterCat === cat.id
-                        ? 'bg-rose-500 text-white shadow-sm'
-                        : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700'
-                    }`}>
-                    <cat.icon className="w-3 h-3" />{cat.label}
-                  </button>
-                ))}
-              </div>
-
-              {filtered(ongoing).length > 0 ? (
-                <div className="space-y-2">
-                  {filtered(ongoing).map(req => (
-                    <RequestCard key={req.id} req={req}
-                      onMarkAnswered={setMarkTarget}
-                      onDelete={handleDelete}
-                      onUnmark={handleUnmark} />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-stone-400 dark:text-stone-500">
-                  <Flame className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No ongoing prayer requests</p>
-                  <button onClick={() => setShowAddModal(true)}
-                    className="mt-2 text-xs text-rose-500 hover:text-rose-600 font-medium">
-                    + Add one
-                  </button>
-                </div>
-              )}
-
-              {filtered(answered).length > 0 && (
-                <>
-                  <div className="relative py-1">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-stone-200 dark:border-stone-700" />
-                    </div>
-                    <div className="relative flex justify-center">
-                      <span className="bg-white dark:bg-stone-800 px-3 text-[10px] text-stone-400 dark:text-stone-500 font-medium uppercase tracking-widest">
-                        Answered
-                      </span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    {filtered(answered).map(req => (
-                      <RequestCard key={req.id} req={req}
-                        onMarkAnswered={setMarkTarget}
-                        onDelete={handleDelete}
-                        onUnmark={handleUnmark} />
-                    ))}
-                  </div>
-                </>
-              )}
-            </>
-          )}
-
-          {prayerView === 'praises' && (
-            <>
-              {answered.length === 0 ? (
-                <div className="text-center py-12 text-stone-400 dark:text-stone-500">
-                  <Star className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                  <p className="text-sm font-medium">No answered prayers yet</p>
-                  <p className="text-xs mt-1 max-w-xs mx-auto leading-relaxed">
-                    When a prayer is answered, mark it and it will appear here as a praise testimony.
-                  </p>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-forest-50 dark:bg-forest-900/20 border border-forest-100 dark:border-forest-800">
-                    <CheckCircle2 className="w-5 h-5 text-forest-600 dark:text-forest-400 shrink-0" />
-                    <p className="text-xs text-forest-800 dark:text-forest-300 italic leading-relaxed">
-                      "He who calls you is faithful; he will surely do it." — 1 Thess 5:24
-                    </p>
-                  </div>
-                  <div className="space-y-3">
-                    {answered.map(req => {
-                      const catColor = CAT_COLORS[req.category] || CAT_COLORS.personal;
-                      const catLabel = CATEGORIES.find(c => c.id === req.category)?.label || req.category;
-                      return (
-                        <div key={req.id} className="bg-white dark:bg-stone-800 rounded-xl border border-stone-100 dark:border-stone-700 shadow-sm p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="w-7 h-7 rounded-full bg-forest-100 dark:bg-forest-900/40 flex items-center justify-center shrink-0 mt-0.5">
-                              <Star className="w-3.5 h-3.5 text-forest-600 dark:text-forest-400" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              {req.person && (
-                                <p className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-0.5">{req.person}</p>
-                              )}
-                              <p className="text-sm text-stone-800 dark:text-stone-200 font-serif leading-relaxed">{req.text}</p>
-                              {req.praise && (
-                                <div className="mt-2.5 p-3 rounded-lg bg-forest-50 dark:bg-forest-900/20 border border-forest-100 dark:border-forest-800">
-                                  <p className="text-[10px] font-bold text-forest-700 dark:text-forest-400 uppercase tracking-widest mb-1">🙌 Praise</p>
-                                  <p className="text-sm text-forest-800 dark:text-forest-300 italic leading-relaxed">"{req.praise}"</p>
-                                </div>
-                              )}
-                              <div className="flex flex-wrap items-center gap-2 mt-2.5">
-                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${catColor}`}>{catLabel}</span>
-                                <span className="text-[10px] text-stone-400 flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" /> Started {fmtDate(req.dateAdded)}
-                                </span>
-                                <span className="text-[10px] text-forest-600 dark:text-forest-400 flex items-center gap-1 font-medium">
-                                  <CheckCheck className="w-3 h-3" /> Answered {fmtDate(req.dateAnswered)}
-                                </span>
-                              </div>
-                            </div>
-                            <button onClick={() => handleDelete(req.id)}
-                              className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 text-stone-300 hover:text-red-500 transition-colors shrink-0">
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </>
+        <div className="p-3 space-y-2">
+          {filteredOngoing.length > 0 ? filteredOngoing.map(req => (
+            <RequestCard key={req.id} req={req}
+              onMarkAnswered={openMark} onDelete={handleDelete}
+              onUnmark={handleUnmark}  onEdit={openEdit} />
+          )) : (
+            <div className="text-center py-10 text-stone-400 dark:text-stone-500">
+              <Flame className="w-8 h-8 mx-auto mb-2 opacity-20" />
+              <p className="text-sm font-medium">No ongoing prayer requests</p>
+              <button onClick={() => setAddOpen(true)} className="mt-1 text-xs text-forest-500 hover:text-forest-700 font-medium">
+                + Add one
+              </button>
+            </div>
           )}
         </div>
       </Card>
+
+      {filteredAnswered.length > 0 && (
+        <Card className="bg-white dark:bg-stone-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden">
+          <button onClick={() => setShowAnswered(v => !v)}
+            className="w-full flex items-center justify-between px-4 py-3 border-b border-stone-100 dark:border-stone-700">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-forest-400" />
+              <h3 className="font-serif font-semibold text-stone-700 dark:text-stone-300 text-sm">
+                Answered <span className="text-xs text-stone-400 dark:text-stone-500 font-normal">({filteredAnswered.length})</span>
+              </h3>
+            </div>
+            {showAnswered ? <ChevronUp className="w-4 h-4 text-stone-400" /> : <ChevronDown className="w-4 h-4 text-stone-400" />}
+          </button>
+          {showAnswered && (
+            <div className="p-3 space-y-2">
+              {filteredAnswered.map(req => (
+                <RequestCard key={req.id} req={req}
+                  onMarkAnswered={openMark} onDelete={handleDelete}
+                  onUnmark={handleUnmark}  onEdit={openEdit} />
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
+    </div>
+  );
+
+  /* ── Praises view ── */
+  const praisesView = (
+    <div className="space-y-3">
+      {answered.length === 0 ? (
+        <Card className="bg-white dark:bg-stone-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700">
+          <div className="text-center py-14 text-stone-400 dark:text-stone-500">
+            <Star className="w-10 h-10 mx-auto mb-3 opacity-20" />
+            <p className="text-sm font-medium text-stone-500 dark:text-stone-400">No answered prayers yet</p>
+            <p className="text-xs mt-1 max-w-xs mx-auto leading-relaxed">
+              Mark prayers as answered and they'll appear here as testimony.
+            </p>
+          </div>
+        </Card>
+      ) : (
+        <>
+          <div className="flex items-start gap-3 p-4 rounded-2xl"
+            style={{ background: 'linear-gradient(135deg, #f0fdf4, #fefce8)', border: '1px solid #bbf7d0' }}>
+            <CheckCheck className="w-4 h-4 text-forest-600 shrink-0 mt-0.5" />
+            <p className="text-xs text-forest-800 italic font-serif leading-relaxed">
+              "He who calls you is faithful; he will surely do it." — 1 Thess 5:24
+            </p>
+          </div>
+          {answered.map(req => <PraiseCard key={req.id} req={req} onDelete={handleDelete} />)}
+        </>
+      )}
+    </div>
+  );
+
+  /* ── Tablet side panel ── */
+  const sidePanel = (
+    <div className="space-y-4">
+      <Card className="bg-white dark:bg-stone-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden">
+        <div className="px-5 py-3 border-b border-stone-100 dark:border-stone-700">
+          <p className="font-serif font-semibold text-stone-900 dark:text-stone-100 text-sm">Prayer Stats</p>
+        </div>
+        <div className="p-4 space-y-3">
+          {[
+            { label: 'Total Requests', value: requests.length },
+            { label: 'Still Believing', value: ongoing.length  },
+            { label: 'Answered',        value: answered.length },
+            { label: 'Answer Rate',     value: requests.length ? `${Math.round((answered.length / requests.length) * 100)}%` : '—' },
+          ].map(s => (
+            <div key={s.label} className="flex items-center justify-between">
+              <span className="text-sm text-stone-500 dark:text-stone-400">{s.label}</span>
+              <span className="font-serif font-bold text-stone-900 dark:text-stone-100">{s.value}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <div className="rounded-2xl border p-4 space-y-2"
+        style={{ background: 'linear-gradient(135deg, #f0fdf4, #fefce8)', borderColor: '#d9f99d' }}>
+        <div className="flex items-center gap-2 mb-1">
+          <MessageSquare className="w-3.5 h-3.5 text-forest-600" />
+          <p className="text-[10px] font-bold uppercase tracking-widest text-forest-700">Today's Encouragement</p>
+        </div>
+        <p className="text-sm text-forest-800 italic font-serif leading-relaxed">
+          "Do not be anxious about anything, but in every situation, by prayer and petition,
+          with thanksgiving, present your requests to God."
+        </p>
+        <p className="text-xs text-forest-600 font-semibold">— Philippians 4:6</p>
+      </div>
+
+      <Button onClick={() => setAddOpen(true)}
+        className="w-full h-12 bg-forest-500 hover:bg-forest-700 text-white rounded-2xl font-serif text-base gap-2">
+        <Plus className="w-4 h-4" /> New Prayer Request
+      </Button>
+    </div>
+  );
+
+  return (
+    <>
+      <RequestDialog open={addOpen || !!editTarget} onClose={closeModal} onSave={handleSave} editData={editTarget} />
+      <MarkAnsweredDialog open={!!markTarget} request={markTarget} onClose={() => setMarkTarget(null)} onSave={handleMarkAnswered} />
+
+      {isTablet ? (
+        <div className="space-y-6">
+          {header}
+          <div className="grid grid-cols-[1fr_280px] gap-6 items-start">
+            <div className="space-y-4">
+              {viewToggle}
+              {view === 'ongoing' ? ongoingView : praisesView}
+            </div>
+            {sidePanel}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4 pb-6">
+          {header}
+          {viewToggle}
+          {view === 'ongoing' ? ongoingView : praisesView}
+        </div>
+      )}
+
+      {!isTablet && (
+        <button onClick={() => setAddOpen(true)}
+          className="fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-white transition-all active:scale-95 hover:scale-105"
+          style={{ background: 'linear-gradient(135deg, #14532d, #ca8a04)' }}>
+          <Plus className="w-6 h-6" />
+        </button>
+      )}
     </>
   );
 };
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   MAIN JOURNAL ENTRY COMPONENT
-═══════════════════════════════════════════════════════════════════════════ */
-const JournalEntry = () => {
-  const { journalDate: selectedDate } = useOutletContext();
-  const dateKey    = formatDate(selectedDate);
-  const { dailyEntries, setDailyEntries } = useJournalData();
-  const devotional = useMemo(() => getDevotionalForDate(dateKey), [dateKey]);
-
-  const [entry,      setEntry]      = useState(() => buildEntry(devotional, dailyEntries[dateKey]));
-  const [saveStatus, setSaveStatus] = useState('saved');
-  const [activeTab,  setActiveTab]  = useState('devotional');
-
-  /* ── FAB visibility (hide-on-scroll) ── */
-  const [fabVisible,  setFabVisible]  = useState(true);
-  const scrollTimer = useRef(null);
-  useEffect(() => {
-    const onScroll = () => {
-      setFabVisible(false);
-      clearTimeout(scrollTimer.current);
-      scrollTimer.current = setTimeout(() => setFabVisible(true), 400);
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => { window.removeEventListener('scroll', onScroll); clearTimeout(scrollTimer.current); };
-  }, []);
-
-  // Rebuild when date changes
-  useEffect(() => {
-    setEntry(buildEntry(getDevotionalForDate(dateKey), dailyEntries[dateKey]));
-    setSaveStatus('saved');
-  }, [dateKey]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Auto-save
-  const saveTimer     = useRef(null);
-  const isFirstRender = useRef(true);
-
-  useEffect(() => {
-    if (isFirstRender.current) { isFirstRender.current = false; return; }
-    setSaveStatus('pending');
-    clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      setDailyEntries(prev => ({
-        ...prev,
-        [dateKey]: { ...entry, updatedAt: new Date().toISOString() },
-      }));
-      setSaveStatus('saved');
-    }, 1500);
-    return () => clearTimeout(saveTimer.current);
-  }, [entry]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Stable setters
-  const setPracticeNotes = useCallback((e) => setEntry(prev => ({ ...prev, practiceNotes: e.target.value })), []);
-  const setPraises       = useCallback((e) => setEntry(prev => ({ ...prev, praises: e.target.value })), []);
-  const setPrayer        = useCallback((e) => setEntry(prev => ({ ...prev, prayer:  e.target.value })), []);
-
-  // File state
-  const [savedFiles,   setSavedFiles]   = useLocalStorage('savedPdfs', []);
-  const [activeFile,   setActiveFile]   = useState(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [docFontSize,  setDocFontSize]  = useState(32);
-  const fileInputRef  = useRef();
-  const fullscreenRef = useRef();
-
-  const decFontSize = useCallback(() => setDocFontSize(s => Math.max(FONT_SIZE_MIN, s - 2)), []);
-  const incFontSize = useCallback(() => setDocFontSize(s => Math.min(FONT_SIZE_MAX, s + 2)), []);
-  const closePdf    = useCallback(() => { setActiveFile(null); setIsFullscreen(false); }, []);
-  const openSaved   = useCallback((file) => {
-    setActiveFile({ name:file.name, dataUrl:file.dataUrl, fileType:file.fileType || (isPdf(file.name)?'pdf':'docx') });
-  }, []);
-
-  const readFile = useCallback((file, onReady) => {
-    if (!file) return;
-    const valid = file.type.includes('pdf') || file.type.includes('word') || isPdf(file.name) || isDocx(file.name);
-    if (!valid) { toast.error('Please select a PDF or Word (.docx) file'); return; }
-    if (file.size > MAX_FILE_BYTES) { toast.error('File too large (max 15 MB)'); return; }
-    const reader = new FileReader();
-    reader.onload = (ev) => onReady(ev.target.result, isPdf(file.name) ? 'pdf' : 'docx');
-    reader.readAsDataURL(file);
-  }, []);
-
-  const handleSaveFile = useCallback((e) => {
-    const file = e.target.files[0];
-    readFile(file, (dataUrl, fileType) => {
-      const newFile = { id:Date.now().toString(), name:file.name, size:file.size, fileType, dataUrl, savedAt:new Date().toISOString() };
-      setSavedFiles(prev => [newFile, ...prev]);
-      setActiveFile({ name:file.name, dataUrl, fileType });
-      toast.success(`"${file.name}" saved!`);
-    });
-    e.target.value = '';
-  }, [readFile, setSavedFiles]);
-
-  const handleDeleteFile = useCallback((id, e) => {
-    e.stopPropagation();
-    const file = savedFiles.find(f => f.id === id);
-    setSavedFiles(prev => prev.filter(f => f.id !== id));
-    if (activeFile?.dataUrl === file?.dataUrl) closePdf();
-    toast.success('File removed');
-  }, [savedFiles, activeFile, setSavedFiles, closePdf]);
-
-  const toggleFullscreen = useCallback(() => {
-    if (!isFullscreen) fullscreenRef.current?.requestFullscreen?.().catch(() => {});
-    else document.exitFullscreen?.().catch(() => {});
-    setIsFullscreen(v => !v);
-  }, [isFullscreen]);
-
-  useEffect(() => {
-    const onFsChange = () => { if (!document.fullscreenElement) setIsFullscreen(false); };
-    document.addEventListener('fullscreenchange', onFsChange);
-    return () => document.removeEventListener('fullscreenchange', onFsChange);
-  }, []);
-
-  useEffect(() => {
-    if (activeFile) window.history.pushState({ fileOpen: true }, '');
-  }, [activeFile]);
-
-  useEffect(() => {
-    const onPopState = () => { if (activeFile) closePdf(); };
-    window.addEventListener('popstate', onPopState);
-    return () => window.removeEventListener('popstate', onPopState);
-  }, [activeFile, closePdf]);
-
-  /* ── Tab switch: clicking the active tab goes back to devotional ── */
-  const handleTabClick = (id) => {
-    setActiveTab(prev => (prev === id && id !== 'devotional') ? 'devotional' : id);
-  };
-
-  /* ── Render ── */
-  return (
-    <div className="space-y-4 pb-6">
-
-      {/* ── Right-side FABs — matches ExpenseLedger positioning ── */}
-      <div className={`fixed right-16 top-[62%] z-40 flex flex-col gap-6 items-center transition-all duration-150 ${
-        fabVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-16 pointer-events-none'
-      }`}>
-        {TABS.map(({ id, Icon, label, color, shadow }) => (
-          <button key={id} onClick={() => handleTabClick(id)} title={label}
-            className={`w-14 h-14 rounded-full text-white flex items-center justify-center shadow-lg active:scale-95 transition-all ${color} shadow-${shadow} ${
-              activeTab === id ? 'ring-2 ring-white ring-offset-2 ring-offset-transparent scale-110' : ''
-            }`}>
-            <Icon className="w-6 h-6" />
-          </button>
-        ))}
-      </div>
-
-      {/* ── 5P's DEVOTIONAL ── */}
-      {activeTab === 'devotional' && (
-        <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="journal-5ps-card">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="font-serif text-2xl font-bold text-stone-900 dark:text-stone-100">5P's Devotional</h2>
-            <span className={`flex items-center gap-1 text-xs font-medium transition-colors ${saveStatus === 'saved' ? 'text-forest-600 dark:text-forest-400' : 'text-stone-400 dark:text-stone-500'}`}>
-              {saveStatus === 'saved'
-                ? <><CheckCircle2 className="w-3.5 h-3.5" /> Saved</>
-                : <><Clock className="w-3.5 h-3.5 animate-pulse" /> Saving…</>}
-            </span>
-          </div>
-          <p className="text-xs text-mango-600 dark:text-mango-400 font-medium mb-6 uppercase tracking-wide">
-            Daily Scripture for Church Planting Journey
-          </p>
-
-          <div className="space-y-6">
-            <div>
-              <p className="text-xs uppercase tracking-widest text-forest-700 dark:text-forest-400 font-bold mb-2 block">📖 Passage (NASB)</p>
-              <div className="bg-forest-50/50 dark:bg-forest-900/30 border-l-4 border-forest-500 p-4 rounded-r-lg">
-                <p className="font-serif text-base text-stone-800 dark:text-stone-200 leading-relaxed italic">{entry.passage}</p>
-              </div>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-widest text-amber-600 dark:text-amber-400 font-bold mb-2 block">🔑 Key Verse — {entry.keyVerse}</p>
-              <div className="bg-amber-50/50 dark:bg-amber-900/20 border-l-4 border-amber-500 p-4 rounded-r-lg">
-                <p className="text-sm text-stone-800 dark:text-stone-200 leading-relaxed italic">"{entry.keyVerseText}"</p>
-              </div>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-widest text-forest-700 dark:text-forest-400 font-bold mb-2 block">💡 Principle — Timeless Truth for Church Planting</p>
-              <div className="bg-stone-50 dark:bg-stone-700 border-l-4 border-stone-400 dark:border-stone-500 p-4 rounded-r-lg">
-                <p className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed">{entry.principle}</p>
-              </div>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-widest text-forest-700 dark:text-forest-400 font-bold mb-2 block">✓ Practice — Today's Action Step</p>
-              <div className="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 p-4 rounded-r-lg mb-3">
-                <p className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed font-medium">{entry.practice}</p>
-              </div>
-              <Textarea id="je-practice-notes" value={entry.practiceNotes} onChange={setPracticeNotes} onInput={autoGrow}
-                placeholder="Write how you will apply this today…"
-                className="lined-paper bg-transparent border-none focus:ring-0 text-base font-serif text-stone-800 dark:text-stone-200 placeholder:text-stone-400 dark:placeholder:text-stone-500 leading-[2rem] pt-1 pb-0"
-                style={WRITING_STYLE} />
-            </div>
-            <WritingField id="je-praises" label="🙌 Praises — What do I thank God for?"
-              value={entry.praises} onChange={setPraises}
-              placeholder="Express your gratitude based on today's passage..."
-              testId="praises-input" />
-            <WritingField id="je-prayer" label="🙏 Prayer — My prayers for today"
-              value={entry.prayer} onChange={setPrayer}
-              placeholder="Pray the passage back to God, intercede for Timothys and Puerto Princesa..."
-              testId="prayer-input" />
-          </div>
-        </Card>
-      )}
-
-      {/* ── PRAYER TAB ── */}
-      {activeTab === 'prayer' && <PrayerPanel />}
-
-      {/* ── FILES TAB ── */}
-      {activeTab === 'pdf' && (
-        <div className="space-y-4">
-          <button onClick={() => fileInputRef.current?.click()}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border-2 border-dashed border-forest-300 dark:border-forest-700 text-forest-600 dark:text-forest-400 hover:bg-forest-50 dark:hover:bg-forest-900/20 transition-colors text-sm font-medium"
-            style={{ minHeight:0 }}>
-            <FolderOpen className="w-4 h-4" /> Open a File
-          </button>
-          <input ref={fileInputRef} type="file" accept={ACCEPT} className="hidden" onChange={handleSaveFile} />
-          <p className="text-xs text-stone-400 dark:text-stone-500 text-center -mt-1">
-            Supports PDF and Word (.doc, .docx) · Max 15 MB
-          </p>
-
-          {activeFile && (
-            <Card ref={fullscreenRef}
-              className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden"
-              style={isFullscreen ? { position:'fixed', inset:0, zIndex:9999, borderRadius:0, border:'none' } : {}}>
-              <div className="flex items-center justify-between px-4 py-2.5 border-b border-stone-100 dark:border-stone-700 bg-stone-50 dark:bg-stone-900/50">
-                <p className="text-sm font-medium text-stone-700 dark:text-stone-300 truncate max-w-[60%] flex items-center gap-1.5">
-                  <FileIcon name={activeFile.name} className="w-3.5 h-3.5 text-stone-400 shrink-0" />
-                  {activeFile.name}
-                </p>
-                <div className="flex items-center gap-1 shrink-0">
-                  {activeFile.fileType === 'docx' && (
-                    <div className="flex items-center gap-0.5 mr-1 bg-stone-100 dark:bg-stone-700 rounded-lg p-0.5">
-                      <button onClick={decFontSize} className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white dark:hover:bg-stone-600 text-stone-600 dark:text-stone-300 font-bold transition-colors text-sm" style={{ minHeight:0 }}>A−</button>
-                      <span className="text-xs text-stone-500 dark:text-stone-400 font-mono w-6 text-center">{docFontSize}</span>
-                      <button onClick={incFontSize} className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-white dark:hover:bg-stone-600 text-stone-600 dark:text-stone-300 font-bold transition-colors text-sm" style={{ minHeight:0 }}>A+</button>
-                    </div>
-                  )}
-                  <button onClick={toggleFullscreen}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400 transition-colors"
-                    title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} style={{ minHeight:0 }}>
-                    {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                  </button>
-                  <button onClick={closePdf}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-500 hover:text-red-500 transition-colors"
-                    title="Close" style={{ minHeight:0 }}>
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              {activeFile.fileType === 'pdf' ? (
-                <iframe src={activeFile.dataUrl} title={activeFile.name} className="w-full"
-                  style={{ height:isFullscreen?'calc(100vh - 48px)':'70vh', border:'none', display:'block' }} />
-              ) : (
-                <div style={{ height:isFullscreen?'calc(100vh - 48px)':'70vh', overflowY:'auto' }}>
-                  <DocxViewer dataUrl={activeFile.dataUrl} fontSize={docFontSize} />
-                </div>
-              )}
-            </Card>
-          )}
-
-          {savedFiles.length > 0 && (
-            <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-4">
-              <h3 className="font-serif font-semibold text-stone-900 dark:text-stone-100 text-sm mb-3">
-                Saved Files ({savedFiles.length})
-              </h3>
-              <div className="space-y-2">
-                {savedFiles.map(file => {
-                  const isActive = activeFile?.dataUrl === file.dataUrl;
-                  return (
-                    <div key={file.id} onClick={() => openSaved(file)}
-                      className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-colors ${
-                        isActive
-                          ? 'bg-forest-50 dark:bg-forest-900/30 border border-forest-200 dark:border-forest-800'
-                          : 'hover:bg-stone-50 dark:hover:bg-stone-700/50 border border-transparent'
-                      }`}>
-                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${isActive ? 'bg-forest-100 dark:bg-forest-900/50' : 'bg-stone-100 dark:bg-stone-700'}`}>
-                        <FileIcon name={file.name} className={`w-4 h-4 ${isActive ? 'text-forest-600 dark:text-forest-400' : 'text-stone-400'}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-stone-800 dark:text-stone-200 truncate">{file.name}</p>
-                        <p className="text-xs text-stone-400 dark:text-stone-500">
-                          {fmtSize(file.size)} · {new Date(file.savedAt).toLocaleDateString()}
-                          <span className="ml-1.5 uppercase tracking-wide font-semibold">· {isPdf(file.name) ? 'PDF' : 'DOC'}</span>
-                        </p>
-                      </div>
-                      <button onClick={(e) => handleDeleteFile(file.id, e)}
-                        className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 text-stone-300 hover:text-red-500 transition-colors shrink-0"
-                        style={{ minHeight:0 }}>
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
-          )}
-
-          {savedFiles.length === 0 && !activeFile && (
-            <div className="text-center py-12 text-stone-400 dark:text-stone-500">
-              <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p className="text-sm font-medium">No files saved yet</p>
-              <p className="text-xs mt-1">Open a PDF or Word doc to access it anytime</p>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default JournalEntry;
+export default PrayerJournal;
