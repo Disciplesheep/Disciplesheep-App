@@ -252,51 +252,43 @@ const JournalDateBar = ({ journalDate, setJournalDate, pickerOpen, setPickerOpen
 /* ─────────────────────────────────────────────────────────────────────────
    SIDE NAV (tablet)
 ───────────────────────────────────────────────────────────────────────── */
-const SideNav = () => {
-  const navigate = useNavigate();
-  return (
-    <aside className="fixed top-0 left-0 h-full w-56 bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-r border-stone-200 dark:border-stone-700 flex flex-col z-50 shadow-lg">
-      <div className="flex items-center justify-between px-5 py-6 border-b border-stone-100 dark:border-stone-800">
-        <div className="flex items-center gap-3">
-          {/* ↓ sheep icon — click navigates to Settings */}
-          <button
-            onClick={() => navigate('/settings')}
-            className="w-9 h-9 rounded-xl bg-forest-500 flex items-center justify-center flex-shrink-0 hover:bg-forest-700 active:scale-95 transition-all"
-            title="Settings"
-          >
-            <span className="text-xl">🐑</span>
-          </button>
-          <div>
-            <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100 leading-tight">Disciplesheep</p>
-            <p className="text-[10px] text-stone-500 dark:text-stone-400 tracking-wide uppercase">Journal</p>
-          </div>
+const SideNav = () => (
+  <aside className="fixed top-0 left-0 h-full w-56 bg-white/95 dark:bg-stone-900/95 backdrop-blur-xl border-r border-stone-200 dark:border-stone-700 flex flex-col z-50 shadow-lg">
+    <div className="flex items-center justify-between px-5 py-6 border-b border-stone-100 dark:border-stone-800">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-forest-500 flex items-center justify-center flex-shrink-0"><span className="text-xl">🐑</span></div>
+        <div>
+          <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100 leading-tight">Disciplesheep</p>
+          <p className="text-[10px] text-stone-500 dark:text-stone-400 tracking-wide uppercase">Journal</p>
         </div>
-        <ProfileMenu />
       </div>
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map(({ to, icon: Icon, label }) => (
-          <NavLink key={to} to={to} end={to === '/'}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-sm font-medium ${
-                isActive ? 'bg-forest-500 text-white shadow-sm' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 hover:text-stone-900 dark:hover:text-stone-100'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <><Icon className="w-5 h-5 flex-shrink-0" strokeWidth={isActive ? 2 : 1.5} /><span>{label}</span></>
-            )}
-          </NavLink>
-        ))}
-      </nav>
-      <div className="px-5 py-4 border-t border-stone-100 dark:border-stone-800">
-        <p className="text-[10px] text-stone-400 dark:text-stone-600 text-center">Church Planter&#39;s Companion</p>
-      </div>
-    </aside>
-  );
-};
+      <ProfileMenu />
+    </div>
+    <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      {navItems.map(({ to, icon: Icon, label }) => (
+        <NavLink key={to} to={to} end={to === '/'}
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-sm font-medium ${
+              isActive ? 'bg-forest-500 text-white shadow-sm' : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 hover:text-stone-900 dark:hover:text-stone-100'
+            }`
+          }
+        >
+          {({ isActive }) => (
+            <><Icon className="w-5 h-5 flex-shrink-0" strokeWidth={isActive ? 2 : 1.5} /><span>{label}</span></>
+          )}
+        </NavLink>
+      ))}
+    </nav>
+    <div className="px-5 py-4 border-t border-stone-100 dark:border-stone-800">
+      <p className="text-[10px] text-stone-400 dark:text-stone-600 text-center">Church Planter&#39;s Companion</p>
+    </div>
+  </aside>
+);
 
 /* ─────────────────────────────────────────────────────────────────────────
    GLOBAL DIALOG TRACKER
+   useBackButtonClose (in other files) calls window.__dialogOpen = true/false
+   so Layout's exit handler knows whether a dialog is currently open.
 ───────────────────────────────────────────────────────────────────────── */
 if (typeof window.__dialogOpenCount === 'undefined') {
   window.__dialogOpenCount = 0;
@@ -308,7 +300,6 @@ if (typeof window.__dialogOpenCount === 'undefined') {
 const Layout = () => {
   const { isTablet } = useScreenSize();
   const location     = useLocation();
-  const navigate     = useNavigate();
   const isJournalPage = location.pathname === '/journal';
 
   const [journalDate, setJournalDate] = useState(new Date());
@@ -328,6 +319,8 @@ const Layout = () => {
 
     const onPopState = (e) => {
       if (e.state?.pdfOpen) return;
+
+      // ── Skip exit logic if any dialog/form card is currently open ──
       if (window.__dialogOpenCount > 0) return;
 
       window.history.pushState({ appEntry: true }, '');
@@ -392,16 +385,9 @@ const Layout = () => {
       ) : (
         <>
           <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-stone-900/90 backdrop-blur-xl border-b border-stone-200 dark:border-stone-700">
-            <div className="flex items-center justify-between px-4 h-12">
+            <div className="flex items-center px-4 h-12">
               <div className="flex items-center gap-2 min-w-0">
-                {/* ↓ sheep icon — click navigates to Settings */}
-                <button
-                  onClick={() => navigate('/settings')}
-                  className="text-lg shrink-0 hover:opacity-70 active:scale-90 transition-all"
-                  title="Settings"
-                >
-                  🐑
-                </button>
+                <span className="text-lg shrink-0">🐑</span>
                 <p className="font-serif font-bold text-sm text-stone-900 dark:text-stone-100 shrink-0">Disciplesheep</p>
                 <div className="w-px h-6 bg-stone-300 dark:bg-stone-600 shrink-0 mx-1" />
                 <div className="min-w-0">
@@ -409,7 +395,6 @@ const Layout = () => {
                   <p className="text-xs italic text-stone-700 dark:text-stone-300 leading-tight">that's all I want!"</p>
                 </div>
               </div>
-              <ProfileMenu />
             </div>
           </div>
 
