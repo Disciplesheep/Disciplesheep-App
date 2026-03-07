@@ -127,6 +127,20 @@ const getAgeFromBirthday = (birthday) => {
   return age > 0 ? String(age) : '';
 };
 
+/* ── Back-button: dismiss keyboard then close dialog ─────────────────────── */
+const useBackButtonClose = (isOpen, closeFn) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    window.history.pushState({ dialog: true }, '');
+    const onPop = () => {
+      if (document.activeElement) document.activeElement.blur();
+      setTimeout(closeFn, 50);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [isOpen, closeFn]);
+};
+
 const PeopleTracker = () => {
   const { peopleContacts, setPeopleContacts } = useJournalData();
   const { isTablet } = useScreenSize();
@@ -159,6 +173,12 @@ const PeopleTracker = () => {
 
   const [formData, setFormData] = useState(emptyForm);
 
+  const resetForm = () => { setFormData(emptyForm); setEditingId(null); };
+  const closeAddDialog = () => { setIsAddDialogOpen(false); resetForm(); };
+
+  // Back button support
+  useBackButtonClose(isAddDialogOpen, closeAddDialog);
+
   useEffect(() => {
     if (location.state?.openForm) {
       setIsAddDialogOpen(true);
@@ -177,8 +197,6 @@ const PeopleTracker = () => {
     const generation = getGenerationFromAge(val);
     setFormData(f => ({ ...f, age: val, generation }));
   };
-
-  const resetForm = () => { setFormData(emptyForm); setEditingId(null); };
 
   const handleSubmit = () => {
     if (!formData.name || !formData.generation) { toast.error('Please fill in Name and Generation'); return; }
@@ -263,7 +281,6 @@ const PeopleTracker = () => {
             <DialogHeader>
               <DialogTitle className="font-serif text-2xl">{editingId ? 'Edit Contact' : 'Add New Contact'}</DialogTitle>
             </DialogHeader>
-            {/* CHANGED: 70vh pr-1 → 60vh dialog-scroll */}
             <div className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto dialog-scroll" data-form>
               {field('Date contacted', <Input ref={refDate} type="date" value={formData.date} onChange={e => setFormData(f => ({ ...f, date: e.target.value }))} onKeyDown={onEnter(refDate)} className={ic} />)}
               {field('Name *', <Input ref={refName} type="text" value={formData.name} placeholder="Full name" onChange={e => setFormData(f => ({ ...f, name: e.target.value }))} onKeyDown={onEnter(refName)} className={ic} autoFocus />)}

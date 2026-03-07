@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useDiscipleshipTracking, DISCIPLESHIP_LEVELS, getDirectDisciples } from '@/hooks/useDiscipleshipTracking';
 import { Users, Plus, ArrowRight, TrendingUp, Target, Edit2, Trash2, UserPlus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -15,6 +15,23 @@ import { getCurrentMinistryYear, getYearTargets } from '@/data/dailyDevotionals'
 const focusRef = (ref) => setTimeout(() => ref?.current?.focus(), 80);
 const onEnter  = (nextRef) => (e) => {
   if (e.key === 'Enter') { e.preventDefault(); focusRef(nextRef); }
+};
+
+/* ── Back-button: dismiss keyboard then close dialog ─────────────────────── */
+const useBackButtonClose = (isOpen, closeFn) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    // Push a history entry so the back gesture has something to pop
+    window.history.pushState({ dialog: true }, '');
+    const onPop = () => {
+      // 1) Dismiss keyboard by blurring any focused input
+      if (document.activeElement) document.activeElement.blur();
+      // 2) Close the dialog on next tick (gives keyboard time to hide)
+      setTimeout(closeFn, 50);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [isOpen, closeFn]);
 };
 
 const DiscipleshipTracker = () => {
@@ -40,6 +57,11 @@ const DiscipleshipTracker = () => {
   const stats = getMultiplicationStats();
   const currentYear = getCurrentMinistryYear();
   const yearTargets = getYearTargets(currentYear);
+
+  const closeAddDialog = () => { setIsAddDialogOpen(false); resetForm(); };
+
+  // Back button support
+  useBackButtonClose(isAddDialogOpen, closeAddDialog);
 
   const resetForm = () => {
     setFormData({
@@ -137,7 +159,6 @@ const DiscipleshipTracker = () => {
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl">{editingId ? 'Edit Disciple' : 'Add New Disciple'}</DialogTitle>
           </DialogHeader>
-          {/* CHANGED: added max-h-[60vh] overflow-y-auto dialog-scroll */}
           <div className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto dialog-scroll" data-form>
 
             <div>

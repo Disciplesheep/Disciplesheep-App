@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useJournalData } from '@/hooks/useLocalStorage';
-import { BookOpen, Users, Wallet, Plus, Calendar, X } from 'lucide-react';
+import { BookOpen, Users, Wallet, Plus, Calendar } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,20 @@ const budgetColor = (rawPct) => {
 
 const ic = "text-xs border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100";
 
+/* ── Back-button: dismiss keyboard then close dialog ─────────────────────── */
+const useBackButtonClose = (isOpen, closeFn) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    window.history.pushState({ dialog: true }, '');
+    const onPop = () => {
+      if (document.activeElement) document.activeElement.blur();
+      setTimeout(closeFn, 50);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [isOpen, closeFn]);
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { isTablet } = useScreenSize();
@@ -32,14 +46,16 @@ const Dashboard = () => {
   const todayKey = formatDate(today);
   const { dailyEntries, setDailyEntries, peopleContacts, setPeopleContacts, expenses, setExpenses } = useJournalData();
 
-  // ── Custom task input state ──
-  const [newTaskInput, setNewTaskInput] = useState('');
-  const [isAddingTask, setIsAddingTask] = useState(false);
-  const newTaskRef = useRef(null);
-
   const emptyExpense = { date: formatDate(new Date()), category: '', item: '', php: '', usd: '' };
   const [isExpenseOpen, setIsExpenseOpen] = useState(false);
   const [expenseForm, setExpenseForm]     = useState(emptyExpense);
+
+  const closeExpenseDialog = () => { setIsExpenseOpen(false); setExpenseForm(emptyExpense); };
+  const closePersonDialog  = () => { setIsPersonOpen(false); setPersonForm(emptyPerson); };
+
+  // Back button support for both dialogs
+  useBackButtonClose(isExpenseOpen, closeExpenseDialog);
+  useBackButtonClose(isPersonOpen,  closePersonDialog);
 
   const handleExpensePhp = (v) => setExpenseForm({ ...expenseForm, php: v, usd: v ? (parseFloat(v) / USD_TO_PHP).toFixed(2) : '' });
   const handleExpenseUsd = (v) => setExpenseForm({ ...expenseForm, usd: v, php: v ? (parseFloat(v) * USD_TO_PHP).toFixed(2) : '' });
@@ -85,48 +101,15 @@ const Dashboard = () => {
     setIsPersonOpen(false);
   };
 
-  // ── Task helpers ──
-  const todayEntry = dailyEntries[todayKey] || { tasks: [], customTasks: [] };
-  const customTasks = todayEntry.customTasks || [];
-  const allTasks = [...DAILY_TASKS, ...customTasks.map(ct => ct.label)];
+  const todayEntry = dailyEntries[todayKey] || { tasks: [] };
   const completedTasks = todayEntry.tasks?.length || 0;
-  const totalTasks = allTasks.length;
-  const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const totalTasks = DAILY_TASKS.length;
+  const completionPercentage = Math.round((completedTasks / totalTasks) * 100);
 
   const handleTaskToggle = (task) => {
-    const current = dailyEntries[todayKey] || { tasks: [], customTasks: [] };
-    const newTasks = current.tasks.includes(task)
-      ? current.tasks.filter(t => t !== task)
-      : [...current.tasks, task];
+    const current = dailyEntries[todayKey] || { tasks: [] };
+    const newTasks = current.tasks.includes(task) ? current.tasks.filter(t => t !== task) : [...current.tasks, task];
     setDailyEntries(prev => ({ ...prev, [todayKey]: { ...current, tasks: newTasks, updatedAt: new Date().toISOString() } }));
-  };
-
-  const handleAddCustomTask = () => {
-    const label = newTaskInput.trim();
-    if (!label) return;
-    const current = dailyEntries[todayKey] || { tasks: [], customTasks: [] };
-    const existing = current.customTasks || [];
-    if ([...DAILY_TASKS, ...existing.map(ct => ct.label)].includes(label)) {
-      toast.error('Task already exists'); return;
-    }
-    const newCustomTask = { id: Date.now().toString(), label };
-    setDailyEntries(prev => ({
-      ...prev,
-      [todayKey]: { ...current, customTasks: [...existing, newCustomTask], updatedAt: new Date().toISOString() }
-    }));
-    setNewTaskInput('');
-    setIsAddingTask(false);
-    toast.success('Task added!');
-  };
-
-  const handleDeleteCustomTask = (taskId, taskLabel) => {
-    const current = dailyEntries[todayKey] || { tasks: [], customTasks: [] };
-    const newCustomTasks = (current.customTasks || []).filter(ct => ct.id !== taskId);
-    const newTasks = current.tasks.filter(t => t !== taskLabel);
-    setDailyEntries(prev => ({
-      ...prev,
-      [todayKey]: { ...current, customTasks: newCustomTasks, tasks: newTasks, updatedAt: new Date().toISOString() }
-    }));
   };
 
   const todayPeople = peopleContacts.filter(p => p.date === todayKey).length;
@@ -174,9 +157,7 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
-
       <div className="space-y-1 mb-4">
-        {/* Fixed daily tasks */}
         {DAILY_TASKS.map((task, idx) => (
           <div key={idx} className="flex items-center gap-2 cursor-pointer py-0.5" onClick={() => handleTaskToggle(task)}>
             <div className={`w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors ${todayEntry.tasks.includes(task) ? 'bg-forest-500 border-forest-500' : 'bg-white border-stone-300 dark:bg-stone-700 dark:border-stone-500'}`}>
@@ -185,55 +166,7 @@ const Dashboard = () => {
             <span className={`text-sm flex-1 transition-colors ${todayEntry.tasks.includes(task) ? 'text-stone-400 dark:text-stone-500 line-through' : 'text-stone-700 dark:text-stone-300'}`}>{task}</span>
           </div>
         ))}
-
-        {/* Custom tasks */}
-        {customTasks.map((ct) => (
-          <div key={ct.id} className="flex items-center gap-2 py-0.5 group">
-            <div className={`w-5 h-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors cursor-pointer ${todayEntry.tasks.includes(ct.label) ? 'bg-forest-500 border-forest-500' : 'bg-white border-stone-300 dark:bg-stone-700 dark:border-stone-500'}`}
-              onClick={() => handleTaskToggle(ct.label)}>
-              {todayEntry.tasks.includes(ct.label) && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-            </div>
-            <span className={`text-sm flex-1 cursor-pointer transition-colors ${todayEntry.tasks.includes(ct.label) ? 'text-stone-400 dark:text-stone-500 line-through' : 'text-stone-700 dark:text-stone-300'}`}
-              onClick={() => handleTaskToggle(ct.label)}>{ct.label}</span>
-            <button onClick={() => handleDeleteCustomTask(ct.id, ct.label)}
-              className="opacity-0 group-hover:opacity-100 transition-opacity text-stone-400 hover:text-red-500 dark:text-stone-500 dark:hover:text-red-400 p-0.5 rounded">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ))}
-
-        {/* Add task row */}
-        <div className="flex items-center gap-2 py-0.5">
-          <div
-            onClick={() => { setNewTaskInput(''); setTimeout(() => newTaskRef.current?.focus(), 50); setIsAddingTask(true); }}
-            className="w-5 h-5 shrink-0 rounded border-2 border-stone-300 dark:border-stone-500 bg-white dark:bg-stone-700 flex items-center justify-center cursor-pointer hover:border-forest-500 hover:bg-forest-50 dark:hover:bg-stone-600 transition-colors"
-          >
-            <svg className="w-3 h-3 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" /></svg>
-          </div>
-          {isAddingTask ? (
-            <Input
-              ref={newTaskRef}
-              type="text"
-              value={newTaskInput}
-              autoFocus
-              onChange={e => setNewTaskInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') { handleAddCustomTask(); setIsAddingTask(false); }
-                if (e.key === 'Escape') { setIsAddingTask(false); setNewTaskInput(''); }
-              }}
-              onBlur={() => { if (!newTaskInput.trim()) setIsAddingTask(false); }}
-              placeholder="New task name…"
-              className="h-5 text-sm py-0 px-1 flex-1 border-none outline-none shadow-none bg-transparent focus:ring-0 focus-visible:ring-0 text-stone-700 dark:text-stone-300 placeholder:text-stone-400"
-            />
-          ) : (
-            <span className="text-sm text-stone-400 dark:text-stone-500 cursor-pointer select-none"
-              onClick={() => { setIsAddingTask(true); setTimeout(() => newTaskRef.current?.focus(), 50); }}>
-              Add a task
-            </span>
-          )}
-        </div>
       </div>
-
       <Button onClick={() => navigate('/journal')} className="w-full bg-forest-500 hover:bg-forest-900 text-white rounded-full h-12 font-serif" data-testid="open-journal-btn">
         <BookOpen className="w-4 h-4 mr-2" /> Open Today's Journal
       </Button>
