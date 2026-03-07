@@ -5,6 +5,7 @@ import {
   Plus, Trash2, CheckCheck, RotateCcw, Calendar,
   Flame, Star, Search, ChevronDown, ChevronUp,
   Heart, Home, Users, BookOpen, Globe, Filter, Pencil,
+  HandHeart, CheckSquare, Square, MessageSquare,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
-/* ── Constants & helpers ─────────────────────────────────────────────────── */
+/* ── Helpers ─────────────────────────────────────────────────────────────── */
 const todayIso = () => new Date().toISOString().split('T')[0];
 const fmtDate  = (iso) =>
   iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
@@ -22,61 +23,73 @@ const preventSelectClose = (e) => {
 };
 const IC = 'text-xs border-stone-200 dark:border-stone-600 dark:bg-stone-700 dark:text-stone-100';
 
-/* ── Category & prayer-item data ─────────────────────────────────────────── */
+/* ── Categories ──────────────────────────────────────────────────────────── */
 const CATEGORIES = [
-  { id: 'all',       label: 'All',       Icon: Filter,   badge: 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400'        },
-  { id: 'personal',  label: 'Personal',  Icon: Heart,    badge: 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400'          },
-  { id: 'family',    label: 'Family',    Icon: Home,     badge: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'      },
-  { id: 'timothy',   label: 'Timothys',  Icon: Users,    badge: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'          },
-  { id: 'church',    label: 'Church',    Icon: BookOpen, badge: 'bg-forest-100 dark:bg-forest-900/30 text-forest-700 dark:text-forest-400'  },
-  { id: 'community', label: 'Community', Icon: Globe,    badge: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'  },
+  { id: 'all',       label: 'All',       Icon: Filter,    badge: 'bg-stone-100  dark:bg-stone-800    text-stone-600  dark:text-stone-400'          },
+  { id: 'personal',  label: 'Personal',  Icon: Heart,     badge: 'bg-rose-100   dark:bg-rose-900/30  text-rose-700   dark:text-rose-400'            },
+  { id: 'family',    label: 'Family',    Icon: Home,      badge: 'bg-amber-100  dark:bg-amber-900/30 text-amber-700  dark:text-amber-400'           },
+  { id: 'timothy',   label: 'Timothys',  Icon: Users,     badge: 'bg-blue-100   dark:bg-blue-900/30  text-blue-700   dark:text-blue-400'            },
+  { id: 'church',    label: 'Church',    Icon: BookOpen,  badge: 'bg-forest-100 dark:bg-forest-900/30 text-forest-700 dark:text-forest-400'        },
+  { id: 'community', label: 'Community', Icon: Globe,     badge: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400'        },
 ];
 const CAT_MAP = Object.fromEntries(CATEGORIES.map(c => [c.id, c]));
 const getCat  = (id) => CAT_MAP[id] || CATEGORIES[1];
 
-const PRAYER_ITEMS = {
-  personal:  [
-    { key: 'salvation', label: 'Salvation / Faith Journey' },
-    { key: 'health',    label: 'Physical / Mental Health'  },
-    { key: 'spiritual', label: 'Spiritual Growth'          },
-    { key: 'provision', label: 'Daily Provision & Needs'   },
-    { key: 'guidance',  label: 'Guidance & Decisions'      },
-    { key: 'struggles', label: 'Personal Struggles'        },
-    { key: 'gratitude', label: 'Gratitude Items'           },
+/* ── Prefilled Prayer Checklists per category ────────────────────────────── */
+const PRAYER_CHECKLISTS = {
+  personal: [
+    { key: 'salvation',   label: 'Faith & salvation',         prompt: 'Lord, grow my trust and deepen my walk with You…'           },
+    { key: 'holiness',    label: 'Holiness & surrender',      prompt: 'Help me surrender the areas where I\'m still holding on…'   },
+    { key: 'health',      label: 'Physical & mental health',  prompt: 'Strengthen my body and guard my mind today…'                },
+    { key: 'spiritual',   label: 'Spiritual disciplines',     prompt: 'Give me hunger for Your Word, prayer, and fasting…'         },
+    { key: 'provision',   label: 'Daily provision & needs',   prompt: 'Provide for my needs according to Your riches in glory…'    },
+    { key: 'guidance',    label: 'Guidance & decisions',      prompt: 'Direct my steps and make my path clear before me…'          },
+    { key: 'struggles',   label: 'Temptations & struggles',   prompt: 'Where I am weak, be my strength and deliver me…'            },
+    { key: 'gratitude',   label: 'Thanksgiving',              prompt: 'Thank you Lord for…'                                         },
   ],
   family: [
-    { key: 'unity',     label: 'Family Unity & Harmony'   },
-    { key: 'salvation', label: 'Salvation of Family'      },
-    { key: 'health',    label: 'Health & Protection'      },
-    { key: 'children',  label: 'Children / Youth'         },
-    { key: 'marriage',  label: 'Marriage / Relationships' },
-    { key: 'provision', label: 'Financial Provision'      },
+    { key: 'salvation',   label: 'Salvation of family',       prompt: 'Open their hearts to the gospel, Lord…'                     },
+    { key: 'unity',       label: 'Family unity & harmony',    prompt: 'Bind our home with love and peace that passes understanding…' },
+    { key: 'marriage',    label: 'Marriage & relationship',   prompt: 'Strengthen the covenant and deepen our love…'               },
+    { key: 'children',    label: 'Children & youth',          prompt: 'Protect them, shape their character, keep them close to You…' },
+    { key: 'health',      label: 'Health & protection',       prompt: 'Guard each member from sickness, harm, and evil…'           },
+    { key: 'provision',   label: 'Financial provision',       prompt: 'Meet every need and teach us faithful stewardship…'         },
+    { key: 'witness',     label: 'Family as a witness',       prompt: 'Let our home be a light that draws others to Christ…'       },
   ],
   timothy: [
-    { key: 'discipleship', label: 'Discipleship Growth'    },
-    { key: 'calling',      label: 'Calling & Purpose'      },
-    { key: 'character',    label: 'Character Development'  },
-    { key: 'community',    label: 'Gospel Community'       },
-    { key: 'struggles',    label: 'Struggles & Temptations'},
-    { key: 'ministry',     label: 'Ministry Opportunities' },
+    { key: 'calling',        label: 'Calling & purpose',        prompt: 'Affirm their calling and set their feet on mission…'       },
+    { key: 'discipleship',   label: 'Discipleship growth',      prompt: 'Deepen their rootedness in Scripture and prayer…'          },
+    { key: 'character',      label: 'Character & integrity',    prompt: 'Make them people of uncompromising character…'             },
+    { key: 'community',      label: 'Gospel community',         prompt: 'Surround them with faithful brothers and sisters…'         },
+    { key: 'boldness',       label: 'Boldness in witness',      prompt: 'Give them courage to share Christ in their sphere…'        },
+    { key: 'struggles',      label: 'Struggles & temptations',  prompt: 'Protect them from the evil one and strengthen them…'       },
+    { key: 'ministry',       label: 'Ministry opportunities',   prompt: 'Open doors for them to serve and lead others…'             },
+    { key: 'multiplication', label: 'Multiplying disciples',    prompt: 'Make them faithful to pass on what they\'ve received…'    },
   ],
   church: [
-    { key: 'leadership', label: 'Church Leadership'      },
-    { key: 'unity',      label: 'Unity & Love'           },
-    { key: 'outreach',   label: 'Evangelism & Outreach'  },
-    { key: 'growth',     label: 'Spiritual Growth'       },
-    { key: 'missions',   label: 'Missions & Church Plants'},
-    { key: 'provision',  label: 'Resources & Provision'  },
+    { key: 'leadership',  label: 'Church leadership',          prompt: 'Give wisdom, humility, and a shepherd\'s heart…'           },
+    { key: 'unity',       label: 'Unity & love',               prompt: 'May we be one as You and the Father are one…'              },
+    { key: 'preaching',   label: 'Preaching & teaching',       prompt: 'Let the Word go forth with power and clarity…'             },
+    { key: 'outreach',    label: 'Evangelism & outreach',      prompt: 'Stir a passion to seek the lost at every cost…'            },
+    { key: 'growth',      label: 'Spiritual growth',           prompt: 'Move the whole congregation into deeper maturity…'         },
+    { key: 'missions',    label: 'Missions & church plants',   prompt: 'Raise up senders, goers, and faithful partners…'           },
+    { key: 'provision',   label: 'Resources & provision',      prompt: 'Supply every need for the work You\'ve called us to…'     },
+    { key: 'revival',     label: 'Revival & renewal',          prompt: 'Pour out Your Spirit afresh upon this congregation…'       },
   ],
   community: [
-    { key: 'leaders',      label: "Local Leaders / Gov't"    },
-    { key: 'lost',         label: 'The Lost / Unsaved'       },
-    { key: 'poor',         label: 'The Poor & Marginalized'  },
-    { key: 'peace',        label: 'Peace & Justice'          },
-    { key: 'revival',      label: 'Revival & Awakening'      },
-    { key: 'missionaries', label: 'Missionaries in the Field'},
+    { key: 'lost',         label: 'The lost & unsaved',        prompt: 'Soften hearts and send laborers into this harvest field…'  },
+    { key: 'leaders',      label: 'Local leaders & gov\'t',    prompt: 'Grant wisdom, justice, and a fear of God to authorities…' },
+    { key: 'poor',         label: 'The poor & marginalized',   prompt: 'Let justice roll and Your compassion flow through us…'     },
+    { key: 'sick',         label: 'The sick & suffering',      prompt: 'Bring healing and hope to those in pain…'                  },
+    { key: 'peace',        label: 'Peace & justice',           prompt: 'Break every chain of violence, hatred, and injustice…'     },
+    { key: 'revival',      label: 'Community revival',         prompt: 'Transform our barangay/city by the power of the gospel…'  },
+    { key: 'missionaries', label: 'Missionaries in the field', prompt: 'Protect, sustain, and multiply every sent one…'            },
+    { key: 'unreached',    label: 'Unreached peoples',         prompt: 'Let every tribe and tongue hear the name of Jesus…'        },
   ],
 };
+
+const buildChecklist = (catId) =>
+  (PRAYER_CHECKLISTS[catId] || []).map(t => ({ ...t, checked: false, note: '' }));
 
 /* ── Back-button close hook ──────────────────────────────────────────────── */
 function useBackButtonClose(isOpen, closeFn) {
@@ -93,31 +106,31 @@ function useBackButtonClose(isOpen, closeFn) {
   }, [isOpen, closeFn]);
 }
 
-/* ── Shared: small Textarea ──────────────────────────────────────────────── */
+/* ── Small Textarea ──────────────────────────────────────────────────────── */
 const Tx = ({ value, onChange, placeholder, rows = 2, className = '' }) => (
   <textarea value={value} onChange={onChange} placeholder={placeholder} rows={rows}
-    className={`w-full px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700 text-sm text-stone-900 dark:text-stone-100 outline-none focus:border-forest-400 transition-colors placeholder:text-stone-400 resize-none ${className}`} />
+    className={`w-full px-3 py-2 rounded-lg border border-stone-200 dark:border-stone-600 bg-stone-50 dark:bg-stone-700/60 text-sm text-stone-900 dark:text-stone-100 outline-none focus:border-forest-400 transition-colors placeholder:text-stone-400 resize-none ${className}`} />
 );
 
-/* ── Prayer Items Display ────────────────────────────────────────────────── */
-const PrayerItemsDisplay = memo(({ items, catId }) => {
-  const filled = (PRAYER_ITEMS[catId] || []).filter(t => items?.[t.key]?.trim());
-  if (!filled.length) return null;
+/* ── Checklist Display (card view) ──────────────────────────────────────── */
+const ChecklistDisplay = memo(({ checklist }) => {
+  const checked = (checklist || []).filter(i => i.checked);
+  if (!checked.length) return null;
   return (
-    <div className="mt-2 space-y-1">
-      {filled.map(t => (
-        <div key={t.key} className="flex gap-2 text-xs">
-          <span className="text-stone-300 shrink-0 mt-0.5">•</span>
+    <div className="mt-2.5 space-y-1">
+      {checked.map(item => (
+        <div key={item.key} className="flex gap-2 text-xs items-start">
+          <CheckCheck className="w-3 h-3 text-forest-500 shrink-0 mt-0.5" />
           <span>
-            <span className="font-bold uppercase tracking-wide text-stone-400">{t.label}: </span>
-            <span className="text-stone-600 dark:text-stone-400">{items[t.key]}</span>
+            <span className="font-semibold text-stone-500 dark:text-stone-400">{item.label}</span>
+            {item.note && <span className="text-stone-400 dark:text-stone-500"> — {item.note}</span>}
           </span>
         </div>
       ))}
     </div>
   );
 });
-PrayerItemsDisplay.displayName = 'PrayerItemsDisplay';
+ChecklistDisplay.displayName = 'ChecklistDisplay';
 
 /* ── Add / Edit Dialog ───────────────────────────────────────────────────── */
 const RequestDialog = memo(({ open, onClose, onSave, editData }) => {
@@ -125,116 +138,178 @@ const RequestDialog = memo(({ open, onClose, onSave, editData }) => {
   const [text,      setText]      = useState('');
   const [category,  setCategory]  = useState('personal');
   const [dateAdded, setDateAdded] = useState(todayIso);
-  const [items,     setItems]     = useState({});
-  const [showItems, setShowItems] = useState(false);
+  const [checklist, setChecklist] = useState(() => buildChecklist('personal'));
+  const [showList,  setShowList]  = useState(true);
 
   useEffect(() => {
     if (!open) return;
+    const cat = editData?.category || 'personal';
     setPerson(editData?.person    || '');
     setText(editData?.text        || '');
-    setCategory(editData?.category || 'personal');
+    setCategory(cat);
     setDateAdded(editData?.dateAdded || todayIso());
-    setItems(editData?.items       || {});
-    setShowItems(false);
+    setChecklist(editData?.checklist?.length ? editData.checklist : buildChecklist(cat));
+    setShowList(true);
   }, [open, editData]);
 
   useBackButtonClose(open, onClose);
 
-  const templates = PRAYER_ITEMS[category] || [];
+  const handleCategoryChange = (id) => {
+    setCategory(id);
+    setChecklist(buildChecklist(id));
+  };
+
+  const toggleCheck = useCallback((key) => setChecklist(prev =>
+    prev.map(i => i.key === key ? { ...i, checked: !i.checked } : i)
+  ), []);
+
+  const setNote = useCallback((key, val) => setChecklist(prev =>
+    prev.map(i => i.key === key ? { ...i, note: val } : i)
+  ), []);
 
   const handleSave = () => {
-    if (!text.trim() && !person.trim()) { toast.error('Please enter a person or prayer request.'); return; }
+    if (!text.trim() && !person.trim() && !checklist.some(i => i.checked)) {
+      toast.error('Please fill in at least one field.'); return;
+    }
     onSave({
-      id:          editData?.id            || Date.now().toString(),
-      text:        text.trim(),
-      person:      person.trim(),
+      id:           editData?.id           || Date.now().toString(),
+      text:         text.trim(),
+      person:       person.trim(),
       category,
       dateAdded,
-      items,
-      answered:    editData?.answered      || false,
-      dateAnswered:editData?.dateAnswered  || null,
-      praise:      editData?.praise        || '',
+      checklist,
+      answered:     editData?.answered     || false,
+      dateAnswered: editData?.dateAnswered || null,
+      praise:       editData?.praise       || '',
     });
     onClose();
   };
 
-  const setItem = useCallback((key) => (e) =>
-    setItems(prev => ({ ...prev, [key]: e.target.value })), []);
+  const checkedCount = checklist.filter(i => i.checked).length;
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" onPointerDownOutside={preventSelectClose}>
-        <DialogHeader>
-          <DialogTitle className="font-serif text-2xl">{editData ? 'Edit Prayer' : 'New Prayer Request'}</DialogTitle>
-          <DialogDescription className="text-stone-500 dark:text-stone-400">Bring it before the Lord with faith</DialogDescription>
-        </DialogHeader>
+      <DialogContent
+        className="max-w-md max-h-[90vh] overflow-y-auto p-0 gap-0 rounded-2xl overflow-hidden border-stone-200 dark:border-stone-700"
+        onPointerDownOutside={preventSelectClose}>
 
-        <div className="space-y-4 mt-2">
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-white/10"
+          style={{ background: 'linear-gradient(135deg, #1c1917 0%, #14532d 60%, #ca8a04 100%)' }}>
+          <DialogTitle className="font-serif text-xl font-bold text-white">
+            {editData ? 'Edit Prayer' : '✦ New Prayer Request'}
+          </DialogTitle>
+          <DialogDescription className="text-white/50 text-xs mt-0.5 font-serif italic">
+            "In everything, by prayer and petition, with thanksgiving…" — Phil 4:6
+          </DialogDescription>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {/* Person */}
           <div>
-            <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">
+            <Label className="text-[10px] uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">
               Person / Topic <span className="normal-case font-normal">(optional)</span>
             </Label>
             <Input value={person} onChange={e => setPerson(e.target.value)}
               placeholder="e.g. Juan dela Cruz, our church plant…" className={IC} />
           </div>
 
+          {/* General request */}
           <div>
-            <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">Prayer Request</Label>
+            <Label className="text-[10px] uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">General Request</Label>
             <Tx value={text} onChange={e => setText(e.target.value)}
-              placeholder="Write your prayer request… (or fill specific items below)" rows={3} />
+              placeholder="Write a summary of your prayer request…" rows={2} />
           </div>
 
+          {/* Category */}
           <div>
-            <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Category</Label>
-            <div className="grid grid-cols-3 gap-2">
+            <Label className="text-[10px] uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-2 block">Category</Label>
+            <div className="grid grid-cols-3 gap-1.5">
               {CATEGORIES.filter(c => c.id !== 'all').map(c => (
-                <button key={c.id} onClick={() => { setCategory(c.id); setItems({}); }}
+                <button key={c.id} onClick={() => handleCategoryChange(c.id)}
                   className={`flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl border-2 text-xs font-semibold transition-all ${
                     category === c.id
                       ? 'border-forest-500 bg-forest-50 dark:bg-forest-900/30 text-forest-700 dark:text-forest-400'
                       : 'border-stone-100 dark:border-stone-700 text-stone-500 dark:text-stone-400 hover:border-stone-300 dark:hover:border-stone-600'
                   }`}>
-                  <c.Icon className="w-3.5 h-3.5 shrink-0" /> {c.label}
+                  <c.Icon className="w-3.5 h-3.5 shrink-0" />{c.label}
                 </button>
               ))}
             </div>
           </div>
 
-          {templates.length > 0 && (
-            <div>
-              <button onClick={() => setShowItems(v => !v)}
-                className="flex items-center justify-between w-full mb-2">
-                <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold cursor-pointer">
-                  Specific Items <span className="normal-case font-normal">(optional)</span>
-                </Label>
-                {showItems ? <ChevronUp className="w-4 h-4 text-stone-400" /> : <ChevronDown className="w-4 h-4 text-stone-400" />}
-              </button>
-              {showItems && (
-                <div className="space-y-3 rounded-xl p-4 border border-stone-100 dark:border-stone-700 bg-stone-50 dark:bg-stone-900/30">
-                  <p className="text-xs text-stone-400 dark:text-stone-500 -mt-1 mb-1">Fill in specific requests per area:</p>
-                  {templates.map(t => (
-                    <div key={t.key}>
-                      <Label className="text-xs font-semibold text-forest-700 dark:text-forest-400 mb-1 block">{t.label}</Label>
-                      <Tx value={items[t.key] || ''} onChange={setItem(t.key)}
-                        placeholder={`Specific request for ${t.label.toLowerCase()}…`} />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
+          {/* Prayer Checklist */}
           <div>
-            <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">Date Started</Label>
+            <button onClick={() => setShowList(v => !v)}
+              className="flex items-center justify-between w-full mb-3">
+              <div className="flex items-center gap-2">
+                <Label className="text-[10px] uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold cursor-pointer">
+                  Prayer Checklist
+                </Label>
+                {checkedCount > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-forest-100 dark:bg-forest-900/40 text-forest-700 dark:text-forest-400 text-[9px] font-bold">
+                    {checkedCount} selected
+                  </span>
+                )}
+              </div>
+              {showList ? <ChevronUp className="w-4 h-4 text-stone-400" /> : <ChevronDown className="w-4 h-4 text-stone-400" />}
+            </button>
+
+            {showList && (
+              <div className="space-y-2 rounded-xl border border-stone-100 dark:border-stone-700 p-3 bg-stone-50/50 dark:bg-stone-900/20">
+                <p className="text-[10px] text-stone-400 dark:text-stone-500 mb-2">
+                  Check what you want to pray for · add a personal note to each
+                </p>
+                {checklist.map(item => (
+                  <div key={item.key}
+                    className={`rounded-xl border transition-all overflow-hidden ${
+                      item.checked
+                        ? 'border-forest-200 dark:border-forest-800 bg-forest-50 dark:bg-forest-900/20'
+                        : 'border-stone-100 dark:border-stone-700 bg-white dark:bg-stone-800'
+                    }`}>
+                    <button onClick={() => toggleCheck(item.key)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 text-left">
+                      {item.checked
+                        ? <CheckSquare className="w-4 h-4 text-forest-500 shrink-0" />
+                        : <Square className="w-4 h-4 text-stone-300 dark:text-stone-600 shrink-0" />}
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-semibold ${
+                          item.checked ? 'text-forest-700 dark:text-forest-400' : 'text-stone-600 dark:text-stone-400'
+                        }`}>{item.label}</p>
+                        {!item.checked && (
+                          <p className="text-[10px] text-stone-400 dark:text-stone-500 truncate">{item.prompt}</p>
+                        )}
+                      </div>
+                    </button>
+                    {item.checked && (
+                      <div className="px-3 pb-3">
+                        <Tx value={item.note}
+                          onChange={e => setNote(item.key, e.target.value)}
+                          placeholder={item.prompt}
+                          rows={2}
+                          className="text-xs bg-white dark:bg-stone-800" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Date */}
+          <div>
+            <Label className="text-[10px] uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">Date Started</Label>
             <Input type="date" value={dateAdded} onChange={e => setDateAdded(e.target.value)} className={IC} />
           </div>
 
+          {/* Actions */}
           <div className="flex gap-2 pt-1">
             <Button variant="outline" onClick={onClose}
               className="flex-1 rounded-xl border-stone-200 dark:border-stone-600 text-stone-600 dark:text-stone-400">
               Cancel
             </Button>
-            <Button onClick={handleSave} className="flex-1 bg-forest-500 hover:bg-forest-700 text-white rounded-xl">
+            <Button onClick={handleSave}
+              className="flex-1 bg-forest-500 hover:bg-forest-700 text-white rounded-xl font-medium">
               {editData ? 'Save Changes' : '🙏 Save Prayer'}
             </Button>
           </div>
@@ -255,25 +330,25 @@ const MarkAnsweredDialog = memo(({ open, request, onClose, onSave }) => {
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="font-serif text-2xl">🙌 Praise God!</DialogTitle>
-          <DialogDescription className="text-stone-500 dark:text-stone-400 line-clamp-2">
+      <DialogContent className="max-w-md p-0 gap-0 rounded-2xl overflow-hidden border-stone-200 dark:border-stone-700">
+        <div className="px-6 py-5 border-b border-white/10"
+          style={{ background: 'linear-gradient(135deg, #14532d 0%, #166534 60%, #15803d 100%)' }}>
+          <DialogTitle className="font-serif text-xl font-bold text-white">🙌 Praise God!</DialogTitle>
+          <DialogDescription className="text-white/50 text-xs mt-0.5 line-clamp-1">
             {request?.person ? `"${request.person}" — ` : ''}{request?.text}
           </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 mt-2">
+        </div>
+        <div className="p-5 space-y-4">
           <div>
-            <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">Date Answered</Label>
+            <Label className="text-[10px] uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">Date Answered</Label>
             <Input type="date" value={dateAnswered} onChange={e => setDateAnswered(e.target.value)} className={IC} />
           </div>
           <div>
-            <Label className="text-xs uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">
-              How did God answer? <span className="normal-case font-normal">(optional)</span>
+            <Label className="text-[10px] uppercase tracking-widest text-stone-500 dark:text-stone-400 font-bold mb-1.5 block">
+              Testimony / Praise <span className="normal-case font-normal">(optional)</span>
             </Label>
             <Tx value={praise} onChange={e => setPraise(e.target.value)}
-              placeholder="Write your praise and testimony…" rows={4}
-              className="font-serif" />
+              placeholder="How did God answer? Write your testimony…" rows={4} className="font-serif" />
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={onClose}
@@ -282,7 +357,7 @@ const MarkAnsweredDialog = memo(({ open, request, onClose, onSave }) => {
             </Button>
             <Button onClick={() => { onSave({ dateAnswered, praise: praise.trim() }); onClose(); }}
               className="flex-1 bg-forest-500 hover:bg-forest-700 text-white rounded-xl">
-              ✅ Mark Answered
+              ✅ Mark as Answered
             </Button>
           </div>
         </div>
@@ -295,44 +370,49 @@ MarkAnsweredDialog.displayName = 'MarkAnsweredDialog';
 /* ── Request Card ────────────────────────────────────────────────────────── */
 const RequestCard = memo(({ req, onMarkAnswered, onDelete, onUnmark, onEdit }) => {
   const [expanded, setExpanded] = useState(false);
-  const cat      = getCat(req.category);
-  const catLabel = cat.label;
-  const hasItems = useMemo(
-    () => (PRAYER_ITEMS[req.category] || []).some(t => req.items?.[t.key]?.trim()),
-    [req.category, req.items]
+  const cat = getCat(req.category);
+  const checkedCount = useMemo(
+    () => (req.checklist || []).filter(i => i.checked).length,
+    [req.checklist]
   );
 
   return (
-    <div className={`rounded-xl border transition-all overflow-hidden ${
+    <div className={`rounded-2xl border transition-all overflow-hidden ${
       req.answered
-        ? 'bg-forest-50/50 dark:bg-forest-900/10 border-forest-200 dark:border-forest-800'
+        ? 'bg-forest-50/60 dark:bg-forest-900/10 border-forest-200 dark:border-forest-800'
         : 'bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700 shadow-sm'
     }`}>
       <div className="p-4">
         <div className="flex items-start gap-3">
-          <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${req.answered ? 'bg-forest-500' : 'bg-rose-400 animate-pulse'}`} />
+          <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${
+            req.answered ? 'bg-forest-500' : 'bg-rose-400 animate-pulse'
+          }`} />
 
           <div className="flex-1 min-w-0">
-            {req.person && <p className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-0.5">{req.person}</p>}
-            {req.text   && <p className="text-sm text-stone-800 dark:text-stone-200 leading-relaxed font-serif">{req.text}</p>}
-
+            {req.person && (
+              <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mb-0.5">{req.person}</p>
+            )}
+            {req.text && (
+              <p className="text-sm text-stone-800 dark:text-stone-200 leading-relaxed font-serif">{req.text}</p>
+            )}
             {req.answered && req.praise && (
               <div className="mt-2 pl-3 border-l-2 border-forest-400">
                 <p className="text-xs text-forest-700 dark:text-forest-400 italic leading-relaxed">"{req.praise}"</p>
               </div>
             )}
 
-            {hasItems && (
+            {checkedCount > 0 && (
               <button onClick={() => setExpanded(v => !v)}
-                className="mt-2 flex items-center gap-1 text-xs font-medium text-forest-600 dark:text-forest-400 hover:opacity-80 transition-opacity">
+                className="mt-2 flex items-center gap-1.5 text-[10px] font-semibold text-forest-600 dark:text-forest-400 hover:opacity-80 transition-opacity">
                 {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                {expanded ? 'Hide' : 'Show'} prayer items
+                <CheckSquare className="w-3 h-3" />
+                {checkedCount} prayer {checkedCount === 1 ? 'area' : 'areas'}
               </button>
             )}
-            {expanded && <PrayerItemsDisplay items={req.items} catId={req.category} />}
+            {expanded && <ChecklistDisplay checklist={req.checklist} />}
 
             <div className="flex flex-wrap items-center gap-2 mt-2.5">
-              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cat.badge}`}>{catLabel}</span>
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cat.badge}`}>{cat.label}</span>
               <span className="text-[10px] text-stone-400 dark:text-stone-500 flex items-center gap-1">
                 <Calendar className="w-3 h-3" /> {fmtDate(req.dateAdded)}
               </span>
@@ -347,12 +427,12 @@ const RequestCard = memo(({ req, onMarkAnswered, onDelete, onUnmark, onEdit }) =
           <div className="flex flex-col gap-1 shrink-0">
             {!req.answered ? (
               <button onClick={() => onMarkAnswered(req)} title="Mark answered"
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-forest-50 dark:bg-forest-900/30 hover:bg-forest-100 text-forest-600 dark:text-forest-400 transition-colors">
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-forest-50 dark:bg-forest-900/30 hover:bg-forest-100 dark:hover:bg-forest-900/50 text-forest-600 dark:text-forest-400 transition-colors">
                 <CheckCheck className="w-3.5 h-3.5" />
               </button>
             ) : (
               <button onClick={() => onUnmark(req.id)} title="Move back to ongoing"
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-stone-100 dark:bg-stone-700 hover:bg-stone-200 text-stone-400 transition-colors">
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-stone-100 dark:bg-stone-700 hover:bg-stone-200 dark:hover:bg-stone-600 text-stone-400 transition-colors">
                 <RotateCcw className="w-3.5 h-3.5" />
               </button>
             )}
@@ -372,22 +452,23 @@ const RequestCard = memo(({ req, onMarkAnswered, onDelete, onUnmark, onEdit }) =
 });
 RequestCard.displayName = 'RequestCard';
 
-/* ── Praise Card (answered-only read view) ───────────────────────────────── */
+/* ── Praise Card ─────────────────────────────────────────────────────────── */
 const PraiseCard = memo(({ req, onDelete }) => {
   const cat = getCat(req.category);
   return (
-    <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-4">
-      <div className="flex items-start gap-3">
-        <div className="w-7 h-7 rounded-full bg-forest-100 dark:bg-forest-900/40 flex items-center justify-center shrink-0 mt-0.5">
+    <div className="rounded-2xl border bg-white dark:bg-stone-800 border-stone-100 dark:border-stone-700 shadow-sm overflow-hidden">
+      <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #166534, #ca8a04)' }} />
+      <div className="p-4 flex items-start gap-3">
+        <div className="w-7 h-7 rounded-xl bg-forest-100 dark:bg-forest-900/40 flex items-center justify-center shrink-0 mt-0.5">
           <Star className="w-3.5 h-3.5 text-forest-600 dark:text-forest-400" />
         </div>
         <div className="flex-1 min-w-0">
-          {req.person && <p className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-0.5">{req.person}</p>}
-          <p className="text-sm text-stone-800 dark:text-stone-200 font-serif leading-relaxed">{req.text}</p>
+          {req.person && <p className="text-[10px] font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mb-0.5">{req.person}</p>}
+          {req.text   && <p className="text-sm text-stone-800 dark:text-stone-200 font-serif leading-relaxed">{req.text}</p>}
           {req.praise && (
-            <div className="mt-2.5 p-3 rounded-lg bg-forest-50 dark:bg-forest-900/20 border border-forest-100 dark:border-forest-800">
+            <div className="mt-2.5 p-3 rounded-xl bg-forest-50 dark:bg-forest-900/20 border border-forest-100 dark:border-forest-800">
               <p className="text-[10px] font-bold text-forest-700 dark:text-forest-400 uppercase tracking-widest mb-1">🙌 Praise</p>
-              <p className="text-sm text-forest-800 dark:text-forest-300 italic leading-relaxed">"{req.praise}"</p>
+              <p className="text-sm text-forest-800 dark:text-forest-300 italic leading-relaxed font-serif">"{req.praise}"</p>
             </div>
           )}
           <div className="flex flex-wrap items-center gap-2 mt-2.5">
@@ -397,7 +478,7 @@ const PraiseCard = memo(({ req, onDelete }) => {
             </span>
             {req.dateAnswered && (
               <span className="text-[10px] text-forest-600 dark:text-forest-400 flex items-center gap-1 font-medium">
-                <CheckCheck className="w-3 h-3" /> Answered {fmtDate(req.dateAnswered)}
+                <CheckCheck className="w-3 h-3" /> {fmtDate(req.dateAnswered)}
               </span>
             )}
           </div>
@@ -407,7 +488,7 @@ const PraiseCard = memo(({ req, onDelete }) => {
           <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
-    </Card>
+    </div>
   );
 });
 PraiseCard.displayName = 'PraiseCard';
@@ -419,7 +500,7 @@ const PrayerJournal = () => {
   const { isTablet } = useScreenSize();
   const [requests, setRequests] = useLocalStorage('prayerRequests_v2', []);
 
-  const [view,         setView]         = useState('ongoing'); // 'ongoing' | 'praises'
+  const [view,         setView]         = useState('ongoing');
   const [filterCat,    setFilterCat]    = useState('all');
   const [search,       setSearch]       = useState('');
   const [showAnswered, setShowAnswered] = useState(true);
@@ -427,7 +508,7 @@ const PrayerJournal = () => {
   const [editTarget,   setEditTarget]   = useState(null);
   const [markTarget,   setMarkTarget]   = useState(null);
 
-  /* ── Stable actions ── */
+  /* ── Actions ── */
   const handleSave = useCallback((req) => {
     setRequests(prev => {
       const i = prev.findIndex(r => r.id === req.id);
@@ -462,7 +543,7 @@ const PrayerJournal = () => {
   const openMark   = useCallback((req) => setMarkTarget(req), []);
   const closeModal = useCallback(() => { setAddOpen(false); setEditTarget(null); }, []);
 
-  /* ── Memoised derived lists ── */
+  /* ── Derived lists ── */
   const [ongoing, answered] = useMemo(() => [
     requests.filter(r => !r.answered),
     requests.filter(r =>  r.answered),
@@ -472,28 +553,90 @@ const PrayerJournal = () => {
     const q = search.trim().toLowerCase();
     return list
       .filter(r => filterCat === 'all' || r.category === filterCat)
-      .filter(r => !q || [r.person, r.text, ...Object.values(r.items || {})].join(' ').toLowerCase().includes(q));
+      .filter(r => !q || [r.person, r.text, ...(r.checklist || []).map(i => i.note)].join(' ').toLowerCase().includes(q));
   }, [filterCat, search]);
 
   const filteredOngoing  = useMemo(() => filter(ongoing),  [filter, ongoing]);
   const filteredAnswered = useMemo(() => filter(answered), [filter, answered]);
 
-  /* ── Sub-views ── */
+  /* ── Header ── */
+  const header = (
+    <div className="relative overflow-hidden rounded-2xl"
+      style={{ background: 'linear-gradient(150deg, #1c1917 0%, #14532d 50%, #ca8a04 100%)' }}>
+      <div className="absolute inset-0 opacity-[0.06]"
+        style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+      <div className="absolute -bottom-8 -right-8 w-40 h-40 rounded-full opacity-20 blur-3xl"
+        style={{ background: '#ca8a04' }} />
+
+      <div className="relative z-10 p-6">
+        <div className="flex items-start justify-between mb-1">
+          <div>
+            <p className="text-mango-300 text-[10px] uppercase tracking-[0.25em] font-bold mb-1">Church Planting Prayer</p>
+            <h1 className={`font-serif font-bold text-white tracking-tight leading-none ${isTablet ? 'text-4xl' : 'text-3xl'}`}>
+              Prayer Journal
+            </h1>
+          </div>
+          <div className="w-10 h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
+            <HandHeart className="w-5 h-5 text-mango-300" />
+          </div>
+        </div>
+        <p className="text-white/40 text-xs mt-2 font-serif italic">
+          "Call to me and I will answer you." — Jer 33:3
+        </p>
+        <div className="flex gap-2 mt-5">
+          {[
+            { n: ongoing.length,  label: 'Ongoing',  color: '#fca5a5' },
+            { n: answered.length, label: 'Answered', color: '#86efac' },
+            { n: requests.length, label: 'Total',    color: '#fcd34d' },
+          ].map(s => (
+            <div key={s.label}
+              className="flex-1 rounded-xl py-3 px-2 text-center"
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <p className="text-xl font-black font-serif" style={{ color: s.color }}>{s.n}</p>
+              <p className="text-[9px] uppercase tracking-widest text-white/40 font-semibold mt-0.5">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  /* ── Category filter bar ── */
   const categoryFilterBar = (
     <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
       {CATEGORIES.map(cat => (
         <button key={cat.id} onClick={() => setFilterCat(cat.id)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap shrink-0 transition-all border ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 transition-all border ${
             filterCat === cat.id
-              ? 'bg-rose-500 border-rose-500 text-white shadow-sm'
+              ? 'bg-forest-500 border-forest-500 text-white shadow-sm'
               : 'bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:border-stone-300'
           }`}>
-          <cat.Icon className="w-3 h-3" /> {cat.label}
+          <cat.Icon className="w-3 h-3" />{cat.label}
         </button>
       ))}
     </div>
   );
 
+  /* ── View toggle ── */
+  const viewToggle = (
+    <div className="flex gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1">
+      {[
+        { id: 'ongoing', label: 'Ongoing', Icon: Flame, count: ongoing.length,  activeColor: 'text-rose-600 dark:text-rose-400'    },
+        { id: 'praises', label: 'Praises', Icon: Star,  count: answered.length, activeColor: 'text-forest-600 dark:text-forest-400' },
+      ].map(t => (
+        <button key={t.id} onClick={() => setView(t.id)}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${
+            view === t.id
+              ? `bg-white dark:bg-stone-700 ${t.activeColor} shadow-sm`
+              : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
+          }`}>
+          <t.Icon className="w-3.5 h-3.5" />{t.label} ({t.count})
+        </button>
+      ))}
+    </div>
+  );
+
+  /* ── Ongoing view ── */
   const ongoingView = (
     <div className="space-y-4">
       <div className="relative">
@@ -505,7 +648,7 @@ const PrayerJournal = () => {
 
       {categoryFilterBar}
 
-      <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden">
+      <Card className="bg-white dark:bg-stone-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100 dark:border-stone-700">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-rose-400 animate-pulse" />
@@ -513,8 +656,8 @@ const PrayerJournal = () => {
             <span className="text-xs text-stone-400 dark:text-stone-500">({filteredOngoing.length})</span>
           </div>
           <Button size="sm" onClick={() => setAddOpen(true)}
-            className="h-7 px-3 rounded-lg bg-forest-500 hover:bg-forest-700 text-white text-xs">
-            <Plus className="w-3 h-3 mr-1" /> Add
+            className="h-7 px-3 rounded-lg bg-forest-500 hover:bg-forest-700 text-white text-xs gap-1">
+            <Plus className="w-3 h-3" /> Add
           </Button>
         </div>
         <div className="p-3 space-y-2">
@@ -524,9 +667,9 @@ const PrayerJournal = () => {
               onUnmark={handleUnmark}  onEdit={openEdit} />
           )) : (
             <div className="text-center py-10 text-stone-400 dark:text-stone-500">
-              <Flame className="w-8 h-8 mx-auto mb-2 opacity-30" />
+              <Flame className="w-8 h-8 mx-auto mb-2 opacity-20" />
               <p className="text-sm font-medium">No ongoing prayer requests</p>
-              <button onClick={() => setAddOpen(true)} className="mt-1 text-xs text-rose-500 hover:text-rose-600 font-medium">
+              <button onClick={() => setAddOpen(true)} className="mt-1 text-xs text-forest-500 hover:text-forest-700 font-medium">
                 + Add one
               </button>
             </div>
@@ -535,13 +678,13 @@ const PrayerJournal = () => {
       </Card>
 
       {filteredAnswered.length > 0 && (
-        <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden">
+        <Card className="bg-white dark:bg-stone-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden">
           <button onClick={() => setShowAnswered(v => !v)}
             className="w-full flex items-center justify-between px-4 py-3 border-b border-stone-100 dark:border-stone-700">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-forest-400" />
               <h3 className="font-serif font-semibold text-stone-700 dark:text-stone-300 text-sm">
-                Answered Prayers <span className="text-xs text-stone-400 dark:text-stone-500 font-normal">({filteredAnswered.length})</span>
+                Answered <span className="text-xs text-stone-400 dark:text-stone-500 font-normal">({filteredAnswered.length})</span>
               </h3>
             </div>
             {showAnswered ? <ChevronUp className="w-4 h-4 text-stone-400" /> : <ChevronDown className="w-4 h-4 text-stone-400" />}
@@ -560,23 +703,25 @@ const PrayerJournal = () => {
     </div>
   );
 
+  /* ── Praises view ── */
   const praisesView = (
     <div className="space-y-3">
       {answered.length === 0 ? (
-        <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700">
+        <Card className="bg-white dark:bg-stone-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700">
           <div className="text-center py-14 text-stone-400 dark:text-stone-500">
             <Star className="w-10 h-10 mx-auto mb-3 opacity-20" />
-            <p className="text-sm font-medium">No answered prayers yet</p>
+            <p className="text-sm font-medium text-stone-500 dark:text-stone-400">No answered prayers yet</p>
             <p className="text-xs mt-1 max-w-xs mx-auto leading-relaxed">
-              When you mark a prayer as answered it will appear here as testimony.
+              Mark prayers as answered and they'll appear here as testimony.
             </p>
           </div>
         </Card>
       ) : (
         <>
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-forest-50 dark:bg-forest-900/20 border border-forest-100 dark:border-forest-800">
-            <CheckCheck className="w-5 h-5 text-forest-600 dark:text-forest-400 shrink-0" />
-            <p className="text-xs text-forest-800 dark:text-forest-300 italic leading-relaxed">
+          <div className="flex items-start gap-3 p-4 rounded-2xl"
+            style={{ background: 'linear-gradient(135deg, #f0fdf4, #fefce8)', border: '1px solid #bbf7d0' }}>
+            <CheckCheck className="w-4 h-4 text-forest-600 shrink-0 mt-0.5" />
+            <p className="text-xs text-forest-800 italic font-serif leading-relaxed">
               "He who calls you is faithful; he will surely do it." — 1 Thess 5:24
             </p>
           </div>
@@ -586,46 +731,45 @@ const PrayerJournal = () => {
     </div>
   );
 
-  const viewToggle = (
-    <div className="flex gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1">
-      {[
-        { id: 'ongoing',  label: 'Ongoing',  Icon: Flame, count: ongoing.length,  active: 'text-rose-600 dark:text-rose-400'   },
-        { id: 'praises',  label: 'Praises',  Icon: Star,  count: answered.length, active: 'text-forest-600 dark:text-forest-400'},
-      ].map(t => (
-        <button key={t.id} onClick={() => setView(t.id)}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${
-            view === t.id
-              ? `bg-white dark:bg-stone-700 ${t.active} shadow-sm`
-              : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
-          }`}>
-          <t.Icon className="w-3.5 h-3.5" /> {t.label} ({t.count})
-        </button>
-      ))}
-    </div>
-  );
-
-  const header = (
-    <div className="relative overflow-hidden rounded-2xl text-white"
-      style={{ background: 'linear-gradient(160deg, #1c1917 0%, #4c1d95 40%, #be123c 100%)', padding: isTablet ? '2rem' : '1.5rem' }}>
-      <div className="absolute inset-0 opacity-5"
-        style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
-      <div className="relative z-10">
-        <p className="text-purple-300 text-xs uppercase tracking-[0.2em] font-semibold mb-1">Thy will be done</p>
-        <h1 className={`font-serif font-bold tracking-tight mb-1 ${isTablet ? 'text-4xl' : 'text-3xl'}`}>Prayer Journal</h1>
-        <p className="text-purple-200 text-sm opacity-80">"Call to me and I will answer you." — Jer 33:3</p>
-        <div className="flex gap-3 mt-5">
+  /* ── Tablet side panel ── */
+  const sidePanel = (
+    <div className="space-y-4">
+      <Card className="bg-white dark:bg-stone-800 rounded-2xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden">
+        <div className="px-5 py-3 border-b border-stone-100 dark:border-stone-700">
+          <p className="font-serif font-semibold text-stone-900 dark:text-stone-100 text-sm">Prayer Stats</p>
+        </div>
+        <div className="p-4 space-y-3">
           {[
-            { n: ongoing.length,  l: 'Ongoing',  c: '#fca5a5' },
-            { n: answered.length, l: 'Answered', c: '#86efac' },
-            { n: requests.length, l: 'Total',    c: '#c4b5fd' },
+            { label: 'Total Requests', value: requests.length },
+            { label: 'Still Believing', value: ongoing.length  },
+            { label: 'Answered',        value: answered.length },
+            { label: 'Answer Rate',     value: requests.length ? `${Math.round((answered.length / requests.length) * 100)}%` : '—' },
           ].map(s => (
-            <div key={s.l} className="flex-1 rounded-xl py-3 text-center" style={{ background: 'rgba(255,255,255,0.1)' }}>
-              <p className="text-2xl font-black font-serif" style={{ color: s.c }}>{s.n}</p>
-              <p className="text-[10px] uppercase tracking-widest text-white/50 font-semibold mt-0.5">{s.l}</p>
+            <div key={s.label} className="flex items-center justify-between">
+              <span className="text-sm text-stone-500 dark:text-stone-400">{s.label}</span>
+              <span className="font-serif font-bold text-stone-900 dark:text-stone-100">{s.value}</span>
             </div>
           ))}
         </div>
+      </Card>
+
+      <div className="rounded-2xl border p-4 space-y-2"
+        style={{ background: 'linear-gradient(135deg, #f0fdf4, #fefce8)', borderColor: '#d9f99d' }}>
+        <div className="flex items-center gap-2 mb-1">
+          <MessageSquare className="w-3.5 h-3.5 text-forest-600" />
+          <p className="text-[10px] font-bold uppercase tracking-widest text-forest-700">Today's Encouragement</p>
+        </div>
+        <p className="text-sm text-forest-800 italic font-serif leading-relaxed">
+          "Do not be anxious about anything, but in every situation, by prayer and petition,
+          with thanksgiving, present your requests to God."
+        </p>
+        <p className="text-xs text-forest-600 font-semibold">— Philippians 4:6</p>
       </div>
+
+      <Button onClick={() => setAddOpen(true)}
+        className="w-full h-12 bg-forest-500 hover:bg-forest-700 text-white rounded-2xl font-serif text-base gap-2">
+        <Plus className="w-4 h-4" /> New Prayer Request
+      </Button>
     </div>
   );
 
@@ -637,41 +781,12 @@ const PrayerJournal = () => {
       {isTablet ? (
         <div className="space-y-6">
           {header}
-          <div className="grid grid-cols-2 gap-6 items-start">
+          <div className="grid grid-cols-[1fr_280px] gap-6 items-start">
             <div className="space-y-4">
               {viewToggle}
               {view === 'ongoing' ? ongoingView : praisesView}
             </div>
-            <div className="space-y-4">
-              <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-5">
-                <p className="font-serif font-semibold text-stone-900 dark:text-stone-100 mb-3">Prayer Stats</p>
-                <div className="space-y-3">
-                  {[
-                    { label: 'Total Requests', value: requests.length },
-                    { label: 'Still Believing', value: ongoing.length  },
-                    { label: 'Answered',        value: answered.length },
-                    { label: 'Answer Rate',     value: requests.length ? `${Math.round((answered.length / requests.length) * 100)}%` : '—' },
-                  ].map(s => (
-                    <div key={s.label} className="flex items-center justify-between">
-                      <span className="text-sm text-stone-600 dark:text-stone-400">{s.label}</span>
-                      <span className="font-serif font-bold text-stone-900 dark:text-stone-100">{s.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-              <Card className="bg-forest-50 dark:bg-forest-900/20 rounded-xl border border-forest-100 dark:border-forest-800 p-5">
-                <p className="text-xs font-bold uppercase tracking-widest text-forest-700 dark:text-forest-400 mb-2">Today's Encouragement</p>
-                <p className="text-sm text-forest-800 dark:text-forest-300 italic font-serif leading-relaxed">
-                  "Do not be anxious about anything, but in every situation, by prayer and petition,
-                  with thanksgiving, present your requests to God."
-                </p>
-                <p className="text-xs text-forest-600 dark:text-forest-500 mt-2 font-semibold">— Philippians 4:6</p>
-              </Card>
-              <Button onClick={() => setAddOpen(true)}
-                className="w-full h-12 bg-forest-500 hover:bg-forest-700 text-white rounded-xl font-serif text-base">
-                <Plus className="w-4 h-4 mr-2" /> New Prayer Request
-              </Button>
-            </div>
+            {sidePanel}
           </div>
         </div>
       ) : (
@@ -684,8 +799,8 @@ const PrayerJournal = () => {
 
       {!isTablet && (
         <button onClick={() => setAddOpen(true)}
-          className="fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95"
-          style={{ background: 'linear-gradient(135deg, #4c1d95, #be123c)' }}>
+          className="fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-white transition-all active:scale-95 hover:scale-105"
+          style={{ background: 'linear-gradient(135deg, #14532d, #ca8a04)' }}>
           <Plus className="w-6 h-6" />
         </button>
       )}
