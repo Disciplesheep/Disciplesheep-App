@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useJournalData, useLocalStorage } from '@/hooks/useLocalStorage';
 import {
@@ -19,10 +19,11 @@ const FONT_SIZE_MIN = 12;
 const FONT_SIZE_MAX = 32;
 const MAX_FILE_BYTES = 15 * 1024 * 1024;
 
+/* Tab definitions — used for the right-side FABs */
 const TABS = [
-  { id: 'devotional', icon: BookOpen,  label: "5P's"   },
-  { id: 'prayer',     icon: HandHeart, label: 'Prayer' },
-  { id: 'pdf',        icon: FileText,  label: 'Files'  },
+  { id: 'devotional', Icon: BookOpen,  label: "5P's",   color: 'bg-forest-500 hover:bg-forest-700', shadow: 'shadow-forest-900/30' },
+  { id: 'prayer',     Icon: HandHeart, label: 'Prayer', color: 'bg-rose-600 hover:bg-rose-700',     shadow: 'shadow-rose-900/30'   },
+  { id: 'pdf',        Icon: FileText,  label: 'Files',  color: 'bg-stone-600 hover:bg-stone-700',   shadow: 'shadow-stone-900/30'  },
 ];
 
 const WRITING_STYLE = {
@@ -154,7 +155,6 @@ WritingField.displayName = 'WritingField';
    PRAYER SUB-COMPONENTS
 ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Add Request Modal ───────────────────────────────────────────────────── */
 const AddRequestModal = ({ onSave, onClose }) => {
   const [text,      setText]      = useState('');
   const [category,  setCategory]  = useState('personal');
@@ -233,7 +233,6 @@ const AddRequestModal = ({ onSave, onClose }) => {
   );
 };
 
-/* ── Mark Answered Modal ─────────────────────────────────────────────────── */
 const MarkAnsweredModal = ({ request, onSave, onClose }) => {
   const [dateAnswered, setDateAnswered] = useState(todayIso());
   const [praise,       setPraise]       = useState('');
@@ -280,7 +279,6 @@ const MarkAnsweredModal = ({ request, onSave, onClose }) => {
   );
 };
 
-/* ── Prayer Request Card ─────────────────────────────────────────────────── */
 const RequestCard = ({ req, onMarkAnswered, onDelete, onUnmark }) => {
   const catColor = CAT_COLORS[req.category] || CAT_COLORS.personal;
   const catLabel = CATEGORIES.find(c => c.id === req.category)?.label || req.category;
@@ -336,15 +334,14 @@ const RequestCard = ({ req, onMarkAnswered, onDelete, onUnmark }) => {
   );
 };
 
-/* ── Prayer Tab Panel ────────────────────────────────────────────────────── */
 const PrayerPanel = () => {
-  const [requests,      setRequests]      = useLocalStorage('prayerRequests', []);
-  const [filterCat,     setFilterCat]     = useState('all');
-  const [prayerView,    setPrayerView]    = useState('ongoing'); // 'ongoing' | 'praises'
-  const [showAddModal,  setShowAddModal]  = useState(false);
-  const [markTarget,    setMarkTarget]    = useState(null);
+  const [requests,     setRequests]     = useLocalStorage('prayerRequests', []);
+  const [filterCat,    setFilterCat]    = useState('all');
+  const [prayerView,   setPrayerView]   = useState('ongoing');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [markTarget,   setMarkTarget]   = useState(null);
 
-  const handleAddRequest = useCallback((req) => {
+  const handleAddRequest  = useCallback((req) => {
     setRequests(prev => [req, ...prev]);
     toast.success('Prayer request added 🙏');
   }, [setRequests]);
@@ -367,8 +364,7 @@ const PrayerPanel = () => {
   }, [setRequests]);
 
   const ongoing  = requests.filter(r => !r.answered);
-  const answered = requests.filter(r => r.answered);
-
+  const answered = requests.filter(r =>  r.answered);
   const filtered = (list) => filterCat === 'all' ? list : list.filter(r => r.category === filterCat);
 
   return (
@@ -381,7 +377,6 @@ const PrayerPanel = () => {
       )}
 
       <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-hidden">
-        {/* Header */}
         <div className="px-5 py-4 flex items-center justify-between"
           style={{ background:'linear-gradient(135deg,#be123c 0%,#d97706 60%,#15803d 100%)' }}>
           <div>
@@ -389,7 +384,6 @@ const PrayerPanel = () => {
             <p className="text-white/70 text-xs mt-0.5">Requests · Answered · Praises</p>
           </div>
           <div className="flex items-center gap-3">
-            {/* Stats */}
             <div className="flex gap-2">
               <div className="text-center bg-white/15 rounded-lg px-2.5 py-1.5 backdrop-blur-sm">
                 <p className="text-sm font-bold text-white font-serif">{ongoing.length}</p>
@@ -408,7 +402,6 @@ const PrayerPanel = () => {
           </div>
         </div>
 
-        {/* View toggle: Ongoing / Praises */}
         <div className="flex gap-1 p-3 bg-stone-50 dark:bg-stone-900/30 border-b border-stone-100 dark:border-stone-700">
           <button onClick={() => setPrayerView('ongoing')}
             className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all ${
@@ -429,11 +422,8 @@ const PrayerPanel = () => {
         </div>
 
         <div className="p-4 space-y-3">
-
-          {/* ── ONGOING VIEW ── */}
           {prayerView === 'ongoing' && (
             <>
-              {/* Category filter */}
               <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth:'none' }}>
                 {CATEGORIES.map(cat => (
                   <button key={cat.id} onClick={() => setFilterCat(cat.id)}
@@ -447,7 +437,6 @@ const PrayerPanel = () => {
                 ))}
               </div>
 
-              {/* Ongoing list */}
               {filtered(ongoing).length > 0 ? (
                 <div className="space-y-2">
                   {filtered(ongoing).map(req => (
@@ -468,7 +457,6 @@ const PrayerPanel = () => {
                 </div>
               )}
 
-              {/* Answered preview at bottom */}
               {filtered(answered).length > 0 && (
                 <>
                   <div className="relative py-1">
@@ -494,7 +482,6 @@ const PrayerPanel = () => {
             </>
           )}
 
-          {/* ── PRAISES VIEW ── */}
           {prayerView === 'praises' && (
             <>
               {answered.length === 0 ? (
@@ -559,13 +546,6 @@ const PrayerPanel = () => {
           )}
         </div>
       </Card>
-
-      {/* FAB */}
-      <button onClick={() => setShowAddModal(true)}
-        className="fixed bottom-24 right-4 z-40 w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95"
-        style={{ background:'linear-gradient(135deg,#be123c,#d97706)' }}>
-        <Plus className="w-6 h-6" />
-      </button>
     </>
   );
 };
@@ -582,6 +562,19 @@ const JournalEntry = () => {
   const [entry,      setEntry]      = useState(() => buildEntry(devotional, dailyEntries[dateKey]));
   const [saveStatus, setSaveStatus] = useState('saved');
   const [activeTab,  setActiveTab]  = useState('devotional');
+
+  /* ── FAB visibility (hide-on-scroll, same as ExpenseLedger) ── */
+  const [fabVisible,  setFabVisible]  = useState(true);
+  const scrollTimer = useRef(null);
+  useEffect(() => {
+    const onScroll = () => {
+      setFabVisible(false);
+      clearTimeout(scrollTimer.current);
+      scrollTimer.current = setTimeout(() => setFabVisible(true), 400);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => { window.removeEventListener('scroll', onScroll); clearTimeout(scrollTimer.current); };
+  }, []);
 
   // Rebuild when date changes
   useEffect(() => {
@@ -622,10 +615,8 @@ const JournalEntry = () => {
 
   const decFontSize = useCallback(() => setDocFontSize(s => Math.max(FONT_SIZE_MIN, s - 2)), []);
   const incFontSize = useCallback(() => setDocFontSize(s => Math.min(FONT_SIZE_MAX, s + 2)), []);
-
-  const closePdf = useCallback(() => { setActiveFile(null); setIsFullscreen(false); }, []);
-
-  const openSaved = useCallback((file) => {
+  const closePdf    = useCallback(() => { setActiveFile(null); setIsFullscreen(false); }, []);
+  const openSaved   = useCallback((file) => {
     setActiveFile({ name:file.name, dataUrl:file.dataUrl, fileType:file.fileType || (isPdf(file.name)?'pdf':'docx') });
   }, []);
 
@@ -680,25 +671,30 @@ const JournalEntry = () => {
     return () => window.removeEventListener('popstate', onPopState);
   }, [activeFile, closePdf]);
 
+  /* ── Tab switch: clicking the active tab goes back to devotional ── */
+  const handleTabClick = (id) => {
+    setActiveTab(prev => (prev === id && id !== 'devotional') ? 'devotional' : id);
+  };
+
   /* ── Render ── */
   return (
     <div className="space-y-4 pb-6">
 
-      {/* Tab bar */}
-      <div className="flex gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1">
-        {TABS.map(({ id, icon: Icon, label }) => (
-          <button key={id} onClick={() => setActiveTab(id)}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-              activeTab === id
-                ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-sm'
-                : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'
-            }`} style={{ minHeight:0 }}>
-            <Icon className="w-4 h-4" />{label}
+      {/* ── Right-side FABs (same pattern as ExpenseLedger) ── */}
+      <div className={`fixed right-4 top-[55%] z-40 flex flex-col gap-4 items-center transition-all duration-150 ${
+        fabVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-16 pointer-events-none'
+      }`}>
+        {TABS.map(({ id, Icon, label, color, shadow }) => (
+          <button key={id} onClick={() => handleTabClick(id)} title={label}
+            className={`w-12 h-12 rounded-full text-white flex items-center justify-center shadow-lg active:scale-95 transition-all ${color} shadow-${shadow} ${
+              activeTab === id ? 'ring-2 ring-white ring-offset-2 ring-offset-transparent scale-110' : ''
+            }`}>
+            <Icon className="w-5 h-5" />
           </button>
         ))}
       </div>
 
-      {/* ── 5P's TAB ── */}
+      {/* ── 5P's DEVOTIONAL (always rendered when active) ── */}
       {activeTab === 'devotional' && (
         <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="journal-5ps-card">
           <div className="flex items-center justify-between mb-2">
