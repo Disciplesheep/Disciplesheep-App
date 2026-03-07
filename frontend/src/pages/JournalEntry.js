@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router-dom';
 import { useJournalData, useLocalStorage } from '@/hooks/useLocalStorage';
 import {
   CheckCircle2, Clock, BookOpen, FileText, FolderOpen, Maximize2, Minimize2,
-  Trash2, X, FileType2, AlertCircle, Hand, Plus, CheckCheck,
+  Trash2, X, FileType2, AlertCircle, Plus, CheckCheck,
   RotateCcw, Calendar, Star, Flame, Heart, Home, Users, Globe, Filter,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -22,7 +22,16 @@ const MAX_FILE_BYTES = 15 * 1024 * 1024;
 /* Tab definitions — used for the right-side FABs */
 const TABS = [
   { id: 'devotional', Icon: BookOpen,  label: "5P's",   color: 'bg-forest-500 hover:bg-forest-700', shadow: 'shadow-forest-900/30' },
-  { id: 'prayer',     Icon: Hand,      label: 'Prayer', color: 'bg-rose-600 hover:bg-rose-700',     shadow: 'shadow-rose-900/30'   },
+  { id: 'prayer',     Icon: () => (
+    <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {/* Left hand */}
+      <path d="M6.5 14 L4 11 C3.2 10 3.5 8.7 4.5 8.1 C5.3 7.6 6.3 7.8 7 8.5 L9 11 L9 17 C9 18.7 7.7 20 6 20 L5 20 C4.4 20 4 19.6 4 19 L4 16 C4 15 5 14 6.5 14 Z" />
+      {/* Right hand */}
+      <path d="M17.5 14 L20 11 C20.8 10 20.5 8.7 19.5 8.1 C18.7 7.6 17.7 7.8 17 8.5 L15 11 L15 17 C15 18.7 16.3 20 18 20 L19 20 C19.6 20 20 19.6 20 19 L20 16 C20 15 19 14 17.5 14 Z" />
+      {/* Fingers meeting at top */}
+      <path d="M9 11 L9 6 C9 5 9.8 4 11 4 L13 4 C14.2 4 15 5 15 6 L15 11" />
+    </svg>
+  ), label: 'Prayer', color: 'bg-rose-600 hover:bg-rose-700',     shadow: 'shadow-rose-900/30'   },
   { id: 'pdf',        Icon: FileText,  label: 'Files',  color: 'bg-stone-600 hover:bg-stone-700',   shadow: 'shadow-stone-900/30'  },
 ];
 
