@@ -149,12 +149,12 @@ const DocxViewer = ({ dataUrl, fontSize = 16 }) => {
 };
 
 /* ── WritingField ────────────────────────────────────────────────────────── */
-const WritingField = React.memo(({ id, label, value, onChange, placeholder, testId }) => (
+const WritingField = React.memo(({ id, label, value, onChange, onFocus, onBlur, placeholder, testId }) => (
   <div>
     <Label htmlFor={id} className="text-xs uppercase tracking-widest text-mango-500 dark:text-mango-400 font-bold mb-2 block">
       {label}
     </Label>
-    <Textarea id={id} value={value} onChange={onChange} onInput={autoGrow} placeholder={placeholder}
+    <Textarea id={id} value={value} onChange={onChange} onInput={autoGrow} onFocus={onFocus} onBlur={onBlur} placeholder={placeholder}
       className="lined-paper bg-transparent border-none focus:ring-0 text-base font-serif text-stone-800 dark:text-stone-200 placeholder:text-stone-400 dark:placeholder:text-stone-500 leading-[2rem] pt-1 pb-0"
       style={WRITING_STYLE} data-testid={testId} />
   </div>
@@ -573,11 +573,10 @@ const JournalEntry = () => {
   const [saveStatus, setSaveStatus] = useState('saved');
   const [activeTab,  setActiveTab]  = useState('devotional');
 
-  /* ── FAB visibility (hide-on-scroll + hide-on-typing) ── */
-  const [fabVisible,  setFabVisible]  = useState(true);
-  const [isTyping,    setIsTyping]    = useState(false);
+  /* ── FAB visibility (hide-on-scroll + hide-while-field-focused) ── */
+  const [fabVisible,     setFabVisible]     = useState(true);
+  const [isFieldFocused, setIsFieldFocused] = useState(false);
   const scrollTimer = useRef(null);
-  const typingTimer = useRef(null);
 
   useEffect(() => {
     const onScroll = () => {
@@ -589,13 +588,8 @@ const JournalEntry = () => {
     return () => { window.removeEventListener('scroll', onScroll); clearTimeout(scrollTimer.current); };
   }, []);
 
-  const handleTypingStart = useCallback(() => {
-    setIsTyping(true);
-    clearTimeout(typingTimer.current);
-    typingTimer.current = setTimeout(() => setIsTyping(false), 1500);
-  }, []);
-
-  useEffect(() => () => clearTimeout(typingTimer.current), []);
+  const handleFieldFocus = useCallback(() => setIsFieldFocused(true),  []);
+  const handleFieldBlur  = useCallback(() => setIsFieldFocused(false), []);
 
   // Rebuild when date changes
   useEffect(() => {
@@ -622,9 +616,9 @@ const JournalEntry = () => {
   }, [entry]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Stable setters
-  const setPracticeNotes = useCallback((e) => { handleTypingStart(); setEntry(prev => ({ ...prev, practiceNotes: e.target.value })); }, [handleTypingStart]);
-  const setPraises       = useCallback((e) => { handleTypingStart(); setEntry(prev => ({ ...prev, praises: e.target.value })); }, [handleTypingStart]);
-  const setPrayer        = useCallback((e) => { handleTypingStart(); setEntry(prev => ({ ...prev, prayer:  e.target.value })); }, [handleTypingStart]);
+  const setPracticeNotes = useCallback((e) => setEntry(prev => ({ ...prev, practiceNotes: e.target.value })), []);
+  const setPraises       = useCallback((e) => setEntry(prev => ({ ...prev, praises: e.target.value })), []);
+  const setPrayer        = useCallback((e) => setEntry(prev => ({ ...prev, prayer:  e.target.value })), []);
 
   // File state
   const [savedFiles,   setSavedFiles]   = useLocalStorage('savedPdfs', []);
@@ -703,7 +697,7 @@ const JournalEntry = () => {
 
       {/* ── Right-side FABs — matches ExpenseLedger positioning ── */}
       <div className={`fixed right-16 top-[74%] z-40 flex flex-col gap-6 items-center transition-all duration-150 ${
-        fabVisible && !isTyping ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-16 pointer-events-none'
+        fabVisible && !isFieldFocused ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-16 pointer-events-none'
       }`}>
         {TABS.filter(({ id }) => id !== activeTab).map(({ id, Icon, label, color, shadow }) => (
           <button key={id} onClick={() => handleTabClick(id)} title={label}
@@ -752,17 +746,17 @@ const JournalEntry = () => {
               <div className="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 p-4 rounded-r-lg mb-3">
                 <p className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed font-medium">{entry.practice}</p>
               </div>
-              <Textarea id="je-practice-notes" value={entry.practiceNotes} onChange={setPracticeNotes} onInput={autoGrow}
+              <Textarea id="je-practice-notes" value={entry.practiceNotes} onChange={setPracticeNotes} onInput={autoGrow} onFocus={handleFieldFocus} onBlur={handleFieldBlur}
                 placeholder="Write how you will apply this today…"
                 className="lined-paper bg-transparent border-none focus:ring-0 text-base font-serif text-stone-800 dark:text-stone-200 placeholder:text-stone-400 dark:placeholder:text-stone-500 leading-[2rem] pt-1 pb-0"
                 style={WRITING_STYLE} />
             </div>
             <WritingField id="je-praises" label="🙌 Praises — What do I thank God for?"
-              value={entry.praises} onChange={setPraises}
+              value={entry.praises} onChange={setPraises} onFocus={handleFieldFocus} onBlur={handleFieldBlur}
               placeholder="Express your gratitude based on today's passage..."
               testId="praises-input" />
             <WritingField id="je-prayer" label="🙏 Prayer — My prayers for today"
-              value={entry.prayer} onChange={setPrayer}
+              value={entry.prayer} onChange={setPrayer} onFocus={handleFieldFocus} onBlur={handleFieldBlur}
               placeholder="Pray the passage back to God, intercede for Timothys and Puerto Princesa..."
               testId="prayer-input" />
           </div>
