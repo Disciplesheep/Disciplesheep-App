@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format, isToday, isPast, addMinutes, addMonths, subMonths, setMonth, setYear } from 'date-fns';
 import { useJournalData } from '@/hooks/useLocalStorage';
-import { CalendarDays, Plus, Bell, Trash2, Edit2, Clock, ChevronDown, ChevronLeft, ChevronRight, Cake } from 'lucide-react';
+import { CalendarDays, Plus, Bell, Trash2, Edit2, Clock, ChevronDown, ChevronLeft, ChevronRight, Cake, X } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,52 +57,79 @@ const MonthYearPicker = ({ viewMonth, onChange, onClose }) => {
   const years = Array.from({ length: 20 }, (_, i) => currentYear - 5 + i);
 
   return (
-    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white dark:bg-stone-800 rounded-2xl shadow-2xl border border-stone-200 dark:border-stone-700 overflow-hidden">
-      {pickingYear ? (
-        <div className="p-3">
-          <p className="text-xs uppercase tracking-widest text-stone-400 font-bold mb-2 px-1">Select Year</p>
-          <div className="grid grid-cols-4 gap-1.5">
-            {years.map(y => (
-              <button key={y} onClick={() => { onChange(setYear(viewMonth, y)); setPickingYear(false); onClose(); }}
-                className={`py-2 rounded-xl text-sm font-semibold transition-colors ${
-                  y === viewMonth.getFullYear()
-                    ? 'bg-forest-500 text-white'
-                    : 'text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
-                }`}
-                style={{ minHeight: 0 }}>
-                {y}
-              </button>
-            ))}
-          </div>
-          <button onClick={() => setPickingYear(false)} className="mt-2 w-full text-xs text-stone-400 hover:text-stone-600 py-1" style={{ minHeight: 0 }}>
-            ← Back to months
+    <div className="fixed inset-0 z-[80] flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-sm bg-white dark:bg-stone-800 rounded-3xl shadow-2xl border border-stone-100 dark:border-stone-700 overflow-hidden">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-2">
+          <p className="font-serif text-xl font-bold text-stone-900 dark:text-stone-100">
+            {pickingYear ? 'Select Year' : 'Select Month'}
+          </p>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-stone-100 dark:bg-stone-700 text-stone-500 hover:text-stone-700 dark:hover:text-stone-300 transition-colors">
+            <X className="w-4 h-4" />
           </button>
         </div>
-      ) : (
-        <div className="p-3">
-          <div className="flex items-center justify-between mb-2 px-1">
-            <p className="text-xs uppercase tracking-widest text-stone-400 font-bold">Select Month</p>
-            <button onClick={() => setPickingYear(true)}
-              className="text-xs font-bold text-forest-600 dark:text-forest-400 hover:underline px-2 py-1 rounded-lg hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+
+        {pickingYear ? (
+          <div className="px-6 pb-6">
+            <div className="grid grid-cols-4 gap-2 mt-3">
+              {years.map(y => (
+                <button key={y} onClick={() => { onChange(setYear(viewMonth, y)); setPickingYear(false); onClose(); }}
+                  className={`py-3 rounded-xl text-sm font-semibold transition-colors ${
+                    y === viewMonth.getFullYear()
+                      ? 'bg-forest-500 text-white'
+                      : 'text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
+                  }`}
+                  style={{ minHeight: 0 }}>
+                  {y}
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setPickingYear(false)}
+              className="mt-4 w-full text-sm text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 py-2 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-700 transition-colors"
               style={{ minHeight: 0 }}>
-              {viewMonth.getFullYear()} ›
+              ← Back to months
             </button>
           </div>
-          <div className="grid grid-cols-3 gap-1.5">
-            {MONTHS.map((m, i) => (
-              <button key={m} onClick={() => { onChange(setMonth(viewMonth, i)); onClose(); }}
-                className={`py-2 rounded-xl text-sm font-medium transition-colors ${
-                  i === viewMonth.getMonth()
-                    ? 'bg-forest-500 text-white'
-                    : 'text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
-                }`}
+        ) : (
+          <div className="px-6 pb-6">
+            {/* Year selector row */}
+            <div className="flex items-center justify-center gap-3 mt-3 mb-4">
+              <button onClick={() => onChange(setYear(viewMonth, viewMonth.getFullYear() - 1))}
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-500 transition-colors"
                 style={{ minHeight: 0 }}>
-                {m.slice(0, 3)}
+                <ChevronLeft className="w-5 h-5" />
               </button>
-            ))}
+              <button onClick={() => setPickingYear(true)}
+                className="px-5 py-2 rounded-xl bg-stone-100 dark:bg-stone-700 hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors"
+                style={{ minHeight: 0 }}>
+                <span className="font-bold text-stone-900 dark:text-stone-100 text-lg">{viewMonth.getFullYear()}</span>
+              </button>
+              <button onClick={() => onChange(setYear(viewMonth, viewMonth.getFullYear() + 1))}
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-500 transition-colors"
+                style={{ minHeight: 0 }}>
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Month grid */}
+            <div className="grid grid-cols-3 gap-2">
+              {MONTHS.map((m, i) => (
+                <button key={m} onClick={() => { onChange(setMonth(viewMonth, i)); onClose(); }}
+                  className={`py-4 rounded-xl text-sm font-medium transition-colors ${
+                    i === viewMonth.getMonth()
+                      ? 'bg-forest-500 text-white'
+                      : 'text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
+                  }`}
+                  style={{ minHeight: 0 }}>
+                  {m.slice(0, 3)}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
@@ -110,50 +137,37 @@ const MonthYearPicker = ({ viewMonth, onChange, onClose }) => {
 /* ── Calendar Nav Header ────────────────────────────────────────────────── */
 const CalendarNavHeader = ({ viewMonth, setViewMonth }) => {
   const [pickerOpen, setPickerOpen] = useState(false);
-  const ref = useRef();
-
-  useEffect(() => {
-    if (!pickerOpen) return;
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setPickerOpen(false); };
-    document.addEventListener('mousedown', handler);
-    document.addEventListener('touchstart', handler);
-    return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('touchstart', handler); };
-  }, [pickerOpen]);
 
   return (
-    <div className="flex items-center justify-between px-3 pt-3 pb-1" ref={ref}>
-      {/* Prev month */}
+    <div className="flex items-center justify-between px-3 pt-3 pb-1">
       <button onClick={() => setViewMonth(m => subMonths(m, 1))}
         className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400 transition-colors"
         style={{ minHeight: 0 }}>
         <ChevronLeft className="w-5 h-5" />
       </button>
 
-      {/* Month/Year button */}
-      <div className="relative">
-        <button onClick={() => setPickerOpen(v => !v)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
-          style={{ minHeight: 0 }}>
-          <span className="font-serif font-bold text-stone-900 dark:text-stone-100 text-base">
-            {format(viewMonth, 'MMMM yyyy')}
-          </span>
-          <ChevronDown className={`w-4 h-4 text-stone-400 transition-transform ${pickerOpen ? 'rotate-180' : ''}`} />
-        </button>
-        {pickerOpen && (
-          <MonthYearPicker
-            viewMonth={viewMonth}
-            onChange={setViewMonth}
-            onClose={() => setPickerOpen(false)}
-          />
-        )}
-      </div>
+      <button onClick={() => setPickerOpen(v => !v)}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
+        style={{ minHeight: 0 }}>
+        <span className="font-serif font-bold text-stone-900 dark:text-stone-100 text-base">
+          {format(viewMonth, 'MMMM yyyy')}
+        </span>
+        <ChevronDown className={`w-4 h-4 text-stone-400 transition-transform ${pickerOpen ? 'rotate-180' : ''}`} />
+      </button>
 
-      {/* Next month */}
       <button onClick={() => setViewMonth(m => addMonths(m, 1))}
         className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400 transition-colors"
         style={{ minHeight: 0 }}>
         <ChevronRight className="w-5 h-5" />
       </button>
+
+      {pickerOpen && (
+        <MonthYearPicker
+          viewMonth={viewMonth}
+          onChange={setViewMonth}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
     </div>
   );
 };
