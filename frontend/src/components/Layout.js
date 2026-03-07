@@ -402,36 +402,59 @@ const Layout = () => {
 
   const outletContext = { journalDate, setJournalDate, pickerOpen, setPickerOpen };
 
-  // ── Exit app on Back button ───────────────────────────────────────────────
-  const [showExitToast, setShowExitToast] = useState(false);
-  const exitTimerRef   = useRef(null);
-  const showExitToastRef = useRef(false);
+  // ── Auto-export backup helper ─────────────────────────────────────────────
+  const triggerAutoExport = () => {
+    const DATA_KEYS = ['dailyEntries','peopleContacts','expenses','weeklyReports','monthlyReports','calendarEvents'];
+    const backup = { _version: 1, _exportedAt: new Date().toISOString() };
+    DATA_KEYS.forEach(key => {
+      try { const r = localStorage.getItem(key); backup[key] = r ? JSON.parse(r) : null; }
+      catch { backup[key] = null; }
+    });
+    backup._profile = {
+      name:  localStorage.getItem('profile_name')  || '',
+      photo: localStorage.getItem('profile_photo') || '',
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `disciplesheep-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
-  useEffect(() => { showExitToastRef.current = showExitToast; }, [showExitToast]);
+  // ── Exit app on Back button (3 presses: warn → backup → exit) ────────────
+  const [exitToastMsg, setExitToastMsg] = useState('');
+  const exitStepRef  = useRef(0);
+  const exitTimerRef = useRef(null);
+
+  const resetExitStep = () => { exitStepRef.current = 0; setExitToastMsg(''); };
 
   useEffect(() => {
     window.history.pushState({ appEntry: true }, '');
 
     const onPopState = (e) => {
       if (e.state?.pdfOpen) return;
-
-      // ── Skip exit logic if any dialog/form card is currently open ──
       if (window.__dialogOpenCount > 0) return;
 
       window.history.pushState({ appEntry: true }, '');
+      clearTimeout(exitTimerRef.current);
 
-      if (showExitToastRef.current) {
-        clearTimeout(exitTimerRef.current);
-        setShowExitToast(false);
+      const step = exitStepRef.current;
+
+      if (step === 0) {
+        exitStepRef.current = 1;
+        setExitToastMsg('Press back again to save backup');
+        exitTimerRef.current = setTimeout(resetExitStep, 3000);
+      } else if (step === 1) {
+        exitStepRef.current = 2;
+        triggerAutoExport();
+        setExitToastMsg('✅ Backup saved! Press back once more to exit');
+        exitTimerRef.current = setTimeout(resetExitStep, 4000);
+      } else {
+        resetExitStep();
         if (window.navigator.app) window.navigator.app.exitApp();
         else window.close();
-      } else {
-        setShowExitToast(true);
-        showExitToastRef.current = true;
-        exitTimerRef.current = setTimeout(() => {
-          setShowExitToast(false);
-          showExitToastRef.current = false;
-        }, 2000);
       }
     };
 
@@ -445,7 +468,7 @@ const Layout = () => {
   return (
     <div className="min-h-screen bg-paper dark:bg-stone-900 transition-colors">
 
-      {showExitToast && (
+      {exitToastMsg && (
         <div
           className="fixed left-1/2 z-[200] px-5 py-2.5 rounded-full bg-stone-900/90 dark:bg-stone-100/90 text-white dark:text-stone-900 text-sm font-medium shadow-xl backdrop-blur-sm transition-all"
           style={{
@@ -454,7 +477,7 @@ const Layout = () => {
             whiteSpace: 'nowrap',
           }}
         >
-          Press back again to exit
+          {exitToastMsg}
         </div>
       )}
 
