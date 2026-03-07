@@ -450,8 +450,19 @@ const Layout = () => {
   // Only these 5 root pages trigger the 3-tap exit rule
   const ROOT_PAGES = ['/', '/stewardship', '/journal', '/calendar', '/discipleship'];
 
+  // Push a sentinel history entry every time we arrive at a root page.
+  // This ensures pressing back pops a same-URL state-only entry so React Router
+  // never navigates away — our popstate handler intercepts it instead.
   useEffect(() => {
-    window.history.pushState({ appEntry: true }, '');
+    if (ROOT_PAGES.includes(location.pathname)) {
+      window.history.pushState({ appEntry: true }, '');
+    } else {
+      // Reset exit step when leaving root pages
+      resetExitStep();
+    }
+  }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
 
     const onPopState = (e) => {
       if (e.state?.pdfOpen) return;
@@ -460,6 +471,7 @@ const Layout = () => {
       // On sub-pages, let the browser handle back navigation normally
       if (!ROOT_PAGES.includes(window.location.pathname)) return;
 
+      // Re-push sentinel so the NEXT back press is also intercepted
       window.history.pushState({ appEntry: true }, '');
       clearTimeout(exitTimerRef.current);
 
