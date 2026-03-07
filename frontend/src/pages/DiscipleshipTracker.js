@@ -137,11 +137,11 @@ const DiscipleshipTracker = () => {
           <DialogHeader>
             <DialogTitle className="font-serif text-2xl">{editingId ? 'Edit Disciple' : 'Add New Disciple'}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 mt-4" data-form>
+          {/* CHANGED: added max-h-[60vh] overflow-y-auto dialog-scroll */}
+          <div className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto dialog-scroll" data-form>
 
             <div>
               <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">Name *</Label>
-              {/* ── text-xs added to all inputs/selects below ── */}
               <Input ref={refName} type="text" value={formData.name} autoFocus
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                 onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
