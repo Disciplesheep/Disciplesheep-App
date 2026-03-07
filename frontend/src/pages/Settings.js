@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Moon, Sun, Sunrise, Type, Settings as SettingsIcon, Lock, ShieldCheck, ShieldOff, Eye, EyeOff } from 'lucide-react';
+import { Moon, Sun, Sunrise, Type, Settings as SettingsIcon, Lock, ShieldCheck, ShieldOff, Eye, EyeOff, Download } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useProfilePassword } from '@/hooks/useProfilePassword';
@@ -242,6 +242,108 @@ const SecurityCard = () => {
   );
 };
 
+// ── Backup filename helper ────────────────────────────────────────────────────
+const getBackupFilename = () => {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const time = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+  return `DS-Backup-${date}_${time}.json`;
+};
+
+// ── Export Card ───────────────────────────────────────────────────────────────
+const ExportCard = () => {
+  const [status, setStatus] = useState(null); // 'success' | 'empty' | 'error'
+
+  const handleExport = () => {
+    try {
+      // Collect all localStorage data
+      const allData = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        try {
+          allData[key] = JSON.parse(localStorage.getItem(key));
+        } catch {
+          allData[key] = localStorage.getItem(key);
+        }
+      }
+
+      if (Object.keys(allData).length === 0) {
+        setStatus('empty');
+        setTimeout(() => setStatus(null), 3000);
+        return;
+      }
+
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        appVersion: '1.0',
+        app: 'Disciplesheep',
+        data: allData,
+      };
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = getBackupFilename();
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setStatus('success');
+      setTimeout(() => setStatus(null), 3000);
+    } catch (err) {
+      console.error('Export failed:', err);
+      setStatus('error');
+      setTimeout(() => setStatus(null), 3000);
+    }
+  };
+
+  return (
+    <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="export-card">
+      <h2 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100 mb-4">Backup & Export</h2>
+
+      <div className="flex items-start gap-3 mb-5">
+        <div className="w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+          <Download className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">Export All Data</p>
+          <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5 leading-relaxed">
+            Downloads a full snapshot of all your journal entries, settings, and app data as a JSON file.
+            The file will be named <span className="font-mono text-stone-600 dark:text-stone-300">DS-Backup-YYYY-MM-DD_HH-MM-SS.json</span>.
+          </p>
+        </div>
+      </div>
+
+      <button
+        onClick={handleExport}
+        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 active:scale-95 text-white text-sm font-medium transition-all"
+      >
+        <Download className="w-4 h-4" />
+        Download Backup
+      </button>
+
+      {status === 'success' && (
+        <p className="text-xs text-forest-600 dark:text-forest-400 font-medium mt-3">
+          ✓ Backup downloaded successfully.
+        </p>
+      )}
+      {status === 'empty' && (
+        <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-3">
+          No data found to export yet.
+        </p>
+      )}
+      {status === 'error' && (
+        <p className="text-xs text-red-500 font-medium mt-3">
+          Export failed. Please try again.
+        </p>
+      )}
+    </Card>
+  );
+};
+
 // ── Main Settings Page ────────────────────────────────────────────────────────
 const Settings = () => {
   const { themeMode, changeThemeMode, fontSize, changeFontSize } = useTheme();
@@ -354,6 +456,9 @@ const Settings = () => {
 
         {/* Security — Delete Guard */}
         <SecurityCard />
+
+        {/* Backup & Export */}
+        <ExportCard />
 
         {/* Data & Storage */}
         <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 p-6" data-testid="data-card">
