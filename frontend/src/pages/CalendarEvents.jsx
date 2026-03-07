@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { format, isToday, isPast, addMinutes, addMonths, subMonths, setMonth, setYear } from 'date-fns';
 import { useJournalData } from '@/hooks/useLocalStorage';
 import { CalendarDays, Plus, Bell, Trash2, Edit2, Clock, ChevronDown, ChevronLeft, ChevronRight, Cake, X } from 'lucide-react';
@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Calendar } from '@/components/ui/calendar';
 import { toast } from 'sonner';
 
-/* ── Constants ──────────────────────────────────────────────────────────── */
+/* ── Constants — module-level, never re-allocated ────────────────────────── */
 const EVENT_COLORS = [
   { value: 'forest',  label: 'Green',  bg: '#4d7c0f', dot: '#4d7c0f' },
   { value: 'amber',   label: 'Amber',  bg: '#d97706', dot: '#d97706' },
@@ -19,16 +19,19 @@ const EVENT_COLORS = [
   { value: 'purple',  label: 'Purple', bg: '#a855f7', dot: '#a855f7' },
   { value: 'stone',   label: 'Stone',  bg: '#78716c', dot: '#78716c' },
 ];
-const colorFor = (v) => EVENT_COLORS.find(c => c.value === v) || EVENT_COLORS[0];
-const toKey    = (d) => format(new Date(d), 'yyyy-MM-dd');
-const emptyForm = (date) => ({
-  title: '', date: date || toKey(new Date()), time: '',
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const REMIND_PRESETS = ['10','30','60','120'];
+
+/* ── Pure helpers — module-level ─────────────────────────────────────────── */
+const colorFor   = (v) => EVENT_COLORS.find(c => c.value === v) ?? EVENT_COLORS[0];
+const toKey      = (d) => format(new Date(d), 'yyyy-MM-dd');
+const emptyForm  = (date) => ({
+  title: '', date: date ?? toKey(new Date()), time: '',
   description: '', color: 'forest', remind: false, remindMinutes: '30',
 });
 
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-
-/* ── Browser notification helpers ──────────────────────────────────────── */
+/* ── Notification helpers — module-level ─────────────────────────────────── */
 const requestNotifPermission = async () => {
   if (!('Notification' in window)) return false;
   if (Notification.permission === 'granted') return true;
@@ -42,26 +45,41 @@ const scheduleNotification = (event) => {
   const notifTime = addMinutes(eventDate, -(parseInt(event.remindMinutes) || 30));
   const ms = notifTime.getTime() - Date.now();
   if (ms <= 0) return;
-  setTimeout(() => {
-    new Notification(`📅 ${event.title}`, {
-      body: `Starting ${event.time ? `at ${event.time}` : 'soon'}${event.description ? ` · ${event.description}` : ''}`,
-      icon: '/favicon.ico',
-    });
-  }, ms);
+  setTimeout(() => new Notification(`📅 ${event.title}`, {
+    body: `Starting ${event.time ? `at ${event.time}` : 'soon'}${event.description ? ` · ${event.description}` : ''}`,
+    icon: '/favicon.ico',
+  }), ms);
 };
 
-/* ── Month/Year Picker ──────────────────────────────────────────────────── */
-const MonthYearPicker = ({ viewMonth, onChange, onClose }) => {
+/* ── Inline CSS — module-level string, not recreated on render ───────────── */
+const CAL_STYLES = `
+  .full-cal .rdp { margin: 0; width: 100%; }
+  .full-cal .rdp-months { width: 100%; }
+  .full-cal .rdp-month { width: 100%; }
+  .full-cal .rdp-table { width: 100%; border-collapse: collapse; }
+  .full-cal .rdp-head_row,
+  .full-cal .rdp-row { display: grid; grid-template-columns: repeat(7, 1fr); width: 100%; }
+  .full-cal .rdp-head_cell { text-align: center; padding: 8px 4px; font-size: 0.75rem; }
+  .full-cal .rdp-cell { display: flex; justify-content: center; align-items: center; padding: 3px 0; }
+  .full-cal .rdp-day { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; }
+  .full-cal .rdp-caption { display: none; }
+  .full-cal .rdp-nav { display: none; }
+  .full-cal .rdp-tbody { display: block; width: 100%; }
+  .full-cal [class*="rdp-day_selected"] { background-color: #166534 !important; color: white !important; border-radius: 50% !important; }
+  .full-cal [class*="rdp-day_today"]:not([class*="rdp-day_selected"]) { font-weight: bold; color: #166534; }
+`;
+
+/* ── MonthYearPicker ─────────────────────────────────────────────────────── */
+const MonthYearPicker = React.memo(({ viewMonth, onChange, onClose }) => {
   const currentYear = new Date().getFullYear();
   const [pickingYear, setPickingYear] = useState(false);
-  const years = Array.from({ length: 20 }, (_, i) => currentYear - 5 + i);
+  // Stable array — same length every render, derived only from currentYear
+  const years = useMemo(() => Array.from({ length: 20 }, (_, i) => currentYear - 5 + i), [currentYear]);
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-sm bg-white dark:bg-stone-800 rounded-3xl shadow-2xl border border-stone-100 dark:border-stone-700 overflow-hidden">
-
-        {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-2">
           <p className="font-serif text-xl font-bold text-stone-900 dark:text-stone-100">
             {pickingYear ? 'Select Year' : 'Select Month'}
@@ -80,8 +98,7 @@ const MonthYearPicker = ({ viewMonth, onChange, onClose }) => {
                     y === viewMonth.getFullYear()
                       ? 'bg-forest-500 text-white'
                       : 'text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
-                  }`}
-                  style={{ minHeight: 0 }}>
+                  }`} style={{ minHeight: 0 }}>
                   {y}
                 </button>
               ))}
@@ -94,26 +111,20 @@ const MonthYearPicker = ({ viewMonth, onChange, onClose }) => {
           </div>
         ) : (
           <div className="px-6 pb-6">
-            {/* Year selector row */}
             <div className="flex items-center justify-center gap-3 mt-3 mb-4">
               <button onClick={() => onChange(setYear(viewMonth, viewMonth.getFullYear() - 1))}
-                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-500 transition-colors"
-                style={{ minHeight: 0 }}>
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-500 transition-colors" style={{ minHeight: 0 }}>
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button onClick={() => setPickingYear(true)}
-                className="px-5 py-2 rounded-xl bg-stone-100 dark:bg-stone-700 hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors"
-                style={{ minHeight: 0 }}>
+                className="px-5 py-2 rounded-xl bg-stone-100 dark:bg-stone-700 hover:bg-stone-200 dark:hover:bg-stone-600 transition-colors" style={{ minHeight: 0 }}>
                 <span className="font-bold text-stone-900 dark:text-stone-100 text-lg">{viewMonth.getFullYear()}</span>
               </button>
               <button onClick={() => onChange(setYear(viewMonth, viewMonth.getFullYear() + 1))}
-                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-500 transition-colors"
-                style={{ minHeight: 0 }}>
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-500 transition-colors" style={{ minHeight: 0 }}>
                 <ChevronRight className="w-5 h-5" />
               </button>
             </div>
-
-            {/* Month grid */}
             <div className="grid grid-cols-3 gap-2">
               {MONTHS.map((m, i) => (
                 <button key={m} onClick={() => { onChange(setMonth(viewMonth, i)); onClose(); }}
@@ -121,8 +132,7 @@ const MonthYearPicker = ({ viewMonth, onChange, onClose }) => {
                     i === viewMonth.getMonth()
                       ? 'bg-forest-500 text-white'
                       : 'text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
-                  }`}
-                  style={{ minHeight: 0 }}>
+                  }`} style={{ minHeight: 0 }}>
                   {m.slice(0, 3)}
                 </button>
               ))}
@@ -132,67 +142,61 @@ const MonthYearPicker = ({ viewMonth, onChange, onClose }) => {
       </div>
     </div>
   );
-};
+});
+MonthYearPicker.displayName = 'MonthYearPicker';
 
-/* ── Calendar Nav Header ────────────────────────────────────────────────── */
-const CalendarNavHeader = ({ viewMonth, setViewMonth }) => {
+/* ── CalendarNavHeader ───────────────────────────────────────────────────── */
+const CalendarNavHeader = React.memo(({ viewMonth, setViewMonth }) => {
   const [pickerOpen, setPickerOpen] = useState(false);
+  const prevMonth = useCallback(() => setViewMonth(m => subMonths(m, 1)), [setViewMonth]);
+  const nextMonth = useCallback(() => setViewMonth(m => addMonths(m, 1)), [setViewMonth]);
+  const togglePicker = useCallback(() => setPickerOpen(v => !v), []);
+  const closePicker  = useCallback(() => setPickerOpen(false), []);
 
   return (
     <div className="flex items-center justify-between px-3 pt-3 pb-1">
-      <button onClick={() => setViewMonth(m => subMonths(m, 1))}
-        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400 transition-colors"
-        style={{ minHeight: 0 }}>
+      <button onClick={prevMonth} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400 transition-colors" style={{ minHeight: 0 }}>
         <ChevronLeft className="w-5 h-5" />
       </button>
-
-      <button onClick={() => setPickerOpen(v => !v)}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors"
-        style={{ minHeight: 0 }}>
-        <span className="font-serif font-bold text-stone-900 dark:text-stone-100 text-base">
-          {format(viewMonth, 'MMMM yyyy')}
-        </span>
+      <button onClick={togglePicker} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors" style={{ minHeight: 0 }}>
+        <span className="font-serif font-bold text-stone-900 dark:text-stone-100 text-base">{format(viewMonth, 'MMMM yyyy')}</span>
         <ChevronDown className={`w-4 h-4 text-stone-400 transition-transform ${pickerOpen ? 'rotate-180' : ''}`} />
       </button>
-
-      <button onClick={() => setViewMonth(m => addMonths(m, 1))}
-        className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400 transition-colors"
-        style={{ minHeight: 0 }}>
+      <button onClick={nextMonth} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400 transition-colors" style={{ minHeight: 0 }}>
         <ChevronRight className="w-5 h-5" />
       </button>
-
-      {pickerOpen && (
-        <MonthYearPicker
-          viewMonth={viewMonth}
-          onChange={setViewMonth}
-          onClose={() => setPickerOpen(false)}
-        />
-      )}
+      {pickerOpen && <MonthYearPicker viewMonth={viewMonth} onChange={setViewMonth} onClose={closePicker} />}
     </div>
   );
-};
+});
+CalendarNavHeader.displayName = 'CalendarNavHeader';
 
-/* ── Event Form ─────────────────────────────────────────────────────────── */
-const EventForm = ({ open, onOpenChange, initial, onSave }) => {
-  const [form, setForm]     = useState(initial || emptyForm());
+/* ── EventForm ───────────────────────────────────────────────────────────── */
+const EventForm = React.memo(({ open, onOpenChange, initial, onSave }) => {
+  const [form, setForm]   = useState(initial ?? emptyForm());
   const [calOpen, setCalOpen] = useState(false);
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const set = useCallback((k, v) => setForm(f => ({ ...f, [k]: v })), []);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { setForm(initial || emptyForm()); }, [open]);
+  useEffect(() => { setForm(initial ?? emptyForm()); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!form.title.trim()) { toast.error('Title is required'); return; }
-    if (!form.date)         { toast.error('Date is required');  return; }
+    if (!form.date)          { toast.error('Date is required');  return; }
     if (form.remind) {
       const ok = await requestNotifPermission();
       if (!ok) toast.warning('Enable notifications in browser settings for reminders to work.');
     }
     onSave(form);
     onOpenChange(false);
-  };
+  }, [form, onSave, onOpenChange]);
 
-  const pickedDate = form.date ? new Date(form.date + 'T00:00:00') : new Date();
+  const pickedDate = useMemo(
+    () => form.date ? new Date(form.date + 'T00:00:00') : new Date(),
+    [form.date]
+  );
+
+  const toggleCal    = useCallback(() => setCalOpen(v => !v), []);
+  const toggleRemind = useCallback(() => set('remind', !form.remind), [form.remind, set]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -213,7 +217,7 @@ const EventForm = ({ open, onOpenChange, initial, onSave }) => {
 
           <div>
             <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-1 block">Date *</Label>
-            <button type="button" onClick={() => setCalOpen(v => !v)}
+            <button type="button" onClick={toggleCal}
               className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-stone-200 dark:border-stone-600 dark:bg-stone-700 text-sm hover:bg-stone-50 dark:hover:bg-stone-600 transition-colors"
               style={{ minHeight: 0 }}>
               <span className="flex items-center gap-2 text-stone-700 dark:text-stone-200">
@@ -249,7 +253,11 @@ const EventForm = ({ open, onOpenChange, initial, onSave }) => {
             <div className="flex gap-2">
               {EVENT_COLORS.map(c => (
                 <button key={c.value} type="button" onClick={() => set('color', c.value)}
-                  title={c.label} style={{ minHeight: 0, width: 28, height: 28, borderRadius: '50%', background: c.bg, border: form.color === c.value ? '3px solid #292524' : '3px solid transparent', transform: form.color === c.value ? 'scale(1.15)' : 'scale(1)', transition: 'all 0.15s', cursor: 'pointer' }} />
+                  title={c.label}
+                  style={{ minHeight: 0, width: 28, height: 28, borderRadius: '50%', background: c.bg,
+                    border: form.color === c.value ? '3px solid #292524' : '3px solid transparent',
+                    transform: form.color === c.value ? 'scale(1.15)' : 'scale(1)',
+                    transition: 'all 0.15s', cursor: 'pointer' }} />
               ))}
             </div>
           </div>
@@ -259,7 +267,7 @@ const EventForm = ({ open, onOpenChange, initial, onSave }) => {
               <Bell className="w-4 h-4 text-stone-500" />
               <span className="text-sm font-medium text-stone-700 dark:text-stone-300">Remind me</span>
             </div>
-            <button type="button" onClick={() => set('remind', !form.remind)} style={{ minHeight: 0 }}
+            <button type="button" onClick={toggleRemind} style={{ minHeight: 0 }}
               className={`relative w-11 h-6 rounded-full transition-colors ${form.remind ? 'bg-forest-500' : 'bg-stone-300 dark:bg-stone-600'}`}>
               <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.remind ? 'translate-x-5' : ''}`} />
             </button>
@@ -269,9 +277,13 @@ const EventForm = ({ open, onOpenChange, initial, onSave }) => {
             <div>
               <Label className="text-xs uppercase tracking-widest text-stone-500 font-bold mb-2 block">How many minutes before?</Label>
               <div className="flex gap-2 flex-wrap items-center">
-                {['10','30','60','120'].map(m => (
+                {REMIND_PRESETS.map(m => (
                   <button key={m} type="button" onClick={() => set('remindMinutes', m)} style={{ minHeight: 0 }}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${form.remindMinutes === m ? 'bg-forest-500 text-white border-forest-500' : 'border-stone-200 dark:border-stone-600 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'}`}>
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                      form.remindMinutes === m
+                        ? 'bg-forest-500 text-white border-forest-500'
+                        : 'border-stone-200 dark:border-stone-600 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-700'
+                    }`}>
                     {m === '60' ? '1 hr' : m === '120' ? '2 hrs' : `${m} min`}
                   </button>
                 ))}
@@ -289,11 +301,12 @@ const EventForm = ({ open, onOpenChange, initial, onSave }) => {
       </DialogContent>
     </Dialog>
   );
-};
+});
+EventForm.displayName = 'EventForm';
 
-/* ── Event Card ─────────────────────────────────────────────────────────── */
-const EventCard = ({ ev, onEdit, onDelete, isBirthday }) => {
-  const c = colorFor(ev.color || (isBirthday ? 'rose' : 'forest'));
+/* ── EventCard — pure display, memoized ─────────────────────────────────── */
+const EventCard = React.memo(({ ev, onEdit, onDelete, isBirthday }) => {
+  const c = colorFor(ev.color ?? (isBirthday ? 'rose' : 'forest'));
   return (
     <Card className="bg-white dark:bg-stone-800 rounded-xl border border-stone-100 dark:border-stone-700 p-4 flex items-start gap-3">
       <div style={{ width: 4, alignSelf: 'stretch', borderRadius: 4, background: c.dot, flexShrink: 0 }} />
@@ -328,22 +341,45 @@ const EventCard = ({ ev, onEdit, onDelete, isBirthday }) => {
       </div>
     </Card>
   );
+});
+EventCard.displayName = 'EventCard';
+
+/* ── DayContent — stable component ref so Calendar doesn't re-mount cells ── */
+const makeDayContent = (allEvents) => {
+  const DayContent = ({ date }) => {
+    const key  = toKey(date);
+    const dots = [...new Set(allEvents.filter(ev => ev.date === key).map(ev => ev.color ?? 'forest'))];
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', paddingBottom: dots.length ? 6 : 0 }}>
+        <span>{date.getDate()}</span>
+        {dots.length > 0 && (
+          <div style={{ display: 'flex', gap: 2, position: 'absolute', bottom: -4 }}>
+            {dots.slice(0, 3).map((c, i) => (
+              <span key={i} style={{ width: 4, height: 4, borderRadius: '50%', background: colorFor(c).dot }} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+  DayContent.displayName = 'DayContent';
+  return DayContent;
 };
 
-/* ── Main Page ──────────────────────────────────────────────────────────── */
+/* ── Main Page ───────────────────────────────────────────────────────────── */
 const CalendarEvents = () => {
   const { calendarEvents, setCalendarEvents, peopleContacts } = useJournalData();
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [viewMonth, setViewMonth]       = useState(new Date());
-  const [dialogOpen, setDialogOpen]     = useState(false);
+  const [viewMonth,    setViewMonth]    = useState(new Date());
+  const [dialogOpen,   setDialogOpen]   = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
 
+  // Schedule reminders once on mount
   useEffect(() => {
     calendarEvents.forEach(ev => { if (ev.remind) scheduleNotification(ev); });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Keep viewMonth in sync when selectedDate changes from outside (e.g. upcoming click)
+  // Sync viewMonth when selectedDate jumps to a different month
   useEffect(() => {
     setViewMonth(d => {
       if (d.getFullYear() === selectedDate.getFullYear() && d.getMonth() === selectedDate.getMonth()) return d;
@@ -351,36 +387,57 @@ const CalendarEvents = () => {
     });
   }, [selectedDate]);
 
-  const thisYear = new Date().getFullYear();
-  const birthdayEvents = (peopleContacts || [])
-    .filter(p => p.birthday)
-    .map(p => {
-      const bday = new Date(p.birthday + 'T00:00:00');
-      const thisYearBday = new Date(thisYear, bday.getMonth(), bday.getDate());
-      return {
-        id: `bday-${p.id}`,
-        title: `🎂 ${p.name}'s Birthday`,
-        date: toKey(thisYearBday),
-        color: 'rose',
-        isBirthday: true,
-        description: p.age ? `Turning ${parseInt(p.age) + (thisYear - bday.getFullYear())} this year` : '',
-      };
-    });
+  /* Birthday events — only recomputed when contacts change */
+  const birthdayEvents = useMemo(() => {
+    const thisYear = new Date().getFullYear();
+    return (peopleContacts ?? [])
+      .filter(p => p.birthday)
+      .map(p => {
+        const bday = new Date(p.birthday + 'T00:00:00');
+        const thisYearBday = new Date(thisYear, bday.getMonth(), bday.getDate());
+        return {
+          id: `bday-${p.id}`,
+          title: `🎂 ${p.name}'s Birthday`,
+          date: toKey(thisYearBday),
+          color: 'rose',
+          isBirthday: true,
+          description: p.age ? `Turning ${parseInt(p.age) + (thisYear - bday.getFullYear())} this year` : '',
+        };
+      });
+  }, [peopleContacts]);
 
-  const allEvents = [...calendarEvents, ...birthdayEvents];
+  /* Merged event list — only recomputed when either source changes */
+  const allEvents = useMemo(
+    () => [...calendarEvents, ...birthdayEvents],
+    [calendarEvents, birthdayEvents]
+  );
+
+  /* Day events for selected date */
   const selectedKey = toKey(selectedDate);
-  const dayEvents   = allEvents
-    .filter(ev => ev.date === selectedKey)
-    .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+  const dayEvents = useMemo(
+    () => allEvents
+      .filter(ev => ev.date === selectedKey)
+      .sort((a, b) => (a.time || '').localeCompare(b.time || '')),
+    [allEvents, selectedKey]
+  );
 
-  const upcoming = allEvents
-    .filter(ev => {
-      const d = new Date(ev.date + 'T23:59:59');
-      return !isPast(d) || isToday(new Date(ev.date + 'T00:00:00'));
-    })
-    .sort((a, b) => a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || ''));
+  /* Upcoming events */
+  const upcoming = useMemo(
+    () => allEvents
+      .filter(ev => {
+        const d = new Date(ev.date + 'T23:59:59');
+        return !isPast(d) || isToday(new Date(ev.date + 'T00:00:00'));
+      })
+      .sort((a, b) => a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || '')),
+    [allEvents]
+  );
 
-  const handleSave = (form) => {
+  /* DayContent component — stable ref, only recreated when allEvents changes */
+  const DayContent = useMemo(() => makeDayContent(allEvents), [allEvents]);
+  const calComponents = useMemo(() => ({ DayContent }), [DayContent]);
+
+  /* Stable handlers */
+  const handleSave = useCallback((form) => {
     if (editingEvent?.id && !editingEvent.id.startsWith('bday-')) {
       const updated = { ...form, id: editingEvent.id };
       setCalendarEvents(prev => prev.map(e => e.id === editingEvent.id ? updated : e));
@@ -393,35 +450,23 @@ const CalendarEvents = () => {
       toast.success('Event added!');
     }
     setEditingEvent(null);
-  };
+  }, [editingEvent, setCalendarEvents]);
 
-  const handleDelete = (id) => {
+  const handleDelete = useCallback((id) => {
     setCalendarEvents(prev => prev.filter(e => e.id !== id));
     toast.success('Event removed');
-  };
+  }, [setCalendarEvents]);
 
-  const openAdd = () => { setEditingEvent(emptyForm(selectedKey)); setDialogOpen(true); };
-  const openEdit = (ev) => { setEditingEvent(ev); setDialogOpen(true); };
+  const openAdd  = useCallback(() => { setEditingEvent(emptyForm(selectedKey)); setDialogOpen(true); }, [selectedKey]);
+  const openEdit = useCallback((ev) => { setEditingEvent(ev); setDialogOpen(true); }, []);
+  const closeDialog = useCallback((o) => { setDialogOpen(o); if (!o) setEditingEvent(null); }, []);
+
+  const handleSelectDate = useCallback((d) => { if (d) setSelectedDate(d); }, []);
+  const handleUpcomingClick = useCallback((ev) => setSelectedDate(new Date(ev.date + 'T00:00:00')), []);
 
   return (
     <div className="space-y-6 pb-6">
-
-      <style>{`
-        .full-cal .rdp { margin: 0; width: 100%; }
-        .full-cal .rdp-months { width: 100%; }
-        .full-cal .rdp-month { width: 100%; }
-        .full-cal .rdp-table { width: 100%; border-collapse: collapse; }
-        .full-cal .rdp-head_row,
-        .full-cal .rdp-row { display: grid; grid-template-columns: repeat(7, 1fr); width: 100%; }
-        .full-cal .rdp-head_cell { text-align: center; padding: 8px 4px; font-size: 0.75rem; }
-        .full-cal .rdp-cell { display: flex; justify-content: center; align-items: center; padding: 3px 0; }
-        .full-cal .rdp-day { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; }
-        .full-cal .rdp-caption { display: none; }
-        .full-cal .rdp-nav { display: none; }
-        .full-cal .rdp-tbody { display: block; width: 100%; }
-        .full-cal [class*="rdp-day_selected"] { background-color: #166534 !important; color: white !important; border-radius: 50% !important; }
-        .full-cal [class*="rdp-day_today"]:not([class*="rdp-day_selected"]) { font-weight: bold; color: #166534; }
-      `}</style>
+      <style>{CAL_STYLES}</style>
 
       {/* Header */}
       <div className="relative overflow-hidden rounded-2xl p-8 text-white bg-stone-800 dark:bg-stone-900">
@@ -434,7 +479,7 @@ const CalendarEvents = () => {
         </div>
       </div>
 
-      {/* Calendar with custom nav */}
+      {/* Calendar */}
       <Card className="bg-white dark:bg-stone-800 rounded-xl shadow-sm border border-stone-100 dark:border-stone-700 overflow-visible p-3">
         <CalendarNavHeader viewMonth={viewMonth} setViewMonth={setViewMonth} />
         <div className="full-cal w-full">
@@ -443,26 +488,9 @@ const CalendarEvents = () => {
             selected={selectedDate}
             month={viewMonth}
             onMonthChange={setViewMonth}
-            onSelect={d => { if (d) setSelectedDate(d); }}
+            onSelect={handleSelectDate}
             className="w-full"
-            components={{
-              DayContent: ({ date }) => {
-                const key = toKey(date);
-                const dots = [...new Set(allEvents.filter(ev => ev.date === key).map(ev => ev.color || 'forest'))];
-                return (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', paddingBottom: dots.length ? 6 : 0 }}>
-                    <span>{date.getDate()}</span>
-                    {dots.length > 0 && (
-                      <div style={{ display: 'flex', gap: 2, position: 'absolute', bottom: -4 }}>
-                        {dots.slice(0, 3).map((c, i) => (
-                          <span key={i} style={{ width: 4, height: 4, borderRadius: '50%', background: colorFor(c).dot }} />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-            }}
+            components={calComponents}
           />
         </div>
       </Card>
@@ -490,8 +518,7 @@ const CalendarEvents = () => {
         ) : (
           <div className="space-y-2">
             {dayEvents.map(ev => (
-              <EventCard key={ev.id} ev={ev} isBirthday={ev.isBirthday}
-                onEdit={openEdit} onDelete={handleDelete} />
+              <EventCard key={ev.id} ev={ev} isBirthday={ev.isBirthday} onEdit={openEdit} onDelete={handleDelete} />
             ))}
           </div>
         )}
@@ -503,10 +530,10 @@ const CalendarEvents = () => {
           <h2 className="font-serif text-lg font-semibold text-stone-900 dark:text-stone-100 mb-3">Upcoming</h2>
           <div className="space-y-2">
             {upcoming.slice(0, 10).map(ev => {
-              const c = colorFor(ev.color || 'forest');
+              const c = colorFor(ev.color ?? 'forest');
               const evDate = new Date(ev.date + 'T00:00:00');
               return (
-                <Card key={ev.id} onClick={() => setSelectedDate(evDate)}
+                <Card key={ev.id} onClick={() => handleUpcomingClick(ev)}
                   className="bg-white dark:bg-stone-800 rounded-xl border border-stone-100 dark:border-stone-700 p-4 flex items-center gap-3 cursor-pointer hover:shadow-md transition-shadow">
                   <div style={{ width: 4, height: 36, borderRadius: 4, background: c.dot, flexShrink: 0 }} />
                   <div className="flex-1 min-w-0">
@@ -527,8 +554,7 @@ const CalendarEvents = () => {
         </div>
       )}
 
-      <EventForm open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditingEvent(null); }}
-        initial={editingEvent} onSave={handleSave} />
+      <EventForm open={dialogOpen} onOpenChange={closeDialog} initial={editingEvent} onSave={handleSave} />
     </div>
   );
 };
