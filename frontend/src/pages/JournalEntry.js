@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { formatDate } from '@/utils/dateUtils';
 import { getDevotionalForDate } from '@/data/dailyDevotionals';
 import { toast } from 'sonner';
+import DisciplesheepGuide from './DisciplesheepGuide'; // adjust path as needed
 
 /* ── Constants ───────────────────────────────────────────────────────────── */
 const ACCEPT        = '.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -21,9 +22,10 @@ const MAX_FILE_BYTES = 15 * 1024 * 1024;
 
 /* Tab definitions — used for the right-side FABs */
 const TABS = [
-  { id: 'devotional', Icon: BookOpen,  label: "5P's",   color: 'bg-forest-500 hover:bg-forest-700', shadow: 'shadow-forest-900/30' },
-  { id: 'prayer',     Icon: () => <span style={{ fontSize: '24px', lineHeight: 1 }}>🙏</span>, label: 'Prayer', color: 'bg-violet-700 hover:bg-violet-800',   shadow: 'shadow-violet-900/30' },
-  { id: 'pdf',        Icon: FileText,  label: 'Files',  color: 'bg-stone-600 hover:bg-stone-700',   shadow: 'shadow-stone-900/30'  },
+  { id: 'devotional',   Icon: BookOpen,  label: "5P's",     color: 'bg-forest-500 hover:bg-forest-700',  shadow: 'shadow-forest-900/30' },
+  { id: 'prayer',       Icon: () => <span style={{ fontSize: '24px', lineHeight: 1 }}>🙏</span>, label: 'Prayer',   color: 'bg-violet-700 hover:bg-violet-800',  shadow: 'shadow-violet-900/30' },
+  { id: 'pdf',          Icon: FileText,  label: 'Files',    color: 'bg-stone-600 hover:bg-stone-700',    shadow: 'shadow-stone-900/30'  },
+  { id: 'discipleship', Icon: () => <span style={{ fontSize: '24px', lineHeight: 1 }}>🐑</span>, label: 'Disciple', color: 'bg-amber-700 hover:bg-amber-800',    shadow: 'shadow-amber-900/30'  },
 ];
 
 const WRITING_STYLE = {
@@ -676,7 +678,7 @@ const JournalEntry = () => {
     return () => window.removeEventListener('popstate', onPopState);
   }, [activeFile, closePdf]);
 
-  /* ── Tab switch: clicking the active tab goes back to devotional ── */
+  /* ── Tab switch: clicking the active non-devotional tab goes back to devotional ── */
   const handleTabClick = (id) => {
     setActiveTab(prev => (prev === id && id !== 'devotional') ? 'devotional' : id);
   };
@@ -685,14 +687,15 @@ const JournalEntry = () => {
   return (
     <div className="space-y-4 pb-6">
 
-      {/* ── Right-side FABs — matches ExpenseLedger positioning ── */}
-      <div className={`fixed right-16 top-[74%] z-40 flex flex-col gap-6 items-center transition-all duration-150 ${
+      {/* ── Right-side FABs ── */}
+      <div className={`fixed right-4 top-[50%] z-40 flex flex-col gap-4 items-center transition-all duration-150 ${
         fabVisible && !isFieldFocused ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-16 pointer-events-none'
       }`}>
         {TABS.filter(({ id }) => id !== activeTab).map(({ id, Icon, label, color, shadow }) => (
           <button key={id} onClick={() => handleTabClick(id)} title={label}
-            className={`w-14 h-14 rounded-full text-white flex items-center justify-center shadow-lg active:scale-95 transition-all ${color} shadow-${shadow}`}>
+            className={`w-14 h-14 rounded-full text-white flex flex-col items-center justify-center gap-0.5 shadow-lg active:scale-95 transition-all ${color} shadow-${shadow}`}>
             <Icon className="w-6 h-6" />
+            <span className="text-[9px] font-bold uppercase tracking-wide leading-none opacity-80">{label}</span>
           </button>
         ))}
       </div>
@@ -855,6 +858,32 @@ const JournalEntry = () => {
           )}
         </div>
       )}
+
+      {/* ── DISCIPLESHIP TAB ── */}
+      {activeTab === 'discipleship' && (
+        <div className="fixed inset-0 z-50 bg-white dark:bg-stone-900 overflow-hidden flex flex-col">
+          {/* Slim header bar with close button */}
+          <div className="shrink-0 flex items-center justify-between px-4 py-2.5 border-b border-stone-200 dark:border-stone-700 bg-white/95 dark:bg-stone-900/95 backdrop-blur-sm">
+            <div className="flex items-center gap-2">
+              <span style={{ fontSize: 18 }}>🐑</span>
+              <span className="text-xs uppercase tracking-widest text-amber-700 dark:text-amber-400 font-bold font-serif">
+                Discipleship Guide
+              </span>
+            </div>
+            <button
+              onClick={() => setActiveTab('devotional')}
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition-colors"
+              title="Close guide">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          {/* Scrollable guide content */}
+          <div className="flex-1 overflow-y-auto">
+            <DisciplesheepGuide />
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
